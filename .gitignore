@@ -1,0 +1,17 @@
+node_modules
+dist
+.env
+.env.local
+*.local
+public/videos
+.remotion
+*.log
+.DS_Store
+Thumbs.db
+
+# Archival Remotion recovery dumps (not part of the app)
+scripts/_recovery/
+scripts/recovered-assets.json
+scripts/recover-from-transcripts.mjs
+scripts/recover-catalog.mjs
+scripts/inspect-recovery.mjs
