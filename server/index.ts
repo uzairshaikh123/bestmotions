@@ -1,6 +1,7 @@
 import "dotenv/config";
 import cors from "cors";
 import express from "express";
+import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { renderRevideoVideo } from "./revideoRender.js";
@@ -8,9 +9,11 @@ import { renderRevideoVideo } from "./revideoRender.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, "..");
+const clientDist = path.join(rootDir, "dist", "client");
 
 const app = express();
 const port = Number(process.env.PORT || 3001);
+const host = process.env.HOST || "0.0.0.0";
 
 app.use(cors());
 app.use(express.json({ limit: "20mb" }));
@@ -37,6 +40,17 @@ app.post("/api/revideo-render", async (req, res) => {
   }
 });
 
-app.listen(port, () => {
-  console.log(`BestMotions server listening on http://localhost:${port}`);
+if (fs.existsSync(clientDist)) {
+  app.use(express.static(clientDist));
+  app.get("*", (req, res, next) => {
+    if (req.path.startsWith("/api") || req.path.startsWith("/videos")) {
+      next();
+      return;
+    }
+    res.sendFile(path.join(clientDist, "index.html"));
+  });
+}
+
+app.listen(port, host, () => {
+  console.log(`BestMotions server listening on http://${host}:${port}`);
 });

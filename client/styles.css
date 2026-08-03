@@ -689,8 +689,29 @@ button.danger {
   transform: translate(-50%, -50%) !important;
 }
 
+/* While playing, park the control in the corner so it doesn't cover the clip */
+.thumb-play.corner,
+.thumb-play.corner:hover,
+.thumb-play.corner.active {
+  left: auto;
+  top: auto;
+  right: 12px;
+  bottom: 12px;
+  width: 36px;
+  height: 36px;
+  transform: none !important;
+  opacity: 0.92;
+}
+
 .asset-thumb-live:hover .thumb-play:not(.active) {
   opacity: 1;
+}
+
+.asset-thumb-player .revideo-preview .relative,
+.asset-thumb-player .revideo-preview revideo-player {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 100% !important;
 }
 
 .thumb-play-icon {

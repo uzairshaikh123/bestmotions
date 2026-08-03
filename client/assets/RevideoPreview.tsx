@@ -25,8 +25,10 @@ function formatTime(seconds: number) {
 
 /**
  * Revideo preview with our own control bar.
- * Built-in @revideo/player-react controls fight global app button/CSS styles
- * and hide the scrubber — so we drive playback via the core Player API.
+ *
+ * Important: drive the package `playing` prop for real. Forcing
+ * `playing={false}` and calling togglePlayback in onPlayerReady races the
+ * web component attribute sync and pauses many gallery thumbs again.
  */
 export function RevideoPreview({
   variables,
@@ -39,18 +41,19 @@ export function RevideoPreview({
 }: Props) {
   const coreRef = useRef<CorePlayer | null>(null);
   const [ready, setReady] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(playing);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const wantPlay = useRef(playing);
 
   useEffect(() => {
     wantPlay.current = playing;
+    setIsPlaying(playing);
   }, [playing]);
 
   useEffect(() => {
     setReady(false);
-    setIsPlaying(false);
+    setIsPlaying(playing);
     setCurrentTime(0);
     setDuration(0);
     coreRef.current = null;
@@ -65,32 +68,30 @@ export function RevideoPreview({
   function handleReady(player: CorePlayer) {
     coreRef.current = player;
     setReady(true);
+    // Beat @revideo/player-react race: playing="true" before Ready clears
+    // the flag; re-assert after ready.
     if (wantPlay.current) {
-      player.togglePlayback(true);
-      setIsPlaying(true);
+      requestAnimationFrame(() => {
+        player.togglePlayback(true);
+        setIsPlaying(true);
+      });
     }
   }
 
   function togglePlay() {
-    const player = coreRef.current;
-    if (!player || !ready) return;
-    const next = !isPlaying;
-    player.togglePlayback(next);
-    setIsPlaying(next);
+    if (!ready) return;
+    setIsPlaying((prev) => !prev);
   }
 
   function seekTo(ratio: number) {
     const player = coreRef.current;
     if (!player || !ready || duration <= 0) return;
     const t = Math.max(0, Math.min(1, ratio)) * duration;
-    // seekto expects seconds; player-react uses the same custom event
     player.requestSeek(t * player.playback.fps);
     setCurrentTime(t);
   }
 
-  function onScrubPointer(
-    event: React.PointerEvent<HTMLDivElement>,
-  ) {
+  function onScrubPointer(event: React.PointerEvent<HTMLDivElement>) {
     const rect = event.currentTarget.getBoundingClientRect();
     if (rect.width <= 0) return;
     const ratio = (event.clientX - rect.left) / rect.width;
@@ -109,7 +110,7 @@ export function RevideoPreview({
         key={instanceKey}
         project={project}
         variables={stableVariables}
-        playing={false}
+        playing={isPlaying}
         controls={false}
         looping
         width={1280}

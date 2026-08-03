@@ -129,7 +129,9 @@ export function AssetGallery({
                   <span className="asset-cat">{asset.category}</span>
                   <button
                     type="button"
-                    className={playing ? "thumb-play active" : "thumb-play"}
+                    className={
+                      playing ? "thumb-play active corner" : "thumb-play"
+                    }
                     aria-label={
                       playing ? `Pause ${asset.name}` : `Play ${asset.name}`
                     }

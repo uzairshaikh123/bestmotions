@@ -402,7 +402,7 @@ export const ASSETS: AssetDefinition[] = [
     description: "Accent underline draws beneath a key phrase.",
     category: "books",
     accent: "#e63946",
-    template: "text-underline",
+    template: "book-text-underline",
     durationInFrames: 130,
     fields: [
       { key: "chapter", label: "Chapter", type: "text" },
