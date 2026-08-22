@@ -14,4 +14,6 @@ services:
         value: "20"
       - key: HOST
         value: "0.0.0.0"
+      - key: FEATURE_VIDEO_SOUND
+        value: "false"
       # PORT is provided by Render automatically

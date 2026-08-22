@@ -39,12 +39,12 @@ app.put("/api/admin/feature-flags", (req, res) => {
     return;
   }
   const key = String(req.body?.key || "");
-  const enabled = Boolean(req.body?.enabled);
   if (!key) {
     res.status(400).json({ error: "key required" });
     return;
   }
-  res.json(setFlagEnabled(key, enabled));
+  // Env-backed flags cannot be mutated at runtime.
+  res.status(405).json(setFlagEnabled(key, Boolean(req.body?.enabled)));
 });
 
 /** Render a Revideo scene (with variables) to MP4. Rejects after RENDER_TIMEOUT_MS (default 15s). */
