@@ -1,543 +1,630 @@
 /** @jsxImportSource @revideo/2d/lib */
+import { Circle, Img, Layout, Rect, Txt } from "@revideo/2d";
 import {
   all,
-  bigStat,
   createRef,
   easeOutBack,
   easeOutCubic,
-  Layout,
-  lowerThird,
-  paperCard,
-  Rect,
   str,
-  titleSlam,
-  Txt,
   waitFor,
 } from "../../lib/helpers";
+import { blendPhrase, paintBlend } from "../../lib/highlight";
+import { itemDelays, pause, timing } from "../../lib/timing";
 
-function* playStyle(
-  view: any,
-  style: string,
-  p: {
-    title: string;
-    subtitle: string;
-    body: string;
-    value: string;
-    eyebrow: string;
-    accent: string;
-    bg: string;
-    category: string;
-    id: string;
-  },
-) {
-  if (style === "stat") {
-    yield* bigStat(view, {
-      label: p.eyebrow || p.subtitle,
-      value: p.value || p.title,
-      detail: p.subtitle,
-      accent: p.accent,
-      bg: p.bg,
-    });
-    return;
-  }
-  if (style === "lower") {
-    yield* lowerThird(view, {
-      name: p.title,
-      title: p.subtitle,
-      accent: p.accent,
-      bg: p.bg,
-    });
-    return;
-  }
-  if (style === "paper" || style === "quote") {
-    yield* paperCard(view, {
-      eyebrow: p.eyebrow,
-      body: style === "quote" ? `“${p.body || p.title}”` : p.body || p.title,
-      highlight: p.subtitle,
-      accent: p.accent,
-      bg: p.bg,
-    });
-    return;
-  }
-  if (style === "fire") {
-    yield* fireScene(view, p);
-    return;
-  }
-  if (style === "timeline") {
-    yield* timelineScene(view, p);
-    return;
-  }
-  if (style === "map") {
-    yield* mapScene(view, p);
-    return;
-  }
-  if (style === "chart") {
-    yield* chartScene(view, p);
-    return;
-  }
-  if (style === "photo") {
-    yield* photoScene(view, p);
-    return;
-  }
-  if (style === "ui") {
-    yield* uiScene(view, p);
-    return;
-  }
-  if (style === "india") {
-    yield* indiaScene(view, p);
-    return;
-  }
-  yield* titleSlam(view, {
-    eyebrow: p.eyebrow,
-    title: p.title,
-    subtitle: p.subtitle,
-    accent: p.accent,
-    bg: p.bg,
-  });
+const DEFAULT_FONT = "Libre Baskerville, Georgia, serif";
+const INK = "#171310";
+const PAPER = "#f2e8d4";
+
+function font() {
+  return str("fontFamily", DEFAULT_FONT);
 }
 
-function* fireScene(view: any, p: any) {
-  view.fill(p.bg);
-  const tongues = Array.from({ length: 7 }, () => createRef<Rect>());
-  for (let i = 0; i < tongues.length; i++) {
-    const w = 28 + (i % 3) * 10;
-    yield view.add(
-      <Rect
-        ref={tongues[i]}
-        width={w}
-        height={80 + i * 12}
-        fill={i % 2 ? p.accent : "#ffb703"}
-        radius={40}
-        x={-90 + i * 30}
-        y={180}
-        opacity={0}
-      />,
-    );
-  }
-  const title = createRef<Txt>();
-  yield view.add(
-    <Txt
-      ref={title}
-      text={p.title}
-      fill={"#fff5e6"}
-      fontFamily={"Libre Baskerville, Georgia, serif"}
-      fontSize={42}
-      fontWeight={700}
-      y={-180}
-      opacity={0}
-    />,
+function photo(src: string, w: number, h: number, fill = "#1a2433") {
+  return src ? (
+    <Img src={src} width={w} height={h} />
+  ) : (
+    <Rect width={w} height={h} fill={fill} />
   );
-  yield* title().opacity(1, 0.35, easeOutCubic);
-  for (let i = 0; i < tongues.length; i++) {
-    yield* all(
-      tongues[i]().opacity(0.85, 0.2, easeOutCubic),
-      tongues[i]().y(120 - i * 8, 0.45, easeOutBack),
-    );
-  }
-  for (let k = 0; k < 3; k++) {
-    yield* all(
-      ...tongues.map((t, i) =>
-        t().height(90 + ((i + k) % 4) * 18, 0.25, easeOutCubic),
-      ),
-    );
-  }
-  if (p.subtitle) {
-    const sub = createRef<Txt>();
-    yield view.add(
-      <Txt
-        ref={sub}
-        text={p.subtitle}
-        fill={"#ffd6a5"}
-        fontFamily={"Libre Baskerville, Georgia, serif"}
-        fontSize={20}
-        y={260}
-        opacity={0}
-      />,
-    );
-    yield* sub().opacity(1, 0.35, easeOutCubic);
-  }
-  yield* waitFor(1.4);
 }
 
-function* timelineScene(view: any, p: any) {
-  view.fill(p.bg);
-  const rail = createRef<Rect>();
+function* kenBurns(view: any) {
+  const src = str("imageUrl", "");
+  const caption = str("caption", "A moment that shaped the decade");
+  const highlight = str("highlight", "decade");
+  const accent = str("accent", "#d8a11a");
+  const marker = str("markerColor", "#FAFF00");
+  const bg = str("bg", "#07080c");
+  const typeface = font();
+  const t = timing();
+  view.fill(bg);
+
+  const frame = createRef<Layout>();
+  const cap = createRef<Layout>();
+  const mark = createRef<Rect>();
   yield view.add(
-    <Rect ref={rail} width={0} height={4} fill={p.accent} y={40} opacity={0.9} />,
+    <Layout ref={frame} y={-40} scale={1.14} opacity={0}>
+      {photo(src, 920, 460, "#1a2433")}
+      <Rect width={920} height={460} fill={null} stroke={accent} lineWidth={2} />
+    </Layout>,
   );
-  yield* rail().width(900, 0.8, easeOutCubic);
-  const nodes = [ -300, -100, 100, 300 ];
-  for (let i = 0; i < nodes.length; i++) {
-    const n = createRef<Rect>();
-    const label = createRef<Txt>();
-    yield view.add(
-      <Rect
-        ref={n}
-        width={18}
-        height={18}
-        radius={9}
-        fill={p.accent}
-        x={nodes[i]}
-        y={40}
-        scale={0}
-      />,
-    );
-    yield view.add(
-      <Txt
-        ref={label}
-        text={i === 0 ? p.title : `Step ${i + 1}`}
-        fill={"#e8eef6"}
-        fontFamily={"Libre Baskerville, Georgia, serif"}
-        fontSize={i === 0 ? 22 : 16}
-        x={nodes[i]}
-        y={i % 2 === 0 ? -40 : 100}
-        opacity={0}
-        width={180}
-        textAlign={"center"}
-        textWrap
-      />,
-    );
-    yield* all(
-      n().scale(1, 0.35, easeOutBack),
-      label().opacity(1, 0.3, easeOutCubic),
-    );
-  }
-  yield* waitFor(1.6);
+  yield view.add(
+    <Layout ref={cap} y={280} opacity={0}>
+      {blendPhrase(caption, highlight, mark, {
+        font: typeface,
+        size: 22,
+        fill: "#ffffff",
+        marker,
+        width: 980,
+        align: "center",
+      })}
+    </Layout>,
+  );
+
+  yield* pause(t.startDelay);
+  yield* frame().opacity(1, t.revealDuration, easeOutCubic);
+  yield* frame().scale(1, Math.max(t.lineDuration * 2.2, 1.6), easeOutCubic);
+  yield* pause(t.stepDelay);
+  yield* cap().opacity(1, t.revealDuration, easeOutCubic);
+  yield* pause(t.connectDelay);
+  yield* paintBlend(mark, highlight, 22, t.lineDuration);
+  yield* waitFor(1.1);
 }
 
-function* mapScene(view: any, p: any) {
-  view.fill(p.bg);
-  const globe = createRef<Rect>();
-  const arc = createRef<Rect>();
-  const title = createRef<Txt>();
+function* personCard(view: any) {
+  const src = str("imageUrl", "");
+  const name = str("name", "Alex Morgan");
+  const role = str("role", "Policy Analyst");
+  const quote = str("quote", "The numbers tell a different story");
+  const highlight = str("highlight", "different story");
+  const accent = str("accent", "#d8a11a");
+  const marker = str("markerColor", "#FAFF00");
+  const bg = str("bg", "#07080c");
+  const typeface = font();
+  const t = timing();
+  view.fill(bg);
+
+  const extra = itemDelays(4);
+  const portrait = createRef<Layout>();
+  const nameRef = createRef<Txt>();
+  const roleRef = createRef<Txt>();
+  const quoteRef = createRef<Layout>();
+  const rule = createRef<Rect>();
+  const mark = createRef<Rect>();
   yield view.add(
-    <Rect
-      ref={globe}
-      width={320}
-      height={320}
-      radius={160}
-      fill={"#123048"}
-      stroke={p.accent}
-      lineWidth={3}
-      opacity={0}
-      y={20}
-    />,
-  );
-  yield view.add(
-    <Rect
-      ref={arc}
-      width={0}
-      height={4}
-      fill={p.accent}
-      y={-40}
-      x={-80}
-      radius={2}
-    />,
+    <Layout ref={portrait} y={-90} scale={0}>
+      <Rect width={280} height={340} clip>
+        {photo(src, 280, 340)}
+      </Rect>
+      <Rect width={8} height={340} fill={accent} x={-144} />
+    </Layout>,
   );
   yield view.add(
     <Txt
-      ref={title}
-      text={p.title}
-      fill={"#e8f0ea"}
-      fontFamily={"Libre Baskerville, Georgia, serif"}
-      fontSize={36}
-      fontWeight={700}
-      x={-280}
-      y={-220}
-      opacity={0}
-      width={500}
-      textWrap
-    />,
-  );
-  yield* all(
-    globe().opacity(1, 0.5, easeOutCubic),
-    title().opacity(1, 0.4, easeOutCubic),
-  );
-  yield* arc().width(220, 1.1, easeOutCubic);
-  if (p.subtitle) {
-    const sub = createRef<Txt>();
-    yield view.add(
-      <Txt
-        ref={sub}
-        text={p.subtitle}
-        fill={p.accent}
-        fontFamily={"Libre Baskerville, Georgia, serif"}
-        fontSize={18}
-        x={-280}
-        y={-170}
-        opacity={0}
-      />,
-    );
-    yield* sub().opacity(1, 0.35, easeOutCubic);
-  }
-  yield* waitFor(1.5);
-}
-
-function* chartScene(view: any, p: any) {
-  view.fill(p.bg);
-  const title = createRef<Txt>();
-  yield view.add(
-    <Txt
-      ref={title}
-      text={p.title}
-      fill={"#f4f0e6"}
-      fontFamily={"Libre Baskerville, Georgia, serif"}
+      ref={nameRef}
+      text={name}
+      fill={"#ffffff"}
+      fontFamily={typeface}
       fontSize={32}
       fontWeight={700}
-      y={-240}
+      y={140}
       opacity={0}
     />,
   );
-  yield* title().opacity(1, 0.3, easeOutCubic);
-  const heights = [120, 200, 160, 260, 180];
-  for (let i = 0; i < heights.length; i++) {
-    const bar = createRef<Rect>();
-    yield view.add(
-      <Rect
-        ref={bar}
-        width={70}
-        height={1}
-        fill={i % 2 ? p.accent : "#5ce1ff"}
-        x={-200 + i * 100}
-        y={200}
-        radius={4}
-      />,
-    );
-    yield* all(
-      bar().height(heights[i], 0.35, easeOutBack),
-      bar().y(200 - heights[i] / 2, 0.35, easeOutBack),
-    );
-  }
-  yield* waitFor(1.6);
+  yield view.add(
+    <Txt ref={roleRef} text={role} fill={accent} fontFamily={typeface} fontSize={16} y={178} opacity={0} />,
+  );
+  yield view.add(<Rect ref={rule} width={0} height={4} fill={accent} y={210} />);
+  yield view.add(
+    <Layout ref={quoteRef} y={250} opacity={0}>
+      {blendPhrase(`“${quote}”`, highlight, mark, {
+        font: typeface,
+        size: 20,
+        fill: "#c5d4de",
+        marker,
+        width: 900,
+        align: "center",
+      })}
+    </Layout>,
+  );
+
+  yield* pause(t.startDelay);
+  yield* pause(extra[0]);
+  yield* portrait().scale(1, t.revealDuration, easeOutBack);
+  yield* pause(t.stepDelay);
+  yield* pause(extra[1]);
+  yield* nameRef().opacity(1, t.revealDuration, easeOutCubic);
+  yield* roleRef().opacity(1, t.revealDuration, easeOutCubic);
+  yield* pause(t.connectDelay);
+  yield* rule().width(220, t.lineDuration, easeOutCubic);
+  yield* pause(extra[2]);
+  yield* quoteRef().opacity(1, t.revealDuration, easeOutCubic);
+  yield* pause(extra[3]);
+  yield* paintBlend(mark, highlight, 20, t.lineDuration);
+  yield* waitFor(1.2);
 }
 
-function* photoScene(view: any, p: any) {
-  view.fill(p.bg);
-  const frame = createRef<Rect>();
-  const title = createRef<Txt>();
+function* beforeAfter(view: any) {
+  const beforeSrc = str("beforeImage", "");
+  const afterSrc = str("afterImage", "");
+  const beforeLabel = str("beforeLabel", "Before");
+  const afterLabel = str("afterLabel", "After");
+  const accent = str("accent", "#d8a11a");
+  const bg = str("bg", "#07080c");
+  const typeface = font();
+  const t = timing();
+  view.fill(bg);
+
+  const w = 960;
+  const h = 480;
+  const wrap = createRef<Layout>();
+  const cover = createRef<Layout>();
+  const divider = createRef<Rect>();
+  const beforeTxt = createRef<Txt>();
+  const afterTxt = createRef<Txt>();
   yield view.add(
-    <Rect
-      ref={frame}
-      width={640}
-      height={360}
-      fill={"#1a2a28"}
-      stroke={p.accent}
-      lineWidth={2}
-      y={20}
-      scale={1.08}
+    <Layout ref={wrap} y={-10}>
+      {photo(afterSrc, w, h, "#1a2433")}
+      <Layout ref={cover} width={w} height={h} clip>
+        {photo(beforeSrc, w, h, "#2a1810")}
+      </Layout>
+      <Rect ref={divider} width={4} height={h} fill={accent} x={w / 2} />
+    </Layout>,
+  );
+  yield view.add(
+    <Txt
+      ref={beforeTxt}
+      text={beforeLabel}
+      fill={"#ffffff"}
+      fontFamily={typeface}
+      fontSize={18}
+      y={-300}
       opacity={0}
     />,
   );
   yield view.add(
     <Txt
-      ref={title}
-      text={p.title}
-      fill={"#f4f0e6"}
-      fontFamily={"Libre Baskerville, Georgia, serif"}
-      fontSize={34}
-      fontWeight={700}
-      y={-240}
+      ref={afterTxt}
+      text={afterLabel}
+      fill={accent}
+      fontFamily={typeface}
+      fontSize={18}
+      y={300}
       opacity={0}
     />,
   );
+
+  yield* pause(t.startDelay);
+  yield* beforeTxt().opacity(1, t.revealDuration, easeOutCubic);
+  yield* pause(t.connectDelay);
   yield* all(
-    frame().opacity(1, 0.45, easeOutCubic),
-    frame().scale(1, 2.2, easeOutCubic),
-    title().opacity(1, 0.4, easeOutCubic),
+    cover().width(0, t.lineDuration, easeOutCubic),
+    cover().x(-w / 2, t.lineDuration, easeOutCubic),
+    divider().x(0, t.lineDuration, easeOutCubic),
   );
+  yield* pause(t.stepDelay);
+  yield* afterTxt().opacity(1, t.revealDuration, easeOutCubic);
+  yield* waitFor(1.2);
+}
+
+/** Newspaper slides from the left; customizable portrait from the right; blend-highlight keeps type readable. */
+function* newsMeet(view: any) {
+  const src = str("imageUrl", "");
+  const name = str("name", "Alex Morgan");
+  const role = str("role", "Witness");
+  const masthead = str("masthead", "THE DAILY RECORD");
+  const date = str("date", "Monday, August 18, 2026");
+  const headline = str("headline", "A defining moment for the nation");
+  const body = str(
+    "body",
+    "Leaders gathered as the story broke. What followed would rewrite the official account.",
+  );
+  const highlight = str("highlight", "defining moment");
+  const accent = str("accent", "#c1121f");
+  const marker = str("markerColor", "#FAFF00");
+  const ink = str("ink", INK);
+  const bg = str("bg", "#0a0c12");
+  const typeface = font();
+  const t = timing();
+  const extra = itemDelays(3);
+  view.fill(bg);
+
+  const paper = createRef<Rect>();
+  const portrait = createRef<Layout>();
+  const mark = createRef<Rect>();
+
+  yield view.add(
+    <Rect
+      ref={paper}
+      width={620}
+      height={500}
+      fill={PAPER}
+      radius={3}
+      shadowColor={"#00000099"}
+      shadowBlur={40}
+      shadowOffsetY={18}
+      x={-980}
+      y={8}
+      rotation={-3}
+      layout
+      direction={"column"}
+      gap={14}
+      padding={36}
+      alignItems={"start"}
+    >
+      <Txt
+        text={masthead}
+        fill={accent}
+        fontFamily={typeface}
+        fontSize={16}
+        letterSpacing={5}
+        fontWeight={700}
+      />
+      <Txt text={date} fill={"#6a5f52"} fontFamily={typeface} fontSize={13} />
+      <Rect width={548} height={2} fill={"#c9b89a"} />
+      {blendPhrase(headline, highlight, mark, {
+        font: typeface,
+        size: 28,
+        fill: ink,
+        marker,
+        weight: 700,
+        width: 548,
+      })}
+      <Txt text={body} fill={"#3d342c"} fontFamily={typeface} fontSize={16} width={548} textWrap />
+    </Rect>,
+  );
+
+  yield view.add(
+    <Layout ref={portrait} x={980} y={24} rotation={5}>
+      <Rect
+        width={288}
+        height={388}
+        fill={"#f4efe6"}
+        padding={14}
+        layout
+        direction={"column"}
+        gap={10}
+        shadowColor={"#000000aa"}
+        shadowBlur={32}
+        shadowOffsetY={16}
+      >
+        <Rect width={260} height={300} clip>
+          {photo(src, 260, 300, "#2a2420")}
+        </Rect>
+        <Txt text={name} fill={INK} fontFamily={typeface} fontSize={18} fontWeight={700} />
+        <Txt text={role.toUpperCase()} fill={accent} fontFamily={typeface} fontSize={12} letterSpacing={2} />
+      </Rect>
+    </Layout>,
+  );
+
+  yield* pause(t.startDelay);
+  yield* pause(extra[0]);
+  yield* paper().x(-90, t.revealDuration, easeOutCubic);
+  yield* pause(t.stepDelay);
+  yield* pause(extra[1]);
+  yield* all(
+    portrait().x(310, t.revealDuration, easeOutCubic),
+    portrait().rotation(3, t.revealDuration, easeOutCubic),
+  );
+  yield* pause(t.connectDelay);
+  yield* pause(extra[2]);
+  yield* paintBlend(mark, highlight, 28, t.lineDuration);
   yield* waitFor(1.4);
 }
 
-function* uiScene(view: any, p: any) {
-  view.fill(p.bg);
-  if (p.id.includes("ticker") || p.id.includes("news-ticker")) {
-    const strip = createRef<Rect>();
-    const txt = createRef<Txt>();
-    yield view.add(
-      <Rect ref={strip} width={1280} height={56} fill={p.accent} y={280} x={400} />,
-    );
-    yield view.add(
-      <Txt
-        ref={txt}
-        text={p.title + "   ·   " + p.subtitle}
-        fill={"#0a0c12"}
-        fontFamily={"Libre Baskerville, Georgia, serif"}
-        fontSize={22}
-        fontWeight={700}
-        y={280}
-        x={400}
-      />,
-    );
-    yield* all(
-      strip().x(0, 1.2, easeOutCubic),
-      txt().x(0, 1.2, easeOutCubic),
-    );
-    yield* waitFor(1.5);
-    return;
-  }
-  if (p.id.includes("bullet")) {
-    const lines = [p.title, p.subtitle, p.body].filter(Boolean);
-    for (let i = 0; i < Math.min(lines.length, 4); i++) {
-      const row = createRef<Layout>();
-      yield view.add(
-        <Layout
-          ref={row}
-          layout
-          direction={"row"}
-          gap={16}
-          alignItems={"center"}
-          x={-200}
-          y={-80 + i * 70}
-          opacity={0}
-        >
-          <Rect width={14} height={14} fill={p.accent} radius={7} />
-          <Txt
-            text={lines[i]}
-            fill={"#f4f0e6"}
-            fontFamily={"Libre Baskerville, Georgia, serif"}
-            fontSize={28}
-            width={700}
-            textWrap
-          />
-        </Layout>,
-      );
-      yield* all(
-        row().opacity(1, 0.3, easeOutCubic),
-        row().x(-160, 0.4, easeOutCubic),
-      );
-    }
-    yield* waitFor(1.4);
-    return;
-  }
-  const btn = createRef<Rect>();
+/** Polaroid drops from above, settles, then a blended caption highlight. */
+function* polaroidDrop(view: any) {
+  const src = str("imageUrl", "");
+  const caption = str("caption", "The night everything changed");
+  const highlight = str("highlight", "everything changed");
+  const name = str("name", "Field note");
+  const accent = str("accent", "#e63946");
+  const marker = str("markerColor", "#FAFF00");
+  const bg = str("bg", "#090b10");
+  const typeface = font();
+  const t = timing();
+  view.fill(bg);
+
+  const card = createRef<Rect>();
+  const cap = createRef<Layout>();
+  const mark = createRef<Rect>();
   yield view.add(
     <Rect
-      ref={btn}
-      width={280}
-      height={64}
-      fill={p.accent}
-      radius={8}
+      ref={card}
+      width={420}
+      height={500}
+      fill={"#f7f1e4"}
+      y={-640}
+      rotation={12}
+      shadowColor={"#000000aa"}
+      shadowBlur={36}
+      shadowOffsetY={20}
       layout
+      direction={"column"}
+      padding={22}
+      gap={16}
       alignItems={"center"}
-      justifyContent={"center"}
-      scale={0.7}
-      opacity={0}
     >
-      <Txt
-        text={p.title}
-        fill={"#0a0c12"}
-        fontFamily={"Libre Baskerville, Georgia, serif"}
-        fontSize={22}
-        fontWeight={700}
-      />
+      <Rect width={376} height={360} clip>
+        {photo(src, 376, 360, "#2a2420")}
+      </Rect>
+      <Txt text={name} fill={accent} fontFamily={typeface} fontSize={13} letterSpacing={3} />
     </Rect>,
   );
-  yield* all(
-    btn().opacity(1, 0.35, easeOutCubic),
-    btn().scale(1, 0.55, easeOutBack),
+  yield view.add(
+    <Layout ref={cap} y={300} opacity={0}>
+      {blendPhrase(caption, highlight, mark, {
+        font: typeface,
+        size: 24,
+        fill: "#f4efe6",
+        marker,
+        width: 900,
+        align: "center",
+      })}
+    </Layout>,
   );
-  yield* waitFor(1.8);
+
+  yield* pause(t.startDelay);
+  yield* all(
+    card().y(-36, t.revealDuration, easeOutBack),
+    card().rotation(-4, t.revealDuration, easeOutCubic),
+  );
+  yield* pause(t.stepDelay);
+  yield* cap().opacity(1, t.revealDuration, easeOutCubic);
+  yield* pause(t.connectDelay);
+  yield* paintBlend(mark, highlight, 24, t.lineDuration);
+  yield* waitFor(1.2);
 }
 
-function* indiaScene(view: any, p: any) {
-  view.fill(p.bg);
-  const saffron = createRef<Rect>();
-  const white = createRef<Rect>();
-  const green = createRef<Rect>();
-  const chakra = createRef<Rect>();
-  const title = createRef<Txt>();
-  yield view.add(<Rect ref={saffron} width={0} height={70} fill={"#FF9933"} y={-70} />);
-  yield view.add(<Rect ref={white} width={0} height={70} fill={"#ffffff"} y={0} />);
-  yield view.add(<Rect ref={green} width={0} height={70} fill={"#138808"} y={70} />);
+/** Two photos slam in from opposite sides; center caption gets a blend highlight. */
+function* splitMeet(view: any) {
+  const leftSrc = str("leftImage", "");
+  const rightSrc = str("rightImage", str("imageUrl", ""));
+  const leftLabel = str("leftLabel", "Then");
+  const rightLabel = str("rightLabel", "Now");
+  const caption = str("caption", "The same room. Two different stories.");
+  const highlight = str("highlight", "different stories");
+  const accent = str("accent", "#d8a11a");
+  const marker = str("markerColor", "#FAFF00");
+  const bg = str("bg", "#07080c");
+  const typeface = font();
+  const t = timing();
+  view.fill(bg);
+
+  const left = createRef<Layout>();
+  const right = createRef<Layout>();
+  const bar = createRef<Rect>();
+  const cap = createRef<Layout>();
+  const mark = createRef<Rect>();
+
+  yield view.add(
+    <Layout ref={left} x={-860} y={-20}>
+      <Rect width={470} height={520} clip>
+        {photo(leftSrc, 470, 520, "#1c1814")}
+      </Rect>
+      <Txt
+        text={leftLabel}
+        fill={"#ffffff"}
+        fontFamily={typeface}
+        fontSize={18}
+        y={280}
+      />
+    </Layout>,
+  );
+  yield view.add(
+    <Layout ref={right} x={860} y={-20}>
+      <Rect width={470} height={520} clip>
+        {photo(rightSrc, 470, 520, "#141820")}
+      </Rect>
+      <Txt
+        text={rightLabel}
+        fill={"#ffffff"}
+        fontFamily={typeface}
+        fontSize={18}
+        y={280}
+      />
+    </Layout>,
+  );
+  yield view.add(<Rect ref={bar} width={8} height={0} fill={accent} y={-20} />);
+  yield view.add(
+    <Layout ref={cap} y={310} opacity={0}>
+      {blendPhrase(caption, highlight, mark, {
+        font: typeface,
+        size: 22,
+        fill: "#f4efe6",
+        marker,
+        width: 980,
+        align: "center",
+      })}
+    </Layout>,
+  );
+
+  yield* pause(t.startDelay);
+  yield* all(
+    left().x(-250, t.revealDuration, easeOutCubic),
+    right().x(250, t.revealDuration, easeOutCubic),
+  );
+  yield* pause(t.connectDelay);
+  yield* bar().height(360, t.lineDuration, easeOutCubic);
+  yield* pause(t.stepDelay);
+  yield* cap().opacity(1, t.revealDuration, easeOutCubic);
+  yield* paintBlend(mark, highlight, 22, t.lineDuration);
+  yield* waitFor(1.2);
+}
+
+/** Full-bleed image slides from the right; caption plate rises with a blend highlight. */
+function* overlayCaption(view: any) {
+  const src = str("imageUrl", "");
+  const kicker = str("kicker", "ON THE GROUND");
+  const caption = str("caption", "Crowds filled the avenue as night fell");
+  const highlight = str("highlight", "night fell");
+  const accent = str("accent", "#e63946");
+  const marker = str("markerColor", "#FAFF00");
+  const bg = str("bg", "#05070b");
+  const typeface = font();
+  const t = timing();
+  view.fill(bg);
+
+  const plateRef = createRef<Layout>();
+  const bar = createRef<Layout>();
+  const mark = createRef<Rect>();
+  yield view.add(
+    <Layout ref={plateRef} x={1280} scale={1.08}>
+      {photo(src, 1200, 640, "#1c1814")}
+    </Layout>,
+  );
+  yield view.add(
+    <Layout ref={bar} y={420} x={-40} layout direction={"column"} gap={10} alignItems={"start"} width={820}>
+      <Rect width={10} height={86} fill={accent} x={-420} />
+      <Txt
+        text={kicker}
+        fill={accent}
+        fontFamily={typeface}
+        fontSize={14}
+        letterSpacing={6}
+        fontWeight={700}
+      />
+      {blendPhrase(caption, highlight, mark, {
+        font: typeface,
+        size: 28,
+        fill: "#ffffff",
+        marker,
+        weight: 700,
+        width: 780,
+        align: "start",
+      })}
+    </Layout>,
+  );
+
+  yield* pause(t.startDelay);
+  yield* all(
+    plateRef().x(0, t.revealDuration, easeOutCubic),
+    plateRef().scale(1, t.lineDuration * 2.4, easeOutCubic),
+  );
+  yield* pause(t.stepDelay);
+  yield* bar().y(230, t.revealDuration, easeOutCubic);
+  yield* pause(t.connectDelay);
+  yield* paintBlend(mark, highlight, 28, t.lineDuration);
+  yield* waitFor(1.2);
+}
+
+/** News clipping from the left, portrait from the right, pin drop, then blend highlight. */
+function* pinBoard(view: any) {
+  const src = str("imageUrl", "");
+  const name = str("name", "Unknown Subject");
+  const headline = str("headline", "The meeting nobody recorded");
+  const highlight = str("highlight", "nobody recorded");
+  const detail = str("detail", "Filed, stamped, and forgotten — until tonight.");
+  const accent = str("accent", "#e63946");
+  const marker = str("markerColor", "#FAFF00");
+  const bg = str("bg", "#0c1016");
+  const typeface = font();
+  const t = timing();
+  const extra = itemDelays(3);
+  view.fill(bg);
+
+  const clip = createRef<Rect>();
+  const portrait = createRef<Layout>();
+  const pin = createRef<Circle>();
+  const string = createRef<Rect>();
+  const mark = createRef<Rect>();
+
   yield view.add(
     <Rect
-      ref={chakra}
-      width={48}
-      height={48}
-      radius={24}
-      stroke={"#000080"}
-      lineWidth={3}
-      y={0}
-      scale={0}
-    />,
+      ref={clip}
+      width={540}
+      height={360}
+      fill={PAPER}
+      x={-980}
+      y={-30}
+      rotation={-6}
+      shadowBlur={28}
+      shadowColor={"#00000088"}
+      layout
+      direction={"column"}
+      gap={12}
+      padding={32}
+      alignItems={"start"}
+    >
+      <Txt
+        text={"ARCHIVE CLIPPING"}
+        fill={accent}
+        fontFamily={typeface}
+        fontSize={12}
+        letterSpacing={4}
+        fontWeight={700}
+      />
+      {blendPhrase(headline, highlight, mark, {
+        font: typeface,
+        size: 26,
+        fill: INK,
+        marker,
+        weight: 700,
+        width: 476,
+      })}
+      <Txt text={detail} fill={"#4a4038"} fontFamily={typeface} fontSize={16} width={476} textWrap />
+    </Rect>,
   );
+
   yield view.add(
-    <Txt
-      ref={title}
-      text={p.title}
-      fill={"#f4f0e6"}
-      fontFamily={"Libre Baskerville, Georgia, serif"}
-      fontSize={36}
-      fontWeight={700}
-      y={-220}
-      opacity={0}
-    />,
+    <Layout ref={portrait} x={980} y={40} rotation={8}>
+      <Rect width={260} height={320} clip shadowBlur={24} shadowColor={"#00000088"}>
+        {photo(src, 260, 320, "#242018")}
+      </Rect>
+      <Txt
+        text={name}
+        fill={"#f4efe6"}
+        fontFamily={typeface}
+        fontSize={16}
+        fontWeight={700}
+        y={186}
+      />
+    </Layout>,
   );
-  yield* title().opacity(1, 0.3, easeOutCubic);
-  yield* all(
-    saffron().width(720, 0.45, easeOutCubic),
-    white().width(720, 0.45, easeOutCubic),
-    green().width(720, 0.45, easeOutCubic),
-  );
-  yield* chakra().scale(1, 0.45, easeOutBack);
-  yield* waitFor(1.6);
+
+  yield view.add(<Rect ref={string} width={0} height={3} fill={accent} y={-80} rotation={-12} />);
+  yield view.add(<Circle ref={pin} size={22} fill={accent} y={-280} x={20} />);
+
+  yield* pause(t.startDelay);
+  yield* pause(extra[0]);
+  yield* clip().x(-220, t.revealDuration, easeOutCubic);
+  yield* pause(t.stepDelay);
+  yield* pause(extra[1]);
+  yield* all(portrait().x(300, t.revealDuration, easeOutCubic), portrait().rotation(4, t.revealDuration, easeOutCubic));
+  yield* pause(t.connectDelay);
+  yield* pin().y(-90, t.revealDuration, easeOutBack);
+  yield* string().width(280, t.lineDuration, easeOutCubic);
+  yield* pause(extra[2]);
+  yield* paintBlend(mark, highlight, 26, t.lineDuration);
+  yield* waitFor(1.3);
 }
 
 export function* runPhotos(view: any, template: string) {
   switch (template) {
-    case "photo-kenburns": {
-      const accent = str("accent", "#d8a11a");
-      const bg = str("bg", "#0a0c12");
-      const title = str("title", "Photo Ken Burns");
-      const subtitle = str("caption", "A moment that shaped the decade");
-      const body = str("text", "Swap the photo, caption, and which words get underlined.");
-      const value = str("value", "42");
-      const eyebrow = str("eyebrow", "PHOTOS");
-      yield* playStyle(view, "fire", {
-        title, subtitle, body, value, eyebrow, accent, bg,
-        category: "photos",
-        id: "photo-kenburns",
-      });
+    case "photo-kenburns":
+      yield* kenBurns(view);
       break;
-    }
-    case "person-card": {
-      const accent = str("accent", "#d8a11a");
-      const bg = str("bg", "#0a0c12");
-      const title = str("name", "Alex Morgan");
-      const subtitle = str("subtitle", "Portrait + name + quote — change photo and highlight words.");
-      const body = str("quote", "The numbers tell a different story");
-      const value = str("value", "42");
-      const eyebrow = str("eyebrow", "PHOTOS");
-      yield* playStyle(view, "lower", {
-        title, subtitle, body, value, eyebrow, accent, bg,
-        category: "photos",
-        id: "person-card",
-      });
+    case "person-card":
+      yield* personCard(view);
       break;
-    }
-    case "before-after": {
-      const accent = str("accent", "#d8a11a");
-      const bg = str("bg", "#0a0c12");
-      const title = str("title", "Before / after wipe");
-      const subtitle = str("subtitle", "Two photos with an animated wipe reveal.");
-      const body = str("text", "Two photos with an animated wipe reveal.");
-      const value = str("value", "42");
-      const eyebrow = str("eyebrow", "PHOTOS");
-      yield* playStyle(view, "photo", {
-        title, subtitle, body, value, eyebrow, accent, bg,
-        category: "photos",
-        id: "before-after",
-      });
+    case "before-after":
+      yield* beforeAfter(view);
       break;
-    }
-    default: {
-      yield* titleSlam(view, {
-        eyebrow: "PHOTOS",
-        title: str("title", "BestMotions"),
-        subtitle: str("subtitle", ""),
-        accent: str("accent", "#e63946"),
-        bg: str("bg", "#0a0c12"),
-      });
-    }
+    case "photo-news-meet":
+      yield* newsMeet(view);
+      break;
+    case "photo-polaroid":
+      yield* polaroidDrop(view);
+      break;
+    case "photo-split":
+      yield* splitMeet(view);
+      break;
+    case "photo-overlay":
+      yield* overlayCaption(view);
+      break;
+    case "photo-pin":
+      yield* pinBoard(view);
+      break;
+    default:
+      yield* kenBurns(view);
   }
 }

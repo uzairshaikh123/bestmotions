@@ -9,6 +9,7 @@ export function App() {
   const initial = readAppUrl();
   const [tab, setTab] = useState<AppTab>(initial.tab);
   const [assetCategory, setAssetCategory] = useState(initial.category);
+  const [chartSubcategory, setChartSubcategory] = useState(initial.subcategory);
   const [assetQuery, setAssetQuery] = useState(initial.q);
   const [selectedAsset, setSelectedAsset] = useState<AssetDefinition | null>(
     () => (initial.assetId ? getAssetById(initial.assetId) || null : null),
@@ -20,18 +21,20 @@ export function App() {
       {
         tab,
         category: assetCategory,
+        subcategory: chartSubcategory,
         q: assetQuery,
         assetId: tab === "assets" ? (selectedAsset?.id ?? null) : null,
       },
       "replace",
     );
-  }, [tab, assetCategory, assetQuery, selectedAsset]);
+  }, [tab, assetCategory, chartSubcategory, assetQuery, selectedAsset]);
 
   useEffect(() => {
     function onPopState() {
       const next = readAppUrl();
       setTab(next.tab);
       setAssetCategory(next.category);
+      setChartSubcategory(next.subcategory);
       setAssetQuery(next.q);
       setSelectedAsset(next.assetId ? getAssetById(next.assetId) || null : null);
       if (next.assetId) setLastAssetId(next.assetId);
@@ -49,11 +52,19 @@ export function App() {
       {
         tab: next,
         category: assetCategory,
+        subcategory: chartSubcategory,
         q: assetQuery,
         assetId: null,
       },
       "push",
     );
+  }
+
+  function changeAssetCategory(category: string) {
+    setAssetCategory(category);
+    if (category !== "charts") {
+      setChartSubcategory("all");
+    }
   }
 
   function openAsset(asset: AssetDefinition) {
@@ -64,6 +75,7 @@ export function App() {
       {
         tab: "assets",
         category: assetCategory,
+        subcategory: chartSubcategory,
         q: assetQuery,
         assetId: asset.id,
       },
@@ -77,6 +89,7 @@ export function App() {
       {
         tab: "assets",
         category: assetCategory,
+        subcategory: chartSubcategory,
         q: assetQuery,
         assetId: null,
       },
@@ -137,9 +150,11 @@ export function App() {
         ) : (
           <AssetGallery
             category={assetCategory}
+            subcategory={chartSubcategory}
             query={assetQuery}
             highlightAssetId={lastAssetId}
-            onCategoryChange={setAssetCategory}
+            onCategoryChange={changeAssetCategory}
+            onSubcategoryChange={setChartSubcategory}
             onQueryChange={setAssetQuery}
             onSelect={openAsset}
           />

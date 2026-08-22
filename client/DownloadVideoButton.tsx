@@ -16,14 +16,17 @@ export function DownloadVideoButton({
 }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState(false);
 
   if (!videoUrl) return null;
 
   async function onClick() {
     setError(null);
+    setDone(false);
     setBusy(true);
     try {
       await downloadVideo(videoUrl as string, videoFilename(title));
+      setDone(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Download failed.");
     } finally {
@@ -39,7 +42,7 @@ export function DownloadVideoButton({
         onClick={onClick}
         disabled={busy}
       >
-        {busy ? "Downloading…" : label}
+        {busy ? "Downloading…" : done ? "Downloaded" : label}
       </button>
       {error ? <span className="status error">{error}</span> : null}
     </span>

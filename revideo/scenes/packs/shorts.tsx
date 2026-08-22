@@ -1,633 +1,646 @@
 /** @jsxImportSource @revideo/2d/lib */
+import { Circle, Img, Layout, Rect, Txt } from "@revideo/2d";
 import {
   all,
-  bigStat,
   createRef,
   easeOutBack,
   easeOutCubic,
-  Layout,
-  lowerThird,
-  paperCard,
-  Rect,
+  num,
   str,
-  titleSlam,
-  Txt,
   waitFor,
 } from "../../lib/helpers";
+import { blendPhrase, paintBlend } from "../../lib/highlight";
 
-function* playStyle(
-  view: any,
-  style: string,
-  p: {
-    title: string;
-    subtitle: string;
-    body: string;
-    value: string;
-    eyebrow: string;
-    accent: string;
-    bg: string;
-    category: string;
-    id: string;
-  },
-) {
-  if (style === "stat") {
-    yield* bigStat(view, {
-      label: p.eyebrow || p.subtitle,
-      value: p.value || p.title,
-      detail: p.subtitle,
-      accent: p.accent,
-      bg: p.bg,
-    });
-    return;
-  }
-  if (style === "lower") {
-    yield* lowerThird(view, {
-      name: p.title,
-      title: p.subtitle,
-      accent: p.accent,
-      bg: p.bg,
-    });
-    return;
-  }
-  if (style === "paper" || style === "quote") {
-    yield* paperCard(view, {
-      eyebrow: p.eyebrow,
-      body: style === "quote" ? `“${p.body || p.title}”` : p.body || p.title,
-      highlight: p.subtitle,
-      accent: p.accent,
-      bg: p.bg,
-    });
-    return;
-  }
-  if (style === "fire") {
-    yield* fireScene(view, p);
-    return;
-  }
-  if (style === "timeline") {
-    yield* timelineScene(view, p);
-    return;
-  }
-  if (style === "map") {
-    yield* mapScene(view, p);
-    return;
-  }
-  if (style === "chart") {
-    yield* chartScene(view, p);
-    return;
-  }
-  if (style === "photo") {
-    yield* photoScene(view, p);
-    return;
-  }
-  if (style === "ui") {
-    yield* uiScene(view, p);
-    return;
-  }
-  if (style === "india") {
-    yield* indiaScene(view, p);
-    return;
-  }
-  yield* titleSlam(view, {
-    eyebrow: p.eyebrow,
-    title: p.title,
-    subtitle: p.subtitle,
-    accent: p.accent,
-    bg: p.bg,
-  });
+const SERIF = "Libre Baskerville, Georgia, serif";
+
+function timing() {
+  return {
+    startDelay: Math.max(0, num("startDelay", 0)),
+    stepDelay: Math.max(0, num("stepDelay", 0.12)),
+    connectDelay: Math.max(0, num("connectDelay", 0.08)),
+    lineDuration: Math.max(0.05, num("lineDuration", 0.55)),
+    revealDuration: Math.max(0.08, num("revealDuration", 0.32)),
+  };
 }
 
-function* fireScene(view: any, p: any) {
-  view.fill(p.bg);
-  const tongues = Array.from({ length: 7 }, () => createRef<Rect>());
-  for (let i = 0; i < tongues.length; i++) {
-    const w = 28 + (i % 3) * 10;
-    yield view.add(
-      <Rect
-        ref={tongues[i]}
-        width={w}
-        height={80 + i * 12}
-        fill={i % 2 ? p.accent : "#ffb703"}
-        radius={40}
-        x={-90 + i * 30}
-        y={180}
-        opacity={0}
-      />,
-    );
+function itemDelays(count: number): number[] {
+  const raw = str("itemDelays", "").trim();
+  if (!raw) return Array.from({ length: count }, () => 0);
+  const parts = raw.split(/[,\n]+/).map((s) => Math.max(0, Number(s.trim()) || 0));
+  return Array.from({ length: count }, (_, i) => parts[i] ?? 0);
+}
+
+function* pause(sec: number) {
+  if (sec > 0) yield* waitFor(sec);
+}
+
+function photoTile(src: string, w: number, h: number, fill: string) {
+  if (src) {
+    return <Img src={src} width={w} height={h} />;
   }
-  const title = createRef<Txt>();
+  return <Rect width={w} height={h} fill={fill} />;
+}
+
+/** Eyebrow → claim slam → highlight underline. */
+function* bigClaim(view: any) {
+  const eyebrow = str("eyebrow", "HISTORY CHECK");
+  const claim = str("claim", "The Most Powerful Government of All Time");
+  const highlight = str("highlight", "Most Powerful");
+  const accent = str("accent", "#FF9933");
+  const bg = str("bg", "#07080c");
+  const t = timing();
+  view.fill(bg);
+
+  const eye = createRef<Txt>();
+  const claimRef = createRef<Layout>();
+  const mark = createRef<Rect>();
+  const rule = createRef<Rect>();
   yield view.add(
     <Txt
-      ref={title}
-      text={p.title}
-      fill={"#fff5e6"}
-      fontFamily={"Libre Baskerville, Georgia, serif"}
-      fontSize={42}
-      fontWeight={700}
+      ref={eye}
+      text={eyebrow}
+      fill={accent}
+      fontFamily={SERIF}
+      fontSize={16}
+      letterSpacing={8}
       y={-180}
       opacity={0}
     />,
   );
-  yield* title().opacity(1, 0.35, easeOutCubic);
-  for (let i = 0; i < tongues.length; i++) {
-    yield* all(
-      tongues[i]().opacity(0.85, 0.2, easeOutCubic),
-      tongues[i]().y(120 - i * 8, 0.45, easeOutBack),
-    );
-  }
-  for (let k = 0; k < 3; k++) {
-    yield* all(
-      ...tongues.map((t, i) =>
-        t().height(90 + ((i + k) % 4) * 18, 0.25, easeOutCubic),
-      ),
-    );
-  }
-  if (p.subtitle) {
-    const sub = createRef<Txt>();
-    yield view.add(
-      <Txt
-        ref={sub}
-        text={p.subtitle}
-        fill={"#ffd6a5"}
-        fontFamily={"Libre Baskerville, Georgia, serif"}
-        fontSize={20}
-        y={260}
-        opacity={0}
-      />,
-    );
-    yield* sub().opacity(1, 0.35, easeOutCubic);
-  }
-  yield* waitFor(1.4);
-}
-
-function* timelineScene(view: any, p: any) {
-  view.fill(p.bg);
-  const rail = createRef<Rect>();
   yield view.add(
-    <Rect ref={rail} width={0} height={4} fill={p.accent} y={40} opacity={0.9} />,
-  );
-  yield* rail().width(900, 0.8, easeOutCubic);
-  const nodes = [ -300, -100, 100, 300 ];
-  for (let i = 0; i < nodes.length; i++) {
-    const n = createRef<Rect>();
-    const label = createRef<Txt>();
-    yield view.add(
-      <Rect
-        ref={n}
-        width={18}
-        height={18}
-        radius={9}
-        fill={p.accent}
-        x={nodes[i]}
-        y={40}
-        scale={0}
-      />,
-    );
-    yield view.add(
-      <Txt
-        ref={label}
-        text={i === 0 ? p.title : `Step ${i + 1}`}
-        fill={"#e8eef6"}
-        fontFamily={"Libre Baskerville, Georgia, serif"}
-        fontSize={i === 0 ? 22 : 16}
-        x={nodes[i]}
-        y={i % 2 === 0 ? -40 : 100}
-        opacity={0}
-        width={180}
-        textAlign={"center"}
-        textWrap
-      />,
-    );
-    yield* all(
-      n().scale(1, 0.35, easeOutBack),
-      label().opacity(1, 0.3, easeOutCubic),
-    );
-  }
-  yield* waitFor(1.6);
-}
-
-function* mapScene(view: any, p: any) {
-  view.fill(p.bg);
-  const globe = createRef<Rect>();
-  const arc = createRef<Rect>();
-  const title = createRef<Txt>();
-  yield view.add(
-    <Rect
-      ref={globe}
-      width={320}
-      height={320}
-      radius={160}
-      fill={"#123048"}
-      stroke={p.accent}
-      lineWidth={3}
+    <Layout
+      ref={claimRef}
+      y={-20}
       opacity={0}
-      y={20}
-    />,
-  );
-  yield view.add(
-    <Rect
-      ref={arc}
-      width={0}
-      height={4}
-      fill={p.accent}
-      y={-40}
-      x={-80}
-      radius={2}
-    />,
-  );
-  yield view.add(
-    <Txt
-      ref={title}
-      text={p.title}
-      fill={"#e8f0ea"}
-      fontFamily={"Libre Baskerville, Georgia, serif"}
-      fontSize={36}
-      fontWeight={700}
-      x={-280}
-      y={-220}
-      opacity={0}
-      width={500}
-      textWrap
-    />,
-  );
-  yield* all(
-    globe().opacity(1, 0.5, easeOutCubic),
-    title().opacity(1, 0.4, easeOutCubic),
-  );
-  yield* arc().width(220, 1.1, easeOutCubic);
-  if (p.subtitle) {
-    const sub = createRef<Txt>();
-    yield view.add(
-      <Txt
-        ref={sub}
-        text={p.subtitle}
-        fill={p.accent}
-        fontFamily={"Libre Baskerville, Georgia, serif"}
-        fontSize={18}
-        x={-280}
-        y={-170}
-        opacity={0}
-      />,
-    );
-    yield* sub().opacity(1, 0.35, easeOutCubic);
-  }
-  yield* waitFor(1.5);
-}
-
-function* chartScene(view: any, p: any) {
-  view.fill(p.bg);
-  const title = createRef<Txt>();
-  yield view.add(
-    <Txt
-      ref={title}
-      text={p.title}
-      fill={"#f4f0e6"}
-      fontFamily={"Libre Baskerville, Georgia, serif"}
-      fontSize={32}
-      fontWeight={700}
-      y={-240}
-      opacity={0}
-    />,
-  );
-  yield* title().opacity(1, 0.3, easeOutCubic);
-  const heights = [120, 200, 160, 260, 180];
-  for (let i = 0; i < heights.length; i++) {
-    const bar = createRef<Rect>();
-    yield view.add(
-      <Rect
-        ref={bar}
-        width={70}
-        height={1}
-        fill={i % 2 ? p.accent : "#5ce1ff"}
-        x={-200 + i * 100}
-        y={200}
-        radius={4}
-      />,
-    );
-    yield* all(
-      bar().height(heights[i], 0.35, easeOutBack),
-      bar().y(200 - heights[i] / 2, 0.35, easeOutBack),
-    );
-  }
-  yield* waitFor(1.6);
-}
-
-function* photoScene(view: any, p: any) {
-  view.fill(p.bg);
-  const frame = createRef<Rect>();
-  const title = createRef<Txt>();
-  yield view.add(
-    <Rect
-      ref={frame}
-      width={640}
-      height={360}
-      fill={"#1a2a28"}
-      stroke={p.accent}
-      lineWidth={2}
-      y={20}
-      scale={1.08}
-      opacity={0}
-    />,
-  );
-  yield view.add(
-    <Txt
-      ref={title}
-      text={p.title}
-      fill={"#f4f0e6"}
-      fontFamily={"Libre Baskerville, Georgia, serif"}
-      fontSize={34}
-      fontWeight={700}
-      y={-240}
-      opacity={0}
-    />,
-  );
-  yield* all(
-    frame().opacity(1, 0.45, easeOutCubic),
-    frame().scale(1, 2.2, easeOutCubic),
-    title().opacity(1, 0.4, easeOutCubic),
-  );
-  yield* waitFor(1.4);
-}
-
-function* uiScene(view: any, p: any) {
-  view.fill(p.bg);
-  if (p.id.includes("ticker") || p.id.includes("news-ticker")) {
-    const strip = createRef<Rect>();
-    const txt = createRef<Txt>();
-    yield view.add(
-      <Rect ref={strip} width={1280} height={56} fill={p.accent} y={280} x={400} />,
-    );
-    yield view.add(
-      <Txt
-        ref={txt}
-        text={p.title + "   ·   " + p.subtitle}
-        fill={"#0a0c12"}
-        fontFamily={"Libre Baskerville, Georgia, serif"}
-        fontSize={22}
-        fontWeight={700}
-        y={280}
-        x={400}
-      />,
-    );
-    yield* all(
-      strip().x(0, 1.2, easeOutCubic),
-      txt().x(0, 1.2, easeOutCubic),
-    );
-    yield* waitFor(1.5);
-    return;
-  }
-  if (p.id.includes("bullet")) {
-    const lines = [p.title, p.subtitle, p.body].filter(Boolean);
-    for (let i = 0; i < Math.min(lines.length, 4); i++) {
-      const row = createRef<Layout>();
-      yield view.add(
-        <Layout
-          ref={row}
-          layout
-          direction={"row"}
-          gap={16}
-          alignItems={"center"}
-          x={-200}
-          y={-80 + i * 70}
-          opacity={0}
-        >
-          <Rect width={14} height={14} fill={p.accent} radius={7} />
-          <Txt
-            text={lines[i]}
-            fill={"#f4f0e6"}
-            fontFamily={"Libre Baskerville, Georgia, serif"}
-            fontSize={28}
-            width={700}
-            textWrap
-          />
-        </Layout>,
-      );
-      yield* all(
-        row().opacity(1, 0.3, easeOutCubic),
-        row().x(-160, 0.4, easeOutCubic),
-      );
-    }
-    yield* waitFor(1.4);
-    return;
-  }
-  const btn = createRef<Rect>();
-  yield view.add(
-    <Rect
-      ref={btn}
-      width={280}
-      height={64}
-      fill={p.accent}
-      radius={8}
-      layout
-      alignItems={"center"}
-      justifyContent={"center"}
-      scale={0.7}
-      opacity={0}
+      scale={0.86}
     >
-      <Txt
-        text={p.title}
-        fill={"#0a0c12"}
-        fontFamily={"Libre Baskerville, Georgia, serif"}
-        fontSize={22}
-        fontWeight={700}
-      />
-    </Rect>,
+      {blendPhrase(claim, highlight, mark, {
+        font: SERIF,
+        size: 48,
+        fill: "#ffffff",
+        marker: str("markerColor", "#FAFF00"),
+        weight: 700,
+        align: "center",
+        width: 1000,
+      })}
+    </Layout>,
   );
+  yield view.add(<Rect ref={rule} width={0} height={8} fill={accent} y={140} />);
+
+  yield* pause(t.startDelay);
+  const extra = itemDelays(3);
+  yield* pause(extra[0]);
+  yield* eye().opacity(1, t.revealDuration, easeOutCubic);
+  yield* pause(t.stepDelay);
+  yield* pause(extra[1]);
   yield* all(
-    btn().opacity(1, 0.35, easeOutCubic),
-    btn().scale(1, 0.55, easeOutBack),
+    claimRef().opacity(1, t.revealDuration, easeOutCubic),
+    claimRef().scale(1, t.revealDuration, easeOutBack),
   );
-  yield* waitFor(1.8);
+  yield* pause(t.connectDelay);
+  yield* pause(extra[2]);
+  yield* rule().width(420, t.lineDuration, easeOutCubic);
+  yield* paintBlend(mark, highlight, 48, t.lineDuration);
+  yield* waitFor(1.2);
 }
 
-function* indiaScene(view: any, p: any) {
-  view.fill(p.bg);
-  const saffron = createRef<Rect>();
-  const white = createRef<Rect>();
-  const green = createRef<Rect>();
-  const chakra = createRef<Rect>();
-  const title = createRef<Txt>();
-  yield view.add(<Rect ref={saffron} width={0} height={70} fill={"#FF9933"} y={-70} />);
-  yield view.add(<Rect ref={white} width={0} height={70} fill={"#ffffff"} y={0} />);
-  yield view.add(<Rect ref={green} width={0} height={70} fill={"#138808"} y={70} />);
+/** Two years slam, then a connecting dash draws between them. */
+function* eraStamp(view: any) {
+  const label = str("label", "A DEFINING DECADE");
+  const era = str("era", "2014 — 2024");
+  const accent = str("accent", "#FF9933");
+  const bg = str("bg", "#0a0c12");
+  const t = timing();
+  view.fill(bg);
+
+  const parts = era.split(/[—–-]/).map((s) => s.trim()).filter(Boolean);
+  const left = parts[0] || era;
+  const right = parts[1] || "";
+
+  const lab = createRef<Txt>();
+  const a = createRef<Txt>();
+  const b = createRef<Txt>();
+  const dash = createRef<Rect>();
   yield view.add(
-    <Rect
-      ref={chakra}
-      width={48}
-      height={48}
-      radius={24}
-      stroke={"#000080"}
-      lineWidth={3}
+    <Txt
+      ref={lab}
+      text={label}
+      fill={accent}
+      fontFamily={SERIF}
+      fontSize={16}
+      letterSpacing={8}
+      y={-200}
+      opacity={0}
+    />,
+  );
+  yield view.add(
+    <Txt
+      ref={a}
+      text={left}
+      fill={"#ffffff"}
+      fontFamily={SERIF}
+      fontSize={96}
+      fontWeight={700}
+      x={right ? -280 : 0}
       y={0}
       scale={0}
     />,
   );
+  if (right) {
+    yield view.add(<Rect ref={dash} width={0} height={10} fill={accent} y={0} radius={2} />);
+    yield view.add(
+      <Txt
+        ref={b}
+        text={right}
+        fill={"#ffffff"}
+        fontFamily={SERIF}
+        fontSize={96}
+        fontWeight={700}
+        x={280}
+        y={0}
+        scale={0}
+      />,
+    );
+  }
+
+  yield* pause(t.startDelay);
+  const extra = itemDelays(3);
+  yield* pause(extra[0]);
+  yield* lab().opacity(1, t.revealDuration, easeOutCubic);
+  yield* pause(t.stepDelay);
+  yield* pause(extra[1]);
+  yield* a().scale(1, t.revealDuration, easeOutBack);
+  if (right) {
+    yield* pause(t.connectDelay);
+    yield* dash().width(120, t.lineDuration, easeOutCubic);
+    yield* pause(t.stepDelay);
+    yield* pause(extra[2]);
+    yield* b().scale(1, t.revealDuration, easeOutBack);
+  }
+  yield* waitFor(1.2);
+}
+
+/** Full-frame tricolor wipes, then title. */
+function* flagWipe(view: any) {
+  const title = str("title", "INDIA");
+  const subtitle = str("subtitle", "A new chapter");
+  const bg = str("bg", "#0a0c12");
+  const t = timing();
+  view.fill(bg);
+
+  const bands = [
+    { fill: "#FF9933", from: "left" as const },
+    { fill: "#f4f0e6", from: "top" as const },
+    { fill: "#138808", from: "right" as const },
+  ];
+  const extra = itemDelays(3);
+  yield* pause(t.startDelay);
+
+  for (let i = 0; i < bands.length; i++) {
+    if (i > 0) yield* pause(t.stepDelay);
+    yield* pause(extra[i]);
+    yield* pause(t.connectDelay);
+    const w = createRef<Rect>();
+    if (bands[i].from === "left") {
+      yield view.add(<Rect ref={w} width={0} height={720} fill={bands[i].fill} x={-640} />);
+      yield* all(w().width(1280, t.lineDuration, easeOutCubic), w().x(0, t.lineDuration, easeOutCubic));
+    } else if (bands[i].from === "top") {
+      yield view.add(<Rect ref={w} width={1280} height={0} fill={bands[i].fill} y={-360} />);
+      yield* all(w().height(720, t.lineDuration, easeOutCubic), w().y(0, t.lineDuration, easeOutCubic));
+    } else {
+      yield view.add(<Rect ref={w} width={0} height={720} fill={bands[i].fill} x={640} />);
+      yield* all(w().width(1280, t.lineDuration, easeOutCubic), w().x(0, t.lineDuration, easeOutCubic));
+    }
+  }
+
+  const veil = createRef<Rect>();
+  const titleRef = createRef<Txt>();
+  const subRef = createRef<Txt>();
+  yield view.add(<Rect ref={veil} width={1280} height={220} fill={"#0a0c12"} y={360} opacity={0.82} />);
   yield view.add(
     <Txt
-      ref={title}
-      text={p.title}
-      fill={"#f4f0e6"}
-      fontFamily={"Libre Baskerville, Georgia, serif"}
-      fontSize={36}
+      ref={titleRef}
+      text={title}
+      fill={"#ffffff"}
+      fontFamily={SERIF}
+      fontSize={72}
       fontWeight={700}
-      y={-220}
+      y={220}
       opacity={0}
     />,
   );
-  yield* title().opacity(1, 0.3, easeOutCubic);
-  yield* all(
-    saffron().width(720, 0.45, easeOutCubic),
-    white().width(720, 0.45, easeOutCubic),
-    green().width(720, 0.45, easeOutCubic),
+  yield view.add(
+    <Txt
+      ref={subRef}
+      text={subtitle}
+      fill={"#FF9933"}
+      fontFamily={SERIF}
+      fontSize={22}
+      y={280}
+      opacity={0}
+    />,
   );
-  yield* chakra().scale(1, 0.45, easeOutBack);
-  yield* waitFor(1.6);
+  yield* pause(t.stepDelay);
+  yield* all(
+    veil().y(250, t.revealDuration, easeOutCubic),
+    titleRef().opacity(1, t.revealDuration, easeOutCubic),
+    subRef().opacity(1, t.revealDuration, easeOutCubic),
+  );
+  yield* waitFor(1.1);
+}
+
+/** Words slam in a stack; a tick draws before the next word. */
+function* kineticWords(view: any) {
+  const raw = str("text", "Strong Stable Decisive Mandate");
+  const accent = str("accent", "#FF9933");
+  const bg = str("bg", "#07080c");
+  const words = raw.split(/\s+/).filter(Boolean).slice(0, 8);
+  const t = timing();
+  view.fill(bg);
+  yield* pause(t.startDelay);
+
+  const extra = itemDelays(words.length);
+  for (let i = 0; i < words.length; i++) {
+    if (i > 0) yield* pause(t.stepDelay);
+    yield* pause(extra[i]);
+    const y = -140 + i * 78;
+    const word = createRef<Txt>();
+    yield view.add(
+      <Txt
+        ref={word}
+        text={words[i]}
+        fill={i === words.length - 1 ? accent : "#ffffff"}
+        fontFamily={SERIF}
+        fontSize={i === words.length - 1 ? 64 : 48}
+        fontWeight={700}
+        y={y}
+        scale={0}
+      />,
+    );
+    yield* word().scale(1, t.revealDuration, easeOutBack);
+    if (i < words.length - 1) {
+      yield* pause(t.connectDelay);
+      const tick = createRef<Rect>();
+      yield view.add(
+        <Rect ref={tick} width={4} height={0} fill={accent} x={-220} y={y + 28} />,
+      );
+      yield* all(
+        tick().height(36, t.lineDuration * 0.6, easeOutCubic),
+        tick().y(y + 46, t.lineDuration * 0.6, easeOutCubic),
+      );
+    }
+  }
+  yield* waitFor(1.2);
+}
+
+/** Portrait, name, connecting bar, role, years. */
+function* leaderReveal(view: any) {
+  const src = str("imageUrl", "");
+  const name = str("name", "Leader Name");
+  const role = str("role", "Prime Minister");
+  const years = str("years", "2014 — Present");
+  const accent = str("accent", "#FF9933");
+  const bg = str("bg", "#0a0c12");
+  const t = timing();
+  view.fill(bg);
+
+  const frame = createRef<Layout>();
+  yield view.add(
+    <Layout ref={frame} x={-820} y={-10}>
+      <Rect width={8} height={420} fill={accent} x={-186} />
+      {photoTile(src, 360, 420, "#1a2430")}
+    </Layout>,
+  );
+  const nameRef = createRef<Txt>();
+  const roleRef = createRef<Txt>();
+  const yearsRef = createRef<Txt>();
+  const bar = createRef<Rect>();
+  yield view.add(
+    <Txt
+      ref={nameRef}
+      text={name}
+      fill={"#ffffff"}
+      fontFamily={SERIF}
+      fontSize={42}
+      fontWeight={700}
+      x={220}
+      y={-80}
+      opacity={0}
+      width={520}
+      textWrap
+    />,
+  );
+  yield view.add(<Rect ref={bar} width={0} height={5} fill={accent} x={80} y={-10} />);
+  yield view.add(
+    <Txt ref={roleRef} text={role} fill={accent} fontFamily={SERIF} fontSize={22} x={220} y={30} opacity={0} />,
+  );
+  yield view.add(
+    <Txt ref={yearsRef} text={years} fill={"#c5ccd6"} fontFamily={SERIF} fontSize={18} x={220} y={70} opacity={0} />,
+  );
+
+  yield* pause(t.startDelay);
+  const extra = itemDelays(4);
+  yield* pause(extra[0]);
+  yield* frame().x(-320, t.lineDuration, easeOutCubic);
+  yield* pause(t.stepDelay);
+  yield* pause(extra[1]);
+  yield* nameRef().opacity(1, t.revealDuration, easeOutCubic);
+  yield* pause(t.connectDelay);
+  yield* all(bar().width(280, t.lineDuration, easeOutCubic), bar().x(220, t.lineDuration, easeOutCubic));
+  yield* pause(t.stepDelay);
+  yield* pause(extra[2]);
+  yield* roleRef().opacity(1, t.revealDuration, easeOutCubic);
+  yield* pause(t.stepDelay);
+  yield* pause(extra[3]);
+  yield* yearsRef().opacity(1, t.revealDuration, easeOutCubic);
+  yield* waitFor(1.2);
+}
+
+/** Seat count + filling meter, then majority mark drops. */
+function* majorityMeter(view: any) {
+  const title = str("title", "Lok Sabha strength");
+  const label = str("label", "Seats won");
+  const seats = Math.max(0, num("seats", 303));
+  const total = Math.max(1, num("total", 543));
+  const mark = Math.max(0, num("majorityMark", 272));
+  const accent = str("accent", "#FF9933");
+  const bg = str("bg", "#07090e");
+  const t = timing();
+  view.fill(bg);
+
+  const titleRef = createRef<Txt>();
+  const numRef = createRef<Txt>();
+  const lab = createRef<Txt>();
+  yield view.add(
+    <Txt
+      ref={titleRef}
+      text={title.toUpperCase()}
+      fill={accent}
+      fontFamily={SERIF}
+      fontSize={16}
+      letterSpacing={6}
+      y={-240}
+      opacity={0}
+    />,
+  );
+  yield view.add(
+    <Txt ref={numRef} text={"0"} fill={"#ffffff"} fontFamily={SERIF} fontSize={120} fontWeight={700} y={-80} opacity={0} />,
+  );
+  yield view.add(
+    <Txt ref={lab} text={label} fill={"#9aa8b8"} fontFamily={SERIF} fontSize={18} y={20} opacity={0} />,
+  );
+  yield view.add(<Rect width={900} height={18} fill={"#1b2430"} y={140} radius={9} />);
+  const fill = createRef<Rect>();
+  yield view.add(<Rect ref={fill} width={0} height={18} fill={accent} x={-450} y={140} radius={9} />);
+  const marker = createRef<Rect>();
+  const markX = -450 + (Math.min(mark, total) / total) * 900;
+  yield view.add(<Rect ref={marker} width={4} height={0} fill={"#ffffff"} x={markX} y={140} />);
+  const markLab = createRef<Txt>();
+  yield view.add(
+    <Txt
+      ref={markLab}
+      text={`${mark} majority`}
+      fill={"#ffffff"}
+      fontFamily={SERIF}
+      fontSize={14}
+      x={markX}
+      y={90}
+      opacity={0}
+    />,
+  );
+
+  yield* pause(t.startDelay);
+  const extra = itemDelays(3);
+  yield* pause(extra[0]);
+  yield* all(titleRef().opacity(1, t.revealDuration, easeOutCubic), numRef().opacity(1, t.revealDuration, easeOutCubic));
+  yield* pause(t.stepDelay);
+  const steps = 18;
+  for (let i = 1; i <= steps; i++) {
+    const p = i / steps;
+    numRef().text(String(Math.round(seats * p)));
+    const w = 900 * (seats / total) * p;
+    yield* all(
+      fill().width(w, t.lineDuration / steps, easeOutCubic),
+      fill().x(-450 + w / 2, t.lineDuration / steps, easeOutCubic),
+    );
+  }
+  yield* lab().opacity(1, t.revealDuration, easeOutCubic);
+  yield* pause(t.connectDelay);
+  yield* pause(extra[1]);
+  yield* all(
+    marker().height(48, t.revealDuration, easeOutCubic),
+    marker().y(128, t.revealDuration, easeOutCubic),
+  );
+  yield* pause(t.stepDelay);
+  yield* pause(extra[2]);
+  yield* markLab().opacity(1, t.revealDuration, easeOutCubic);
+  yield* waitFor(1.2);
+}
+
+/** 2×2 tiles pop, then a connector to the next tile. */
+function* montageGrid(view: any) {
+  const caption = str("caption", "A decade of decisions");
+  const accent = str("accent", "#FF9933");
+  const bg = str("bg", "#08090d");
+  const srcs = [str("image1", ""), str("image2", ""), str("image3", ""), str("image4", "")];
+  const fills = ["#1a2433", "#2a1810", "#142418", "#1a1028"];
+  const t = timing();
+  view.fill(bg);
+
+  const pts = [
+    { x: -250, y: -90 },
+    { x: 250, y: -90 },
+    { x: -250, y: 140 },
+    { x: 250, y: 140 },
+  ];
+  const w = 420;
+  const h = 200;
+
+  yield* pause(t.startDelay);
+  const extra = itemDelays(4);
+  for (let i = 0; i < 4; i++) {
+    if (i > 0) yield* pause(t.stepDelay);
+    yield* pause(extra[i]);
+    const tile = createRef<Layout>();
+    yield view.add(
+      <Layout ref={tile} x={pts[i].x} y={pts[i].y} scale={0}>
+        {photoTile(srcs[i], w, h, fills[i])}
+        <Rect width={w} height={h} fill={null} stroke={accent} lineWidth={2} />
+      </Layout>,
+    );
+    yield* tile().scale(1, t.revealDuration, easeOutBack);
+    if (i < 3) {
+      yield* pause(t.connectDelay);
+      const a = pts[i];
+      const b = pts[i + 1];
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const len = Math.sqrt(dx * dx + dy * dy);
+      const ang = (Math.atan2(dy, dx) * 180) / Math.PI;
+      const link = createRef<Rect>();
+      yield view.add(
+        <Rect ref={link} width={0} height={4} fill={accent} x={a.x} y={a.y} rotation={ang} />,
+      );
+      yield* all(
+        link().width(len, t.lineDuration, easeOutCubic),
+        link().x(a.x + dx / 2, t.lineDuration, easeOutCubic),
+        link().y(a.y + dy / 2, t.lineDuration, easeOutCubic),
+      );
+    }
+  }
+  const cap = createRef<Txt>();
+  yield view.add(
+    <Txt
+      ref={cap}
+      text={caption}
+      fill={"#ffffff"}
+      fontFamily={SERIF}
+      fontSize={22}
+      y={-280}
+      opacity={0}
+    />,
+  );
+  yield* cap().opacity(1, t.revealDuration, easeOutCubic);
+  yield* waitFor(1.1);
+}
+
+/** Badge ring, rank slam, connecting bar, labels. */
+function* rankBadge(view: any) {
+  const rank = str("rank", "#1");
+  const label = str("label", "Most Powerful");
+  const sublabel = str("sublabel", "In independent India");
+  const accent = str("accent", "#FF9933");
+  const bg = str("bg", "#08060a");
+  const t = timing();
+  view.fill(bg);
+
+  const ring = createRef<Circle>();
+  const rankRef = createRef<Txt>();
+  const lab = createRef<Txt>();
+  const sub = createRef<Txt>();
+  const bar = createRef<Rect>();
+  yield view.add(<Circle ref={ring} size={280} stroke={accent} lineWidth={10} fill={null} y={-40} scale={0} />);
+  yield view.add(
+    <Txt
+      ref={rankRef}
+      text={rank}
+      fill={"#ffffff"}
+      fontFamily={SERIF}
+      fontSize={96}
+      fontWeight={700}
+      y={-40}
+      scale={0}
+    />,
+  );
+  yield view.add(<Rect ref={bar} width={0} height={6} fill={accent} y={140} />);
+  yield view.add(
+    <Txt ref={lab} text={label} fill={"#ffffff"} fontFamily={SERIF} fontSize={32} fontWeight={700} y={190} opacity={0} />,
+  );
+  yield view.add(
+    <Txt ref={sub} text={sublabel} fill={accent} fontFamily={SERIF} fontSize={18} y={240} opacity={0} />,
+  );
+
+  yield* pause(t.startDelay);
+  const extra = itemDelays(4);
+  yield* pause(extra[0]);
+  yield* ring().scale(1, t.lineDuration, easeOutBack);
+  yield* pause(t.stepDelay);
+  yield* pause(extra[1]);
+  yield* rankRef().scale(1, t.revealDuration, easeOutBack);
+  yield* pause(t.connectDelay);
+  yield* pause(extra[2]);
+  yield* bar().width(280, t.lineDuration, easeOutCubic);
+  yield* pause(t.stepDelay);
+  yield* lab().opacity(1, t.revealDuration, easeOutCubic);
+  yield* pause(t.stepDelay);
+  yield* pause(extra[3]);
+  yield* sub().opacity(1, t.revealDuration, easeOutCubic);
+  yield* waitFor(1.2);
+}
+
+/** THEN / NOW panels with a VS divider drawn between them. */
+function* thenVsNow(view: any) {
+  const leftTitle = str("leftTitle", "THEN");
+  const leftText = str("leftText", "Fragile coalition");
+  const rightTitle = str("rightTitle", "NOW");
+  const rightText = str("rightText", "Full majority");
+  const accent = str("accent", "#FF9933");
+  const bg = str("bg", "#07080c");
+  const t = timing();
+  view.fill(bg);
+
+  const left = createRef<Layout>();
+  const right = createRef<Layout>();
+  const vs = createRef<Layout>();
+  const divider = createRef<Rect>();
+  yield view.add(
+    <Layout ref={left} x={-900} y={20}>
+      <Rect width={560} height={520} fill={"#12161e"} />
+      <Txt text={leftTitle} fill={"#8b97a8"} fontFamily={SERIF} fontSize={18} letterSpacing={8} y={-180} />
+      <Txt text={leftText} fill={"#d8dee8"} fontFamily={SERIF} fontSize={36} fontWeight={700} y={20} width={440} textAlign={"center"} textWrap />
+    </Layout>,
+  );
+  yield view.add(
+    <Layout ref={right} x={900} y={20}>
+      <Rect width={560} height={520} fill={"#1a140c"} />
+      <Txt text={rightTitle} fill={accent} fontFamily={SERIF} fontSize={18} letterSpacing={8} y={-180} />
+      <Txt text={rightText} fill={"#ffffff"} fontFamily={SERIF} fontSize={36} fontWeight={700} y={20} width={440} textAlign={"center"} textWrap />
+    </Layout>,
+  );
+  yield view.add(<Rect ref={divider} width={6} height={0} fill={accent} y={20} />);
+  yield view.add(
+    <Layout ref={vs} y={20} scale={0}>
+      <Circle size={72} fill={accent} />
+      <Txt text={"VS"} fill={"#07080c"} fontFamily={SERIF} fontSize={20} fontWeight={700} />
+    </Layout>,
+  );
+
+  yield* pause(t.startDelay);
+  const extra = itemDelays(3);
+  yield* pause(extra[0]);
+  yield* left().x(-310, t.revealDuration, easeOutCubic);
+  yield* pause(t.stepDelay);
+  yield* pause(extra[1]);
+  yield* right().x(310, t.revealDuration, easeOutCubic);
+  yield* pause(t.connectDelay);
+  yield* pause(extra[2]);
+  yield* all(
+    divider().height(420, t.lineDuration, easeOutCubic),
+    vs().scale(1, t.revealDuration, easeOutBack),
+  );
+  yield* waitFor(1.2);
 }
 
 export function* runShorts(view: any, template: string) {
   switch (template) {
-    case "short-big-claim": {
-      const accent = str("accent", "#FF9933");
-      const bg = str("bg", "#0a0c12");
-      const title = str("claim", "The Most Powerful Government of All Time");
-      const subtitle = str("subtitle", "Shorts opener — bold claim with highlight underline.");
-      const body = str("text", "The Most Powerful Government of All Time");
-      const value = str("value", "42");
-      const eyebrow = str("eyebrow", "HISTORY CHECK");
-      yield* playStyle(view, "title", {
-        title, subtitle, body, value, eyebrow, accent, bg,
-        category: "shorts",
-        id: "short-big-claim",
-      });
+    case "short-big-claim":
+      yield* bigClaim(view);
       break;
-    }
-    case "short-flag-wipe": {
-      const accent = str("accent", "#FF9933");
-      const bg = str("bg", "#0a0c12");
-      const title = str("title", "INDIA");
-      const subtitle = str("subtitle", "A new chapter");
-      const body = str("text", "INDIA");
-      const value = str("value", "42");
-      const eyebrow = str("eyebrow", "SHORTS");
-      yield* playStyle(view, "india", {
-        title, subtitle, body, value, eyebrow, accent, bg,
-        category: "shorts",
-        id: "short-flag-wipe",
-      });
+    case "short-era":
+      yield* eraStamp(view);
       break;
-    }
-    case "short-leader": {
-      const accent = str("accent", "#FF9933");
-      const bg = str("bg", "#0a0c12");
-      const title = str("name", "Leader Name");
-      const subtitle = str("subtitle", "Portrait + name + years — swap photo and copy.");
-      const body = str("text", "Leader Name");
-      const value = str("value", "42");
-      const eyebrow = str("eyebrow", "SHORTS");
-      yield* playStyle(view, "photo", {
-        title, subtitle, body, value, eyebrow, accent, bg,
-        category: "shorts",
-        id: "short-leader",
-      });
+    case "short-flag-wipe":
+      yield* flagWipe(view);
       break;
-    }
-    case "short-rank": {
-      const accent = str("accent", "#FF9933");
-      const bg = str("bg", "#0a0c12");
-      const title = str("label", "Most Powerful");
-      const subtitle = str("subtitle", "#1 / most-powerful badge slam for Shorts hooks.");
-      const body = str("text", "Most Powerful");
-      const value = str("value", "42");
-      const eyebrow = str("eyebrow", "SHORTS");
-      yield* playStyle(view, "stat", {
-        title, subtitle, body, value, eyebrow, accent, bg,
-        category: "shorts",
-        id: "short-rank",
-      });
+    case "short-kinetic":
+      yield* kineticWords(view);
       break;
-    }
-    case "short-vs": {
-      const accent = str("accent", "#FF9933");
-      const bg = str("bg", "#0a0c12");
-      const title = str("title", "Then vs Now");
-      const subtitle = str("subtitle", "Split comparison panel used in political explainers.");
-      const body = str("text", "Split comparison panel used in political explainers.");
-      const value = str("value", "42");
-      const eyebrow = str("eyebrow", "SHORTS");
-      yield* playStyle(view, "title", {
-        title, subtitle, body, value, eyebrow, accent, bg,
-        category: "shorts",
-        id: "short-vs",
-      });
+    case "short-leader":
+      yield* leaderReveal(view);
       break;
-    }
-    case "short-kinetic": {
-      const accent = str("accent", "#FF9933");
-      const bg = str("bg", "#0a0c12");
-      const title = str("text", "Strong Stable Decisive Mandate");
-      const subtitle = str("subtitle", "Word-by-word hook text for vertical Shorts pacing.");
-      const body = str("text", "Strong Stable Decisive Mandate");
-      const value = str("value", "42");
-      const eyebrow = str("eyebrow", "SHORTS");
-      yield* playStyle(view, "title", {
-        title, subtitle, body, value, eyebrow, accent, bg,
-        category: "shorts",
-        id: "short-kinetic",
-      });
+    case "short-majority":
+      yield* majorityMeter(view);
       break;
-    }
-    case "short-montage": {
-      const accent = str("accent", "#FF9933");
-      const bg = str("bg", "#0a0c12");
-      const title = str("title", "Photo montage grid");
-      const subtitle = str("caption", "A decade of decisions");
-      const body = str("text", "2×2 photo montage with caption — upload four images.");
-      const value = str("value", "42");
-      const eyebrow = str("eyebrow", "SHORTS");
-      yield* playStyle(view, "photo", {
-        title, subtitle, body, value, eyebrow, accent, bg,
-        category: "shorts",
-        id: "short-montage",
-      });
+    case "short-montage":
+      yield* montageGrid(view);
       break;
-    }
-    case "short-majority": {
-      const accent = str("accent", "#FF9933");
-      const bg = str("bg", "#0a0c12");
-      const title = str("title", "Lok Sabha strength");
-      const subtitle = str("subtitle", "Animated seats meter with majority mark line.");
-      const body = str("text", "Lok Sabha strength");
-      const value = str("value", "42");
-      const eyebrow = str("eyebrow", "SHORTS");
-      yield* playStyle(view, "stat", {
-        title, subtitle, body, value, eyebrow, accent, bg,
-        category: "shorts",
-        id: "short-majority",
-      });
+    case "short-rank":
+      yield* rankBadge(view);
       break;
-    }
-    case "short-era": {
-      const accent = str("accent", "#FF9933");
-      const bg = str("bg", "#0a0c12");
-      const title = str("label", "A DEFINING DECADE");
-      const subtitle = str("subtitle", "Decade/era stamp overlay (e.g. 2014—2024).");
-      const body = str("text", "A DEFINING DECADE");
-      const value = str("value", "42");
-      const eyebrow = str("eyebrow", "SHORTS");
-      yield* playStyle(view, "timeline", {
-        title, subtitle, body, value, eyebrow, accent, bg,
-        category: "shorts",
-        id: "short-era",
-      });
+    case "short-vs":
+      yield* thenVsNow(view);
       break;
-    }
-    default: {
-      yield* titleSlam(view, {
-        eyebrow: "SHORTS",
-        title: str("title", "BestMotions"),
-        subtitle: str("subtitle", ""),
-        accent: str("accent", "#e63946"),
-        bg: str("bg", "#0a0c12"),
-      });
-    }
+    default:
+      yield* bigClaim(view);
   }
 }

@@ -521,10 +521,86 @@ button.danger {
   font-weight: 500;
 }
 
-.chip.active {
-  background: var(--sun);
-  color: var(--ink);
+.chip.sub {
+  font-size: 0.78rem;
+  padding: 6px 10px;
+}
+
+.chip.sub.active {
+  background: #2563eb;
+  color: #fff;
   border-color: transparent;
+}
+
+.dark-select {
+  position: relative;
+}
+
+.dark-select-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid #3a4250;
+  background: #14181f;
+  color: #ffffff;
+  border-radius: 6px;
+  padding: 10px 12px;
+  font: inherit;
+  text-align: left;
+}
+
+.dark-select-trigger:hover {
+  border-color: #556070;
+  transform: none;
+}
+
+.dark-select-chevron {
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 6px solid #c5ccd6;
+  flex-shrink: 0;
+}
+
+.dark-select.open .dark-select-chevron {
+  transform: rotate(180deg);
+}
+
+.dark-select-menu {
+  position: absolute;
+  z-index: 30;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: #14181f;
+  border: 1px solid #3a4250;
+  border-radius: 6px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+}
+
+.dark-select-menu button {
+  width: 100%;
+  text-align: left;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: #e8f0ea;
+  padding: 10px 12px;
+  font: inherit;
+}
+
+.dark-select-menu button:hover,
+.dark-select-menu button.active {
+  background: #2563eb;
+  color: #ffffff;
+  transform: none;
+  filter: none;
 }
 
 .asset-grid {
@@ -1016,10 +1092,18 @@ button.tiny {
   justify-content: flex-end;
 }
 
+.asset-download-panel {
+  display: grid;
+  gap: 10px;
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
 .asset-export-preview {
   display: grid;
   gap: 8px;
-  margin-top: 8px;
+  margin-top: 4px;
 }
 
 .asset-export-preview video {

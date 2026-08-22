@@ -8,6 +8,8 @@ import {
   useScene,
   waitFor,
 } from "@revideo/core";
+import { blendPhrase, paintBlend } from "../lib/highlight";
+import { itemDelays, pause, timing } from "../lib/timing";
 
 function v<T>(name: string, initial: T): T {
   return useScene().variables.get(name, initial)();
@@ -75,10 +77,12 @@ function* coverSlam(view: any) {
     </Layout>,
   );
 
+  const t = timing();
+  yield* pause(t.startDelay);
   yield* all(
-    book().y(0, 1.1, easeOutBack),
-    book().scale(1, 1.1, easeOutCubic),
-    book().opacity(1, 0.8, easeOutCubic),
+    book().y(0, t.revealDuration, easeOutBack),
+    book().scale(1, t.revealDuration, easeOutCubic),
+    book().opacity(1, t.revealDuration * 0.7, easeOutCubic),
   );
   yield* waitFor(2.2);
 }
@@ -158,9 +162,11 @@ function* openSpread(view: any) {
     </Layout>,
   );
 
+  const t = timing();
+  yield* pause(t.startDelay);
   yield* all(
-    left().width(300, 1.2, easeOutCubic),
-    right().width(300, 1.2, easeOutCubic),
+    left().width(300, t.revealDuration, easeOutCubic),
+    right().width(300, t.revealDuration, easeOutCubic),
   );
   yield* waitFor(2.5);
 }
@@ -251,12 +257,13 @@ function* coverOpen(view: any) {
     </Layout>,
   );
 
-  yield* waitFor(0.35);
+  const t = timing();
+  yield* pause(t.startDelay);
   yield* all(
-    cover().x(-420, 1.35, easeOutCubic),
-    cover().scale(0.92, 1.35, easeOutCubic),
-    cover().opacity(0.15, 1.35, easeOutCubic),
-    page().opacity(1, 1, easeOutCubic),
+    cover().x(-420, t.lineDuration, easeOutCubic),
+    cover().scale(0.92, t.lineDuration, easeOutCubic),
+    cover().opacity(0.15, t.lineDuration, easeOutCubic),
+    page().opacity(1, t.revealDuration, easeOutCubic),
   );
   yield* waitFor(2.2);
 }
@@ -269,14 +276,13 @@ function* markerHighlight(view: any) {
   );
   const highlightText = v("highlightText", "deliberately buried");
   const afterText = v("afterText", "for more than a decade.");
-  const markerColor = v("markerColor", "#ffe566");
+  const markerColor = v("markerColor", "#FAFF00");
   const accent = v("accent", "#e63946");
   const bg = v("bg", "#0c0a08");
 
   view.fill(bg);
   const page = createRef<Rect>();
   const marker = createRef<Rect>();
-  const markWidth = Math.max(160, highlightText.length * 12);
 
   yield view.add(
     <Rect
@@ -311,24 +317,13 @@ function* markerHighlight(view: any) {
         width={470}
       />
       <Layout layout direction={"row"} alignItems={"center"} marginTop={10}>
-        <Layout layout={false} height={36} width={markWidth}>
-          <Rect
-            ref={marker}
-            width={0}
-            height={34}
-            fill={markerColor}
-            opacity={0.85}
-            offset={[-1, 0]}
-            x={-markWidth / 2}
-          />
-          <Txt
-            text={highlightText}
-            fill={"#1a1510"}
-            fontFamily={"Libre Baskerville, Georgia, serif"}
-            fontSize={22}
-            fontWeight={700}
-          />
-        </Layout>
+        {blendPhrase(`${highlightText}`, highlightText, marker, {
+          font: "Libre Baskerville, Georgia, serif",
+          size: 22,
+          fill: "#1a1510",
+          marker: String(markerColor),
+          weight: 700,
+        })}
       </Layout>
       <Txt
         text={afterText}
@@ -342,11 +337,14 @@ function* markerHighlight(view: any) {
     </Rect>,
   );
 
+  const t = timing();
+  yield* pause(t.startDelay);
   yield* all(
-    page().opacity(1, 0.7, easeOutCubic),
-    page().scale(1, 0.9, easeOutCubic),
+    page().opacity(1, t.revealDuration, easeOutCubic),
+    page().scale(1, t.revealDuration, easeOutCubic),
   );
-  yield* marker().width(markWidth, 0.9, easeOutCubic);
+  yield* pause(t.connectDelay);
+  yield* paintBlend(marker, String(highlightText), 22, t.lineDuration);
   yield* waitFor(2);
 }
 
@@ -423,16 +421,20 @@ function* areaHighlight(view: any) {
     </Layout>,
   );
 
+  const t = timing();
+  yield* pause(t.startDelay);
   yield* all(
-    page().opacity(1, 0.7, easeOutCubic),
-    page().scale(1, 0.9, easeOutCubic),
+    page().opacity(1, t.revealDuration, easeOutCubic),
+    page().scale(1, t.revealDuration, easeOutCubic),
   );
+  yield* pause(t.connectDelay);
   yield* all(
-    ring().opacity(1, 0.35),
-    ring().lineWidth(4, 0.7, easeOutCubic),
-    ring().scale(1.05, 0.5, easeOutCubic),
+    ring().opacity(1, t.revealDuration * 0.5),
+    ring().lineWidth(4, t.lineDuration, easeOutCubic),
+    ring().scale(1.05, t.revealDuration, easeOutCubic),
   );
-  yield* label().opacity(1, 0.45);
+  yield* pause(t.stepDelay);
+  yield* label().opacity(1, t.revealDuration);
   yield* waitFor(2);
 }
 
@@ -510,10 +512,13 @@ function* lineScan(view: any) {
     </Layout>,
   );
 
-  yield* all(page().opacity(1, 0.6), page().y(0, 0.7, easeOutCubic));
+  const t = timing();
+  yield* pause(t.startDelay);
+  yield* all(page().opacity(1, t.revealDuration), page().y(0, t.revealDuration, easeOutCubic));
   band().opacity(0.7);
   line().opacity(0.9);
-  yield* all(band().y(90, 2.2, easeOutCubic), line().y(90, 2.2, easeOutCubic));
+  yield* pause(t.connectDelay);
+  yield* all(band().y(90, t.lineDuration, easeOutCubic), line().y(90, t.lineDuration, easeOutCubic));
   yield* waitFor(1.2);
 }
 
@@ -564,20 +569,24 @@ function* pageFlip(view: any) {
     </Rect>,
   );
 
+  const t = timing();
+  const extra = itemDelays(lines.length);
+  yield* pause(t.startDelay);
   for (let i = 0; i < lines.length; i++) {
     text().text(lines[i]);
     page().x(0);
     page().opacity(1);
     page().scale(1);
-    yield* waitFor(0.15);
+    yield* pause(extra[i]);
+    yield* pause(t.stepDelay);
     if (i < lines.length - 1) {
       yield* all(
-        page().x(40, 0.35, easeOutCubic),
-        page().opacity(0.2, 0.35),
-        page().scale(0.96, 0.35),
+        page().x(40, t.revealDuration, easeOutCubic),
+        page().opacity(0.2, t.revealDuration),
+        page().scale(0.96, t.revealDuration),
       );
       page().x(-40);
-      yield* all(page().x(0, 0.35, easeOutCubic), page().opacity(1, 0.35));
+      yield* all(page().x(0, t.revealDuration, easeOutCubic), page().opacity(1, t.revealDuration));
     } else {
       yield* waitFor(1.2);
     }
@@ -642,11 +651,14 @@ function* quotePage(view: any) {
     </Rect>,
   );
 
+  const t = timing();
+  yield* pause(t.startDelay);
   yield* all(
-    page().opacity(1, 0.7, easeOutCubic),
-    page().scale(1, 0.9, easeOutCubic),
+    page().opacity(1, t.revealDuration, easeOutCubic),
+    page().scale(1, t.revealDuration, easeOutCubic),
   );
-  yield* rule().width(120, 0.7, easeOutCubic);
+  yield* pause(t.connectDelay);
+  yield* rule().width(120, t.lineDuration, easeOutCubic);
   yield* waitFor(2);
 }
 
@@ -701,8 +713,11 @@ function* textUnderline(view: any) {
     </Rect>,
   );
 
-  yield* page().opacity(1, 0.7, easeOutCubic);
-  yield* rule().width(Math.max(220, underlineText.length * 11), 0.9, easeOutCubic);
+  const t = timing();
+  yield* pause(t.startDelay);
+  yield* page().opacity(1, t.revealDuration, easeOutCubic);
+  yield* pause(t.connectDelay);
+  yield* rule().width(Math.max(220, underlineText.length * 11), t.lineDuration, easeOutCubic);
   yield* waitFor(2);
 }
 
@@ -772,8 +787,9 @@ function* spineReveal(view: any) {
     </Layout>,
   );
 
-  yield* waitFor(0.4);
-  yield* cover().width(280, 1.3, easeOutCubic);
+  const t = timing();
+  yield* pause(t.startDelay);
+  yield* cover().width(280, t.lineDuration, easeOutCubic);
   yield* waitFor(2);
 }
 
@@ -965,37 +981,38 @@ function* thumbThrough(view: any) {
     </Layout>,
   );
 
-  // 1) Show the closed book
+  const t = timing();
+  const extra = itemDelays(pages.length);
+  yield* pause(t.startDelay);
   yield* all(
-    cover().y(0, 1.05, easeOutBack),
-    cover().scale(1, 1.05, easeOutCubic),
-    cover().opacity(1, 0.75, easeOutCubic),
+    cover().y(0, t.revealDuration, easeOutBack),
+    cover().scale(1, t.revealDuration, easeOutCubic),
+    cover().opacity(1, t.revealDuration * 0.7, easeOutCubic),
   );
-  yield* waitFor(0.55);
+  yield* pause(t.stepDelay);
 
-  // 2) Open the book
   yield* all(
-    cover().x(-380, 1.2, easeOutCubic),
-    cover().opacity(0, 0.95, easeOutCubic),
-    cover().scale(0.88, 1.2, easeOutCubic),
-    spread().opacity(1, 0.65, easeOutCubic),
-    leftPage().width(280, 1.2, easeOutCubic),
-    rightPage().width(280, 1.2, easeOutCubic),
+    cover().x(-380, t.lineDuration, easeOutCubic),
+    cover().opacity(0, t.lineDuration, easeOutCubic),
+    cover().scale(0.88, t.lineDuration, easeOutCubic),
+    spread().opacity(1, t.revealDuration, easeOutCubic),
+    leftPage().width(280, t.lineDuration, easeOutCubic),
+    rightPage().width(280, t.lineDuration, easeOutCubic),
   );
-  yield* waitFor(0.4);
+  yield* pause(t.stepDelay);
 
-  // 3) Thumb / flip through pages
   for (let i = 1; i < pages.length; i++) {
     const incoming = pages[i];
     flipText().text(incoming);
     flipPage().x(150);
     flipPage().width(280);
     flipPage().opacity(1);
+    yield* pause(extra[i]);
 
     yield* all(
-      flipPage().x(-30, 0.55, easeOutCubic),
-      flipPage().width(36, 0.55, easeOutCubic),
-      flipPage().opacity(0.25, 0.55, easeOutCubic),
+      flipPage().x(-30, t.revealDuration, easeOutCubic),
+      flipPage().width(36, t.revealDuration, easeOutCubic),
+      flipPage().opacity(0.25, t.revealDuration, easeOutCubic),
     );
 
     leftText().text(pages[Math.max(0, i - 1)]);
@@ -1005,8 +1022,8 @@ function* thumbThrough(view: any) {
     flipPage().opacity(0);
     flipPage().x(150);
     flipPage().width(280);
-    yield* rightPage().opacity(0.5, 0.12).to(1, 0.28);
-    yield* waitFor(0.5);
+    yield* rightPage().opacity(0.5, t.revealDuration * 0.4).to(1, t.revealDuration * 0.8);
+    yield* pause(t.stepDelay);
   }
 
   yield* waitFor(1.35);
@@ -1074,12 +1091,17 @@ function* bookStack(view: any) {
     );
   }
 
-  yield* heading().opacity(1, 0.35, easeOutCubic);
+  const t = timing();
+  yield* pause(t.startDelay);
+  yield* heading().opacity(1, t.revealDuration, easeOutCubic);
+  const extra = itemDelays(refs.length);
   for (let i = 0; i < refs.length; i++) {
+    if (i > 0) yield* pause(t.stepDelay);
+    yield* pause(extra[i]);
     const y = 160 - i * (books[i].h + 6);
     yield* all(
-      refs[i]().y(y, 0.45, easeOutBack),
-      refs[i]().opacity(1, 0.35, easeOutCubic),
+      refs[i]().y(y, t.revealDuration, easeOutBack),
+      refs[i]().opacity(1, t.revealDuration, easeOutCubic),
     );
   }
   yield* waitFor(2);
@@ -1133,19 +1155,22 @@ function* bookFloat(view: any) {
     </Rect>,
   );
 
+  const t = timing();
+  yield* pause(t.startDelay);
   yield* all(
-    book().opacity(1, 0.5, easeOutCubic),
-    book().y(0, 0.6, easeOutCubic),
+    book().opacity(1, t.revealDuration, easeOutCubic),
+    book().y(0, t.revealDuration, easeOutCubic),
   );
 
   for (let i = 0; i < 4; i++) {
+    yield* pause(t.stepDelay);
     yield* all(
-      book().y(-10, 0.7, easeOutCubic),
-      book().rotation(3, 0.7, easeOutCubic),
+      book().y(-10, t.lineDuration, easeOutCubic),
+      book().rotation(3, t.lineDuration, easeOutCubic),
     );
     yield* all(
-      book().y(10, 0.7, easeOutCubic),
-      book().rotation(-3, 0.7, easeOutCubic),
+      book().y(10, t.lineDuration, easeOutCubic),
+      book().rotation(-3, t.lineDuration, easeOutCubic),
     );
   }
   yield* all(
@@ -1253,13 +1278,16 @@ function* sourceCite(view: any) {
     </Layout>,
   );
 
+  const t = timing();
+  yield* pause(t.startDelay);
   yield* all(
-    cover().opacity(1, 0.45, easeOutCubic),
-    cover().x(-240, 0.55, easeOutBack),
+    cover().opacity(1, t.revealDuration, easeOutCubic),
+    cover().x(-240, t.revealDuration, easeOutBack),
   );
+  yield* pause(t.stepDelay);
   yield* all(
-    textBlock().opacity(1, 0.45, easeOutCubic),
-    textBlock().x(120, 0.5, easeOutCubic),
+    textBlock().opacity(1, t.revealDuration, easeOutCubic),
+    textBlock().x(120, t.revealDuration, easeOutCubic),
   );
   yield* waitFor(2.2);
 }
@@ -1345,12 +1373,14 @@ function* tomeSlam(view: any) {
     </Layout>,
   );
 
+  const t = timing();
+  yield* pause(t.startDelay);
   yield* all(
-    tome().opacity(1, 0.5, easeOutCubic),
-    tome().y(0, 0.9, easeOutBack),
-    tome().scale(1, 0.9, easeOutCubic),
-    spine().opacity(0.9, 0.5, easeOutCubic),
-    spine2().opacity(0.7, 0.5, easeOutCubic),
+    tome().opacity(1, t.revealDuration, easeOutCubic),
+    tome().y(0, t.revealDuration, easeOutBack),
+    tome().scale(1, t.revealDuration, easeOutCubic),
+    spine().opacity(0.9, t.revealDuration, easeOutCubic),
+    spine2().opacity(0.7, t.revealDuration, easeOutCubic),
   );
   yield* waitFor(2.2);
 }

@@ -1,573 +1,519 @@
 /** @jsxImportSource @revideo/2d/lib */
+import { Circle, Layout, Path, Polygon, Txt } from "@revideo/2d";
 import {
   all,
-  bigStat,
   createRef,
   easeOutBack,
   easeOutCubic,
-  Layout,
-  lowerThird,
-  paperCard,
-  Rect,
+  num,
   str,
-  titleSlam,
-  Txt,
   waitFor,
 } from "../../lib/helpers";
+import {
+  COLORS,
+  countryCentroid,
+  destCamera,
+  drawEarth,
+  easeOut3,
+  geodesicMid,
+  getPlace,
+  headingDeg,
+  mapCamera,
+  mixCam,
+  worldCamera,
+  type Camera,
+  type EarthDrawing,
+} from "../../lib/earth";
+import { geoInterpolate } from "d3-geo";
 
-function* playStyle(
+const SERIF = "Libre Baskerville, Georgia, serif";
+
+function timing() {
+  return {
+    startDelay: Math.max(0, num("startDelay", 0)),
+    stepDelay: Math.max(0, num("stepDelay", 0.12)),
+    connectDelay: Math.max(0, num("connectDelay", 0.08)),
+    lineDuration: Math.max(0.05, num("lineDuration", 0.55)),
+    revealDuration: Math.max(0.08, num("revealDuration", 0.32)),
+  };
+}
+
+function itemDelays(count: number): number[] {
+  const raw = str("itemDelays", "").trim();
+  if (!raw) return Array.from({ length: count }, () => 0);
+  const parts = raw.split(/[,\n]+/).map((s) => Math.max(0, Number(s.trim()) || 0));
+  return Array.from({ length: count }, (_, i) => parts[i] ?? 0);
+}
+
+function* pause(sec: number) {
+  if (sec > 0) yield* waitFor(sec);
+}
+
+type GlobeRefs = {
+  sphere: ReturnType<typeof createRef<Path>>;
+  land: ReturnType<typeof createRef<Path>>;
+  borders: ReturnType<typeof createRef<Path>>;
+  graticule: ReturnType<typeof createRef<Path>>;
+  country: ReturnType<typeof createRef<Path>>;
+  glow: ReturnType<typeof createRef<Circle>>;
+};
+
+function applyDrawing(refs: GlobeRefs, drawing: EarthDrawing, cam: Camera, accent: string) {
+  refs.sphere().data(drawing.sphere);
+  refs.land().data(drawing.land);
+  refs.borders().data(drawing.borders);
+  refs.graticule().data(drawing.graticule);
+  refs.country().data(drawing.country);
+  if (cam.kind === "ortho") {
+    refs.glow().x(cam.tx);
+    refs.glow().y(cam.ty);
+    refs.glow().size(cam.scale * 2.12);
+    refs.glow().stroke(accent);
+  }
+}
+
+function* mountGlobe(
   view: any,
-  style: string,
-  p: {
-    title: string;
-    subtitle: string;
-    body: string;
-    value: string;
-    eyebrow: string;
-    accent: string;
-    bg: string;
-    category: string;
-    id: string;
-  },
+  cam: Camera,
+  opts: { accent: string; highlightIso?: string; countryFill?: string },
 ) {
-  if (style === "stat") {
-    yield* bigStat(view, {
-      label: p.eyebrow || p.subtitle,
-      value: p.value || p.title,
-      detail: p.subtitle,
-      accent: p.accent,
-      bg: p.bg,
-    });
-    return;
-  }
-  if (style === "lower") {
-    yield* lowerThird(view, {
-      name: p.title,
-      title: p.subtitle,
-      accent: p.accent,
-      bg: p.bg,
-    });
-    return;
-  }
-  if (style === "paper" || style === "quote") {
-    yield* paperCard(view, {
-      eyebrow: p.eyebrow,
-      body: style === "quote" ? `“${p.body || p.title}”` : p.body || p.title,
-      highlight: p.subtitle,
-      accent: p.accent,
-      bg: p.bg,
-    });
-    return;
-  }
-  if (style === "fire") {
-    yield* fireScene(view, p);
-    return;
-  }
-  if (style === "timeline") {
-    yield* timelineScene(view, p);
-    return;
-  }
-  if (style === "map") {
-    yield* mapScene(view, p);
-    return;
-  }
-  if (style === "chart") {
-    yield* chartScene(view, p);
-    return;
-  }
-  if (style === "photo") {
-    yield* photoScene(view, p);
-    return;
-  }
-  if (style === "ui") {
-    yield* uiScene(view, p);
-    return;
-  }
-  if (style === "india") {
-    yield* indiaScene(view, p);
-    return;
-  }
-  yield* titleSlam(view, {
-    eyebrow: p.eyebrow,
-    title: p.title,
-    subtitle: p.subtitle,
-    accent: p.accent,
-    bg: p.bg,
-  });
-}
-
-function* fireScene(view: any, p: any) {
-  view.fill(p.bg);
-  const tongues = Array.from({ length: 7 }, () => createRef<Rect>());
-  for (let i = 0; i < tongues.length; i++) {
-    const w = 28 + (i % 3) * 10;
-    yield view.add(
-      <Rect
-        ref={tongues[i]}
-        width={w}
-        height={80 + i * 12}
-        fill={i % 2 ? p.accent : "#ffb703"}
-        radius={40}
-        x={-90 + i * 30}
-        y={180}
-        opacity={0}
-      />,
-    );
-  }
-  const title = createRef<Txt>();
+  const refs: GlobeRefs = {
+    sphere: createRef<Path>(),
+    land: createRef<Path>(),
+    borders: createRef<Path>(),
+    graticule: createRef<Path>(),
+    country: createRef<Path>(),
+    glow: createRef<Circle>(),
+  };
+  const drawing = drawEarth(cam, opts.highlightIso);
   yield view.add(
-    <Txt
-      ref={title}
-      text={p.title}
-      fill={"#fff5e6"}
-      fontFamily={"Libre Baskerville, Georgia, serif"}
-      fontSize={42}
-      fontWeight={700}
-      y={-180}
+    <Circle
+      ref={refs.glow}
+      size={cam.kind === "ortho" ? cam.scale * 2.12 : 0}
+      x={cam.tx}
+      y={cam.ty}
+      fill={null}
+      stroke={opts.accent}
+      lineWidth={18}
+      opacity={cam.kind === "ortho" ? 0.12 : 0}
+    />,
+  );
+  yield view.add(
+    <Path ref={refs.sphere} data={drawing.sphere} fill={COLORS.ocean} stroke={COLORS.rim} lineWidth={1.4} opacity={0.95} />,
+  );
+  yield view.add(
+    <Path ref={refs.graticule} data={drawing.graticule} fill={null} stroke={COLORS.graticule} lineWidth={0.6} opacity={0.55} />,
+  );
+  yield view.add(
+    <Path ref={refs.land} data={drawing.land} fill={COLORS.land} stroke={null} />,
+  );
+  yield view.add(
+    <Path
+      ref={refs.borders}
+      data={drawing.borders}
+      fill={null}
+      stroke={COLORS.border}
+      lineWidth={0.7}
+      opacity={0.55}
+    />,
+  );
+  yield view.add(
+    <Path
+      ref={refs.country}
+      data={drawing.country}
+      fill={opts.countryFill || opts.accent}
+      stroke={opts.accent}
+      lineWidth={1.6}
+      end={0}
       opacity={0}
     />,
   );
-  yield* title().opacity(1, 0.35, easeOutCubic);
-  for (let i = 0; i < tongues.length; i++) {
-    yield* all(
-      tongues[i]().opacity(0.85, 0.2, easeOutCubic),
-      tongues[i]().y(120 - i * 8, 0.45, easeOutBack),
-    );
-  }
-  for (let k = 0; k < 3; k++) {
-    yield* all(
-      ...tongues.map((t, i) =>
-        t().height(90 + ((i + k) % 4) * 18, 0.25, easeOutCubic),
-      ),
-    );
-  }
-  if (p.subtitle) {
-    const sub = createRef<Txt>();
-    yield view.add(
-      <Txt
-        ref={sub}
-        text={p.subtitle}
-        fill={"#ffd6a5"}
-        fontFamily={"Libre Baskerville, Georgia, serif"}
-        fontSize={20}
-        y={260}
-        opacity={0}
-      />,
-    );
-    yield* sub().opacity(1, 0.35, easeOutCubic);
-  }
-  yield* waitFor(1.4);
+  return { refs, drawing };
 }
 
-function* timelineScene(view: any, p: any) {
-  view.fill(p.bg);
-  const rail = createRef<Rect>();
+function* tweenGlobe(
+  refs: GlobeRefs,
+  from: Camera,
+  to: Camera,
+  duration: number,
+  accent: string,
+  highlightIso?: string,
+) {
+  const steps = Math.max(12, Math.round(duration * 28));
+  const dt = duration / steps;
+  for (let i = 1; i <= steps; i++) {
+    const cam = mixCam(from, to, easeOut3(i / steps));
+    applyDrawing(refs, drawEarth(cam, highlightIso), cam, accent);
+    yield* waitFor(dt);
+  }
+}
+
+function* dropPin(view: any, xy: [number, number] | null, color: string, label: string) {
+  if (!xy) return null;
+  const stem = createRef<Layout>();
+  const txt = createRef<Txt>();
   yield view.add(
-    <Rect ref={rail} width={0} height={4} fill={p.accent} y={40} opacity={0.9} />,
+    <Layout ref={stem} x={xy[0]} y={xy[1]} opacity={0}>
+      <Circle size={14} fill={color} y={-16} />
+      <Circle size={5} fill={"#fff"} y={-16} />
+    </Layout>,
   );
-  yield* rail().width(900, 0.8, easeOutCubic);
-  const nodes = [ -300, -100, 100, 300 ];
-  for (let i = 0; i < nodes.length; i++) {
-    const n = createRef<Rect>();
-    const label = createRef<Txt>();
-    yield view.add(
-      <Rect
-        ref={n}
-        width={18}
-        height={18}
-        radius={9}
-        fill={p.accent}
-        x={nodes[i]}
-        y={40}
-        scale={0}
-      />,
-    );
-    yield view.add(
-      <Txt
-        ref={label}
-        text={i === 0 ? p.title : `Step ${i + 1}`}
-        fill={"#e8eef6"}
-        fontFamily={"Libre Baskerville, Georgia, serif"}
-        fontSize={i === 0 ? 22 : 16}
-        x={nodes[i]}
-        y={i % 2 === 0 ? -40 : 100}
-        opacity={0}
-        width={180}
-        textAlign={"center"}
-        textWrap
-      />,
-    );
-    yield* all(
-      n().scale(1, 0.35, easeOutBack),
-      label().opacity(1, 0.3, easeOutCubic),
-    );
-  }
-  yield* waitFor(1.6);
+  yield view.add(
+    <Txt
+      ref={txt}
+      text={label}
+      fill={"#f4f0e6"}
+      fontFamily={SERIF}
+      fontSize={14}
+      x={xy[0] + 18}
+      y={xy[1] - 20}
+      opacity={0}
+    />,
+  );
+  return { stem, txt };
 }
 
-function* mapScene(view: any, p: any) {
-  view.fill(p.bg);
-  const globe = createRef<Rect>();
-  const arc = createRef<Rect>();
-  const title = createRef<Txt>();
+/** Great-circle flight on a real orthographic Earth. */
+function* airplaneRoute(view: any) {
+  const title = str("title", "India to USA");
+  const from = getPlace(str("fromPlace", "india"));
+  const to = getPlace(str("toPlace", "usa"));
+  const planeColor = str("accent", "#d8a11a");
+  const pathColor = str("lineColor", "#5ce1ff");
+  const bg = str("bg", COLORS.void);
+  const t = timing();
+  view.fill(bg);
+
+  const mid = geodesicMid(from.capital, to.capital);
+  const cam: Camera = {
+    kind: "ortho",
+    ...{ yaw: -mid[0], pitch: -mid[1] * 0.65 },
+    scale: 250,
+    tx: 0,
+    ty: 20,
+  };
+
+  yield* pause(t.startDelay);
+  const extra = itemDelays(4);
+  const globe = yield* mountGlobe(view, cam, { accent: pathColor });
+
+  const titleRef = createRef<Txt>();
+  const fromRef = createRef<Txt>();
+  const toRef = createRef<Txt>();
   yield view.add(
-    <Rect
-      ref={globe}
-      width={320}
-      height={320}
-      radius={160}
-      fill={"#123048"}
-      stroke={p.accent}
+    <Txt ref={titleRef} text={title} fill={"#f4f0e6"} fontFamily={SERIF} fontSize={28} fontWeight={700} y={-300} opacity={0} />,
+  );
+  yield view.add(
+    <Txt ref={fromRef} text={from.name} fill={pathColor} fontFamily={SERIF} fontSize={16} y={-256} opacity={0} />,
+  );
+  yield view.add(
+    <Txt ref={toRef} text={to.name} fill={planeColor} fontFamily={SERIF} fontSize={16} y={-228} opacity={0} />,
+  );
+
+  yield* pause(extra[0]);
+  yield* titleRef().opacity(1, t.revealDuration, easeOutCubic);
+
+  const drawing = drawEarth(cam);
+  const fromXy = drawing.projection(from.capital);
+  const toXy = drawing.projection(to.capital);
+  const aPin = yield* dropPin(view, fromXy, pathColor, from.name);
+  yield* pause(t.stepDelay);
+  if (aPin) yield* all(aPin.stem().opacity(1, t.revealDuration, easeOutCubic), fromRef().opacity(1, t.revealDuration, easeOutCubic));
+
+  yield* pause(t.connectDelay);
+  yield* pause(extra[1]);
+  const route = createRef<Path>();
+  yield view.add(
+    <Path
+      ref={route}
+      data={drawing.route(from.capital, to.capital)}
+      fill={null}
+      stroke={pathColor}
       lineWidth={3}
-      opacity={0}
-      y={20}
+      end={0}
+      lineCap={"round"}
+      shadowColor={pathColor}
+      shadowBlur={18}
     />,
   );
+  const plane = createRef<Polygon>();
+  const start = fromXy || [cam.tx, cam.ty];
   yield view.add(
-    <Rect
-      ref={arc}
-      width={0}
-      height={4}
-      fill={p.accent}
-      y={-40}
-      x={-80}
-      radius={2}
-    />,
+    <Polygon ref={plane} sides={3} width={18} height={22} fill={planeColor} x={start[0]} y={start[1]} rotation={90} />,
   );
-  yield view.add(
-    <Txt
-      ref={title}
-      text={p.title}
-      fill={"#e8f0ea"}
-      fontFamily={"Libre Baskerville, Georgia, serif"}
-      fontSize={36}
-      fontWeight={700}
-      x={-280}
-      y={-220}
-      opacity={0}
-      width={500}
-      textWrap
-    />,
-  );
+
+  const interp = geoInterpolate(from.capital, to.capital);
+  const steps = 36;
+  const dt = t.lineDuration / steps;
   yield* all(
-    globe().opacity(1, 0.5, easeOutCubic),
-    title().opacity(1, 0.4, easeOutCubic),
+    route().end(1, t.lineDuration, easeOutCubic),
+    (function* () {
+      for (let i = 1; i <= steps; i++) {
+        const u = i / steps;
+        const xy = drawing.projection(interp(u) as [number, number]);
+        if (xy) {
+          plane().opacity(1);
+          yield* all(
+            plane().x(xy[0], dt, easeOutCubic),
+            plane().y(xy[1], dt, easeOutCubic),
+            plane().rotation(
+              headingDeg(drawing.projection, (u) => interp(u) as [number, number], u) + 90,
+              dt,
+              easeOutCubic,
+            ),
+          );
+        } else {
+          plane().opacity(0);
+          yield* waitFor(dt);
+        }
+      }
+    })(),
   );
-  yield* arc().width(220, 1.1, easeOutCubic);
-  if (p.subtitle) {
-    const sub = createRef<Txt>();
+
+  yield* pause(t.stepDelay);
+  yield* pause(extra[2]);
+  const bPin = yield* dropPin(view, toXy, planeColor, to.name);
+  if (bPin) yield* all(bPin.stem().opacity(1, t.revealDuration, easeOutCubic), toRef().opacity(1, t.revealDuration, easeOutCubic));
+  yield* waitFor(1.15);
+}
+
+/** Real country polygon highlight on an orthographic globe. */
+function* countryHighlight(view: any) {
+  const place = getPlace(str("placeKey", "india"));
+  const title = str("title", place.name.toUpperCase());
+  const subtitle = str("subtitle", "SOUTH ASIA");
+  const accent = str("accent", "#FF9933");
+  const bg = str("bg", COLORS.void);
+  const t = timing();
+  view.fill(bg);
+
+  const wide = worldCamera();
+  const close = destCamera(place.iso, { scale: 340 });
+  yield* pause(t.startDelay);
+  const extra = itemDelays(3);
+  const globe = yield* mountGlobe(view, wide, { accent, highlightIso: place.iso, countryFill: accent });
+  globe.refs.country().opacity(0);
+  globe.refs.country().end(0);
+
+  const titleRef = createRef<Txt>();
+  const subRef = createRef<Txt>();
+  yield view.add(
+    <Txt ref={titleRef} text={title} fill={"#ffffff"} fontFamily={SERIF} fontSize={36} fontWeight={700} y={-300} opacity={0} />,
+  );
+  yield view.add(
+    <Txt ref={subRef} text={subtitle} fill={accent} fontFamily={SERIF} fontSize={16} letterSpacing={5} y={-258} opacity={0} />,
+  );
+
+  yield* pause(extra[0]);
+  yield* tweenGlobe(globe.refs, wide, close, t.lineDuration * 1.35, accent, place.iso);
+  yield* pause(t.connectDelay);
+  yield* pause(extra[1]);
+  globe.refs.country().end(0);
+  globe.refs.country().opacity(0.92);
+  yield* globe.refs.country().end(1, t.lineDuration, easeOutCubic);
+  yield* pause(t.stepDelay);
+  yield* pause(extra[2]);
+  yield* all(
+    titleRef().opacity(1, t.revealDuration, easeOutCubic),
+    subRef().opacity(1, t.revealDuration, easeOutCubic),
+  );
+  yield* waitFor(1.2);
+}
+
+/** Equirectangular Natural Earth map with geodesic pulse rings. */
+function* mapSpotlight(view: any) {
+  const place = getPlace(str("placeKey", "india"));
+  const region = str("region", "South Asia");
+  const fact = str("fact", "Fastest growing internet region");
+  const highlight = str("highlight", "Fastest growing");
+  const accent = str("accent", "#d8a11a");
+  const bg = str("bg", COLORS.void);
+  const t = timing();
+  view.fill(bg);
+
+  const [lon, lat] = countryCentroid(place.iso);
+  const cam = mapCamera(lon);
+  yield* pause(t.startDelay);
+  const extra = itemDelays(3);
+  const globe = yield* mountGlobe(view, cam, { accent, highlightIso: place.iso });
+  globe.refs.country().end(0);
+  globe.refs.country().opacity(0);
+
+  yield* pause(extra[0]);
+  globe.refs.country().opacity(0.9);
+  yield* globe.refs.country().end(1, t.lineDuration, easeOutCubic);
+
+  const drawing = drawEarth(cam, place.iso);
+  const rings = [6, 12, 20];
+  for (let i = 0; i < rings.length; i++) {
+    yield* pause(t.connectDelay);
+    const ring = createRef<Path>();
     yield view.add(
-      <Txt
-        ref={sub}
-        text={p.subtitle}
-        fill={p.accent}
-        fontFamily={"Libre Baskerville, Georgia, serif"}
-        fontSize={18}
-        x={-280}
-        y={-170}
-        opacity={0}
+      <Path
+        ref={ring}
+        data={drawing.ring(lon, lat, rings[i])}
+        fill={null}
+        stroke={accent}
+        lineWidth={1.5}
+        end={0}
+        opacity={0.55}
       />,
     );
-    yield* sub().opacity(1, 0.35, easeOutCubic);
+    yield* ring().end(1, t.lineDuration * 0.7, easeOutCubic);
   }
-  yield* waitFor(1.5);
+
+  const regionRef = createRef<Txt>();
+  const nameRef = createRef<Txt>();
+  const factRef = createRef<Txt>();
+  yield view.add(
+    <Txt ref={regionRef} text={region.toUpperCase()} fill={accent} fontFamily={SERIF} fontSize={14} letterSpacing={6} y={-312} opacity={0} />,
+  );
+  yield view.add(
+    <Txt ref={nameRef} text={place.name} fill={"#ffffff"} fontFamily={SERIF} fontSize={32} fontWeight={700} y={-274} opacity={0} />,
+  );
+  yield view.add(
+    <Txt ref={factRef} text={highlight || fact} fill={"#c5d4de"} fontFamily={SERIF} fontSize={18} y={320} opacity={0} />,
+  );
+  yield* pause(t.stepDelay);
+  yield* pause(extra[1]);
+  yield* regionRef().opacity(1, t.revealDuration, easeOutCubic);
+  yield* nameRef().opacity(1, t.revealDuration, easeOutCubic);
+  yield* pause(extra[2]);
+  yield* factRef().opacity(1, t.revealDuration, easeOutCubic);
+  yield* waitFor(1.2);
 }
 
-function* chartScene(view: any, p: any) {
-  view.fill(p.bg);
-  const title = createRef<Txt>();
+/** Camera zooms from world to a real country, then drops a capital pin. */
+function* zoomLocation(view: any) {
+  const place = getPlace(str("placeKey", "india"));
+  const city = str("city", "Mumbai");
+  const detail = str("detail", "Financial capital under pressure");
+  const highlight = str("highlight", "pressure");
+  const accent = str("accent", "#d8a11a");
+  const bg = str("bg", COLORS.void);
+  const t = timing();
+  view.fill(bg);
+
+  const wide = worldCamera({ yaw: 30, pitch: -8, scale: 175 });
+  const close = destCamera(place.iso, { scale: 360 });
+  yield* pause(t.startDelay);
+  const extra = itemDelays(4);
+  const globe = yield* mountGlobe(view, wide, { accent, highlightIso: place.iso });
+  globe.refs.country().opacity(0);
+
+  yield* pause(extra[0]);
+  yield* tweenGlobe(globe.refs, wide, close, Math.max(t.lineDuration * 1.5, 1.1), accent, place.iso);
+  yield* pause(t.connectDelay);
+  globe.refs.country().end(0);
+  globe.refs.country().opacity(0.85);
+  yield* globe.refs.country().end(1, t.lineDuration * 0.7, easeOutCubic);
+
+  const drawn = drawEarth(close, place.iso);
+  const xy = drawn.projection(place.capital);
+  yield* pause(t.stepDelay);
+  yield* pause(extra[1]);
+  const pin = yield* dropPin(view, xy, accent, city);
+  if (pin) yield* pin.stem().opacity(1, t.revealDuration, easeOutBack);
+
+  const cityRef = createRef<Txt>();
+  const detRef = createRef<Txt>();
+  const hiRef = createRef<Txt>();
   yield view.add(
-    <Txt
-      ref={title}
-      text={p.title}
-      fill={"#f4f0e6"}
-      fontFamily={"Libre Baskerville, Georgia, serif"}
-      fontSize={32}
-      fontWeight={700}
-      y={-240}
-      opacity={0}
-    />,
+    <Txt ref={cityRef} text={city} fill={"#ffffff"} fontFamily={SERIF} fontSize={32} fontWeight={700} y={-300} opacity={0} />,
   );
-  yield* title().opacity(1, 0.3, easeOutCubic);
-  const heights = [120, 200, 160, 260, 180];
-  for (let i = 0; i < heights.length; i++) {
-    const bar = createRef<Rect>();
+  yield view.add(
+    <Txt ref={detRef} text={detail} fill={"#c5d4de"} fontFamily={SERIF} fontSize={18} y={310} opacity={0} />,
+  );
+  yield view.add(
+    <Txt ref={hiRef} text={highlight} fill={accent} fontFamily={SERIF} fontSize={16} y={340} opacity={0} />,
+  );
+  yield* pause(t.stepDelay);
+  yield* pause(extra[2]);
+  yield* cityRef().opacity(1, t.revealDuration, easeOutCubic);
+  yield* pause(extra[3]);
+  yield* all(detRef().opacity(1, t.revealDuration, easeOutCubic), hiRef().opacity(1, t.revealDuration, easeOutCubic));
+  if (pin) yield* pin.txt().opacity(1, t.revealDuration, easeOutCubic);
+  yield* waitFor(1.2);
+}
+
+/** Spin the real globe until the focus country is framed, then pin. */
+function* globeSpin(view: any) {
+  const title = str("title", "Around the world");
+  const subtitle = str("subtitle", "Global stories, animated");
+  const place = getPlace(str("placeKey", "india"));
+  const pinLabel = str("pinLabel", "New Delhi");
+  const accent = str("accent", "#d8a11a");
+  const bg = str("bg", COLORS.void);
+  const t = timing();
+  view.fill(bg);
+
+  for (let i = 0; i < 42; i++) {
     yield view.add(
-      <Rect
-        ref={bar}
-        width={70}
-        height={1}
-        fill={i % 2 ? p.accent : "#5ce1ff"}
-        x={-200 + i * 100}
-        y={200}
-        radius={4}
+      <Circle
+        size={1.6 + (i % 3)}
+        fill={"#9eb6c8"}
+        x={-600 + ((i * 137) % 1200)}
+        y={-330 + ((i * 79) % 660)}
+        opacity={0.4}
       />,
     );
-    yield* all(
-      bar().height(heights[i], 0.35, easeOutBack),
-      bar().y(200 - heights[i] / 2, 0.35, easeOutBack),
-    );
   }
-  yield* waitFor(1.6);
-}
 
-function* photoScene(view: any, p: any) {
-  view.fill(p.bg);
-  const frame = createRef<Rect>();
-  const title = createRef<Txt>();
+  const start = worldCamera({ yaw: 70, pitch: -10, scale: 230 });
+  const end = destCamera(place.iso, { scale: 300 });
+  yield* pause(t.startDelay);
+  const extra = itemDelays(3);
+  const globe = yield* mountGlobe(view, start, { accent, highlightIso: place.iso });
+  globe.refs.country().opacity(0);
+
+  const titleRef = createRef<Txt>();
+  const subRef = createRef<Txt>();
   yield view.add(
-    <Rect
-      ref={frame}
-      width={640}
-      height={360}
-      fill={"#1a2a28"}
-      stroke={p.accent}
-      lineWidth={2}
-      y={20}
-      scale={1.08}
-      opacity={0}
-    />,
+    <Txt ref={titleRef} text={title} fill={"#ffffff"} fontFamily={SERIF} fontSize={28} fontWeight={700} y={-300} opacity={0} />,
   );
   yield view.add(
-    <Txt
-      ref={title}
-      text={p.title}
-      fill={"#f4f0e6"}
-      fontFamily={"Libre Baskerville, Georgia, serif"}
-      fontSize={34}
-      fontWeight={700}
-      y={-240}
-      opacity={0}
-    />,
+    <Txt ref={subRef} text={subtitle} fill={accent} fontFamily={SERIF} fontSize={16} y={-260} opacity={0} />,
   );
-  yield* all(
-    frame().opacity(1, 0.45, easeOutCubic),
-    frame().scale(1, 2.2, easeOutCubic),
-    title().opacity(1, 0.4, easeOutCubic),
-  );
-  yield* waitFor(1.4);
-}
+  yield* pause(extra[0]);
+  yield* titleRef().opacity(1, t.revealDuration, easeOutCubic);
+  yield* pause(t.stepDelay);
+  yield* tweenGlobe(globe.refs, start, end, Math.max(t.lineDuration * 1.8, 1.4), accent, place.iso);
+  yield* pause(t.connectDelay);
+  globe.refs.country().end(0);
+  globe.refs.country().opacity(0.88);
+  yield* globe.refs.country().end(1, t.lineDuration * 0.6, easeOutCubic);
 
-function* uiScene(view: any, p: any) {
-  view.fill(p.bg);
-  if (p.id.includes("ticker") || p.id.includes("news-ticker")) {
-    const strip = createRef<Rect>();
-    const txt = createRef<Txt>();
-    yield view.add(
-      <Rect ref={strip} width={1280} height={56} fill={p.accent} y={280} x={400} />,
-    );
-    yield view.add(
-      <Txt
-        ref={txt}
-        text={p.title + "   ·   " + p.subtitle}
-        fill={"#0a0c12"}
-        fontFamily={"Libre Baskerville, Georgia, serif"}
-        fontSize={22}
-        fontWeight={700}
-        y={280}
-        x={400}
-      />,
-    );
-    yield* all(
-      strip().x(0, 1.2, easeOutCubic),
-      txt().x(0, 1.2, easeOutCubic),
-    );
-    yield* waitFor(1.5);
-    return;
+  const drawn = drawEarth(end, place.iso);
+  const xy = drawn.projection(place.capital);
+  yield* pause(extra[1]);
+  const pin = yield* dropPin(view, xy, accent, pinLabel);
+  if (pin) {
+    yield* pin.stem().opacity(1, t.revealDuration, easeOutBack);
+    yield* pin.txt().opacity(1, t.revealDuration, easeOutCubic);
   }
-  if (p.id.includes("bullet")) {
-    const lines = [p.title, p.subtitle, p.body].filter(Boolean);
-    for (let i = 0; i < Math.min(lines.length, 4); i++) {
-      const row = createRef<Layout>();
-      yield view.add(
-        <Layout
-          ref={row}
-          layout
-          direction={"row"}
-          gap={16}
-          alignItems={"center"}
-          x={-200}
-          y={-80 + i * 70}
-          opacity={0}
-        >
-          <Rect width={14} height={14} fill={p.accent} radius={7} />
-          <Txt
-            text={lines[i]}
-            fill={"#f4f0e6"}
-            fontFamily={"Libre Baskerville, Georgia, serif"}
-            fontSize={28}
-            width={700}
-            textWrap
-          />
-        </Layout>,
-      );
-      yield* all(
-        row().opacity(1, 0.3, easeOutCubic),
-        row().x(-160, 0.4, easeOutCubic),
-      );
-    }
-    yield* waitFor(1.4);
-    return;
-  }
-  const btn = createRef<Rect>();
-  yield view.add(
-    <Rect
-      ref={btn}
-      width={280}
-      height={64}
-      fill={p.accent}
-      radius={8}
-      layout
-      alignItems={"center"}
-      justifyContent={"center"}
-      scale={0.7}
-      opacity={0}
-    >
-      <Txt
-        text={p.title}
-        fill={"#0a0c12"}
-        fontFamily={"Libre Baskerville, Georgia, serif"}
-        fontSize={22}
-        fontWeight={700}
-      />
-    </Rect>,
-  );
-  yield* all(
-    btn().opacity(1, 0.35, easeOutCubic),
-    btn().scale(1, 0.55, easeOutBack),
-  );
-  yield* waitFor(1.8);
-}
-
-function* indiaScene(view: any, p: any) {
-  view.fill(p.bg);
-  const saffron = createRef<Rect>();
-  const white = createRef<Rect>();
-  const green = createRef<Rect>();
-  const chakra = createRef<Rect>();
-  const title = createRef<Txt>();
-  yield view.add(<Rect ref={saffron} width={0} height={70} fill={"#FF9933"} y={-70} />);
-  yield view.add(<Rect ref={white} width={0} height={70} fill={"#ffffff"} y={0} />);
-  yield view.add(<Rect ref={green} width={0} height={70} fill={"#138808"} y={70} />);
-  yield view.add(
-    <Rect
-      ref={chakra}
-      width={48}
-      height={48}
-      radius={24}
-      stroke={"#000080"}
-      lineWidth={3}
-      y={0}
-      scale={0}
-    />,
-  );
-  yield view.add(
-    <Txt
-      ref={title}
-      text={p.title}
-      fill={"#f4f0e6"}
-      fontFamily={"Libre Baskerville, Georgia, serif"}
-      fontSize={36}
-      fontWeight={700}
-      y={-220}
-      opacity={0}
-    />,
-  );
-  yield* title().opacity(1, 0.3, easeOutCubic);
-  yield* all(
-    saffron().width(720, 0.45, easeOutCubic),
-    white().width(720, 0.45, easeOutCubic),
-    green().width(720, 0.45, easeOutCubic),
-  );
-  yield* chakra().scale(1, 0.45, easeOutBack);
-  yield* waitFor(1.6);
+  yield* pause(extra[2]);
+  yield* subRef().opacity(1, t.revealDuration, easeOutCubic);
+  yield* waitFor(1.2);
 }
 
 export function* runMaps(view: any, template: string) {
   switch (template) {
-    case "airplane-route": {
-      const accent = str("accent", "#d8a11a");
-      const bg = str("bg", "#0a0c12");
-      const title = str("title", "India to USA");
-      const subtitle = str("subtitle", "Real great-circle flight path on a d3-geo orthographic globe (world-atlas).");
-      const body = str("text", "India to USA");
-      const value = str("value", "42");
-      const eyebrow = str("eyebrow", "MAPS");
-      yield* playStyle(view, "map", {
-        title, subtitle, body, value, eyebrow, accent, bg,
-        category: "maps",
-        id: "airplane-route",
-      });
+    case "airplane-route":
+      yield* airplaneRoute(view);
       break;
-    }
-    case "country-highlight": {
-      const accent = str("accent", "#FF9933");
-      const bg = str("bg", "#0a0c12");
-      const title = str("title", "INDIA");
-      const subtitle = str("subtitle", "SOUTH ASIA");
-      const body = str("text", "INDIA");
-      const value = str("value", "42");
-      const eyebrow = str("eyebrow", "MAPS");
-      yield* playStyle(view, "map", {
-        title, subtitle, body, value, eyebrow, accent, bg,
-        category: "maps",
-        id: "country-highlight",
-      });
+    case "country-highlight":
+      yield* countryHighlight(view);
       break;
-    }
-    case "map-spotlight": {
-      const accent = str("accent", "#d8a11a");
-      const bg = str("bg", "#0a0c12");
-      const title = str("title", "Map region spotlight");
-      const subtitle = str("subtitle", "Equirectangular world map with a real country spotlight pulse.");
-      const body = str("text", "Equirectangular world map with a real country spotlight pulse.");
-      const value = str("value", "42");
-      const eyebrow = str("eyebrow", "MAPS");
-      yield* playStyle(view, "map", {
-        title, subtitle, body, value, eyebrow, accent, bg,
-        category: "maps",
-        id: "map-spotlight",
-      });
+    case "map-spotlight":
+      yield* mapSpotlight(view);
       break;
-    }
-    case "zoom-location": {
-      const accent = str("accent", "#d8a11a");
-      const bg = str("bg", "#0a0c12");
-      const title = str("title", "Zoom into country");
-      const subtitle = str("detail", "Financial capital under pressure");
-      const body = str("detail", "Financial capital under pressure");
-      const value = str("value", "42");
-      const eyebrow = str("eyebrow", "MAPS");
-      yield* playStyle(view, "map", {
-        title, subtitle, body, value, eyebrow, accent, bg,
-        category: "maps",
-        id: "zoom-location",
-      });
+    case "zoom-location":
+      yield* zoomLocation(view);
       break;
-    }
-    case "globe-spin": {
-      const accent = str("accent", "#d8a11a");
-      const bg = str("bg", "#0a0c12");
-      const title = str("title", "Around the world");
-      const subtitle = str("subtitle", "Global stories, animated");
-      const body = str("text", "Around the world");
-      const value = str("value", "42");
-      const eyebrow = str("eyebrow", "3D");
-      yield* playStyle(view, "map", {
-        title, subtitle, body, value, eyebrow, accent, bg,
-        category: "3d",
-        id: "globe-spin",
-      });
+    case "globe-spin":
+      yield* globeSpin(view);
       break;
-    }
-    default: {
-      yield* titleSlam(view, {
-        eyebrow: "MAPS",
-        title: str("title", "BestMotions"),
-        subtitle: str("subtitle", ""),
-        accent: str("accent", "#e63946"),
-        bg: str("bg", "#0a0c12"),
-      });
-    }
+    default:
+      yield* countryHighlight(view);
   }
 }

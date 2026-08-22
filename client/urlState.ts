@@ -3,6 +3,7 @@ export type AppTab = "prompt" | "assets";
 export type AppUrlState = {
   tab: AppTab;
   category: string;
+  subcategory: string;
   q: string;
   assetId: string | null;
 };
@@ -34,6 +35,7 @@ export function readAppUrl(): AppUrlState {
     return {
       tab: "assets",
       category: "books",
+      subcategory: "all",
       q: params.get("q") || "",
       assetId,
     };
@@ -44,6 +46,7 @@ export function readAppUrl(): AppUrlState {
     return {
       tab: "assets",
       category: params.get("category") || "all",
+      subcategory: params.get("sub") || "all",
       q: params.get("q") || "",
       assetId: params.get("asset"),
     };
@@ -54,6 +57,7 @@ export function readAppUrl(): AppUrlState {
   return {
     tab,
     category: params.get("category") || "all",
+    subcategory: params.get("sub") || "all",
     q: params.get("q") || "",
     assetId: params.get("asset"),
   };
@@ -67,6 +71,7 @@ export function writeAppUrl(
   const next: AppUrlState = {
     tab: state.tab ?? current.tab,
     category: state.category ?? current.category,
+    subcategory: state.subcategory ?? current.subcategory,
     q: state.q ?? current.q,
     assetId: state.assetId === undefined ? current.assetId : state.assetId,
   };
@@ -77,6 +82,13 @@ export function writeAppUrl(
   if (next.tab === "assets") {
     if (next.category && next.category !== "all") {
       params.set("category", next.category);
+    }
+    if (
+      next.category === "charts" &&
+      next.subcategory &&
+      next.subcategory !== "all"
+    ) {
+      params.set("sub", next.subcategory);
     }
     if (next.q.trim()) params.set("q", next.q.trim());
     if (next.assetId) params.set("asset", next.assetId);

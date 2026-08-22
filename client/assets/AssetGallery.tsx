@@ -1,32 +1,47 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { ASSETS, CATEGORIES } from "./catalog";
+import {
+  useFeatureFlags,
+  withFeatureFlagVariables,
+} from "../featureFlags";
+import { ASSETS, CATEGORIES, CHART_SUBCATEGORIES } from "./catalog";
 import { RevideoPreview } from "./RevideoPreview";
 import type { AssetDefinition } from "./types";
 
 type Props = {
   category: string;
+  subcategory: string;
   query: string;
   highlightAssetId?: string | null;
   onCategoryChange: (category: string) => void;
+  onSubcategoryChange: (subcategory: string) => void;
   onQueryChange: (query: string) => void;
   onSelect: (asset: AssetDefinition) => void;
 };
 
-function variablesFor(asset: AssetDefinition) {
-  return {
-    template: asset.template,
-    ...asset.defaults,
-  };
+function variablesFor(
+  asset: AssetDefinition,
+  flags: ReturnType<typeof useFeatureFlags>,
+) {
+  return withFeatureFlagVariables(
+    {
+      template: asset.template,
+      ...asset.defaults,
+    },
+    flags,
+  );
 }
 
 export function AssetGallery({
   category,
+  subcategory,
   query,
   highlightAssetId,
   onCategoryChange,
+  onSubcategoryChange,
   onQueryChange,
   onSelect,
 }: Props) {
+  const flags = useFeatureFlags();
   const cardRefs = useRef<Record<string, HTMLElement | null>>({});
   const [playingId, setPlayingId] = useState<string | null>(null);
 
@@ -35,15 +50,23 @@ export function AssetGallery({
     return ASSETS.filter((a) => {
       const catOk = category === "all" || a.category === category;
       if (!catOk) return false;
+      if (
+        category === "charts" &&
+        subcategory !== "all" &&
+        a.subcategory !== subcategory
+      ) {
+        return false;
+      }
       if (!q) return true;
       return (
         a.name.toLowerCase().includes(q) ||
         a.description.toLowerCase().includes(q) ||
         a.id.toLowerCase().includes(q) ||
-        a.category.toLowerCase().includes(q)
+        a.category.toLowerCase().includes(q) ||
+        (a.subcategory || "").toLowerCase().includes(q)
       );
     });
-  }, [category, query]);
+  }, [category, subcategory, query]);
 
   useEffect(() => {
     if (!highlightAssetId) return;
@@ -55,7 +78,7 @@ export function AssetGallery({
 
   useEffect(() => {
     setPlayingId(null);
-  }, [category, query]);
+  }, [category, subcategory, query]);
 
   return (
     <section className="assets-page">
@@ -88,6 +111,20 @@ export function AssetGallery({
             </button>
           ))}
         </div>
+        {category === "charts" ? (
+          <div className="category-row subcategory-row">
+            {CHART_SUBCATEGORIES.map((sub) => (
+              <button
+                key={sub.id}
+                type="button"
+                className={subcategory === sub.id ? "chip sub active" : "chip sub"}
+                onClick={() => onSubcategoryChange(sub.id)}
+              >
+                {sub.label}
+              </button>
+            ))}
+          </div>
+        ) : null}
       </div>
 
       {items.length === 0 ? (
@@ -116,7 +153,7 @@ export function AssetGallery({
                     <div className="asset-thumb-player">
                       <RevideoPreview
                         instanceKey={`gallery-${asset.id}`}
-                        variables={variablesFor(asset)}
+                        variables={variablesFor(asset, flags)}
                         playing
                         muted
                         controls={false}
@@ -126,7 +163,11 @@ export function AssetGallery({
                   ) : (
                     <span className="asset-thumb-mark" aria-hidden />
                   )}
-                  <span className="asset-cat">{asset.category}</span>
+                  <span className="asset-cat">
+                    {asset.subcategory
+                      ? `${asset.category} · ${asset.subcategory}`
+                      : asset.category}
+                  </span>
                   <button
                     type="button"
                     className={

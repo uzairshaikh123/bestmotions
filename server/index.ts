@@ -4,6 +4,11 @@ import express from "express";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import {
+  applySoundFlag,
+  getPublicFlags,
+  setFlagEnabled,
+} from "./featureFlags.js";
 import { renderRevideoVideo } from "./revideoRender.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -23,12 +28,32 @@ app.get("/api/health", (_req, res) => {
   res.json({ ok: true });
 });
 
-/** Render a Revideo scene (with variables) to MP4. */
+app.get("/api/feature-flags", (_req, res) => {
+  res.json(getPublicFlags());
+});
+
+app.put("/api/admin/feature-flags", (req, res) => {
+  const secret = process.env.ADMIN_SECRET;
+  if (!secret || req.header("x-admin-secret") !== secret) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  const key = String(req.body?.key || "");
+  const enabled = Boolean(req.body?.enabled);
+  if (!key) {
+    res.status(400).json({ error: "key required" });
+    return;
+  }
+  res.json(setFlagEnabled(key, enabled));
+});
+
+/** Render a Revideo scene (with variables) to MP4. Rejects after RENDER_TIMEOUT_MS (default 15s). */
 app.post("/api/revideo-render", async (req, res) => {
-  const variables =
+  const raw =
     req.body?.variables && typeof req.body.variables === "object"
       ? req.body.variables
       : {};
+  const variables = applySoundFlag(raw) as Record<string, unknown>;
 
   try {
     const id = `revideo-${Date.now()}`;
@@ -36,7 +61,8 @@ app.post("/api/revideo-render", async (req, res) => {
     res.json({ videoUrl });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
-    res.status(500).json({ error: message });
+    const timedOut = /timed out/i.test(message);
+    res.status(timedOut ? 504 : 500).json({ error: message });
   }
 });
 

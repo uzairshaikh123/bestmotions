@@ -1,9 +1,10 @@
 /** @jsxImportSource @revideo/2d/lib */
 import { makeScene2D } from "@revideo/2d";
-import { str, titleSlam, v } from "../lib/helpers";
+import { str, titleSlam, v, all } from "../lib/helpers";
+import { playScore } from "../lib/sfx";
 import { runBooks } from "./books";
+import { runChartVariant } from "./packs/chartVariants";
 import { runCharts } from "./packs/charts";
-import { runFire } from "./packs/fire";
 import { runIndia } from "./packs/india";
 import { runMaps } from "./packs/maps";
 import { runNewspaper } from "./packs/newspaper";
@@ -72,20 +73,24 @@ const PHOTO_IDS = new Set([
   "photo-kenburns",
   "person-card",
   "before-after",
+  "photo-news-meet",
+  "photo-polaroid",
+  "photo-split",
+  "photo-overlay",
+  "photo-pin",
 ]);
 
 export default makeScene2D("main", function* (view) {
   const template = String(v("template", "cover-slam"));
+  yield* all(runTemplate(view, template), playScore(view, template));
+});
 
+function* runTemplate(view: any, template: string) {
   if (BOOK_MAP[template]) {
     yield* runBooks(view, BOOK_MAP[template]);
     return;
   }
 
-  if (template.startsWith("fire-")) {
-    yield* runFire(view, template);
-    return;
-  }
   if (template.startsWith("yt-")) {
     yield* runYt(view, template);
     return;
@@ -107,10 +112,15 @@ export default makeScene2D("main", function* (view) {
     return;
   }
   if (
+    template.startsWith("chart-") ||
     template.startsWith("d3-") ||
     template === "stat-counter" ||
     template === "timeline"
   ) {
+    if (template.startsWith("chart-")) {
+      yield* runChartVariant(view, template);
+      return;
+    }
     yield* runCharts(view, template);
     return;
   }
@@ -138,4 +148,4 @@ export default makeScene2D("main", function* (view) {
     accent: str("accent", "#e63946"),
     bg: str("bg", "#0a0c12"),
   });
-});
+}

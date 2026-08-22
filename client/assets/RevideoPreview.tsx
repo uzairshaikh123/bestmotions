@@ -23,6 +23,48 @@ function formatTime(seconds: number) {
   return `${m}:${s}`;
 }
 
+const SILENT_WAV =
+  "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=";
+
+let mediaUnlocked = false;
+
+/** HTMLAudioElement.play() runs later in canvas draw, so unlock on the click. */
+function unlockMediaPlayback() {
+  if (mediaUnlocked || typeof window === "undefined") return;
+  mediaUnlocked = true;
+  try {
+    const Ctx =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext?: typeof AudioContext })
+        .webkitAudioContext;
+    if (Ctx) {
+      const ctx = new Ctx();
+      void ctx.resume();
+      const buffer = ctx.createBuffer(1, 1, 22050);
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(ctx.destination);
+      source.start(0);
+    }
+  } catch {
+    /* ignore */
+  }
+  try {
+    const dummy = document.createElement("audio");
+    dummy.src = SILENT_WAV;
+    dummy.volume = 0.01;
+    void dummy.play().then(() => dummy.pause()).catch(() => {});
+  } catch {
+    /* ignore */
+  }
+}
+
+function unmutePlayer(player: CorePlayer) {
+  // Player starts muted:true. Passing true means "if muted, flip to unmuted".
+  player.toggleAudio(true);
+  player.setAudioVolume(1);
+}
+
 /**
  * Revideo preview with our own control bar.
  *
@@ -68,10 +110,12 @@ export function RevideoPreview({
   function handleReady(player: CorePlayer) {
     coreRef.current = player;
     setReady(true);
+    if (!muted) unmutePlayer(player);
     // Beat @revideo/player-react race: playing="true" before Ready clears
     // the flag; re-assert after ready.
     if (wantPlay.current) {
       requestAnimationFrame(() => {
+        if (!muted) unmutePlayer(player);
         player.togglePlayback(true);
         setIsPlaying(true);
       });
@@ -80,7 +124,15 @@ export function RevideoPreview({
 
   function togglePlay() {
     if (!ready) return;
-    setIsPlaying((prev) => !prev);
+    setIsPlaying((prev) => {
+      const next = !prev;
+      if (next && !muted) {
+        unlockMediaPlayback();
+        const player = coreRef.current;
+        if (player) unmutePlayer(player);
+      }
+      return next;
+    });
   }
 
   function seekTo(ratio: number) {
@@ -105,6 +157,9 @@ export function RevideoPreview({
       className={
         className ? `revideo-preview ${className}` : "revideo-preview"
       }
+      onPointerDown={() => {
+        if (!muted) unlockMediaPlayback();
+      }}
     >
       <Player
         key={instanceKey}

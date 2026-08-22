@@ -2,6 +2,11 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { apiUrl } from "../backend";
 import { DownloadVideoButton } from "../DownloadVideoButton";
 import { downloadVideo, videoFilename } from "../downloadVideo";
+import {
+  useFeatureFlags,
+  withFeatureFlagVariables,
+} from "../featureFlags";
+import { fetchWithTimeout, RENDER_TIMEOUT_MS, TimeoutError } from "../http";
 import { RevideoPreview } from "./RevideoPreview";
 import type { AssetDefinition, AssetField } from "./types";
 
@@ -9,6 +14,8 @@ type Props = {
   asset: AssetDefinition;
   onBack: () => void;
 };
+
+type ExportPhase = "idle" | "rendering" | "downloading" | "done";
 
 function settingsKey(
   assetId: string,
@@ -26,14 +33,38 @@ function readFileAsDataUrl(file: File): Promise<string> {
   });
 }
 
+function friendlyExportError(raw: string): string {
+  if (/timed out|TimeoutError/i.test(raw)) {
+    return `Export timed out after ${Math.round(RENDER_TIMEOUT_MS / 1000)}s. Check backend logs, or raise VITE_RENDER_TIMEOUT_MS / RENDER_TIMEOUT_MS.`;
+  }
+  if (/Chrome|Chromium|puppeteer/i.test(raw)) {
+    return "Chrome is missing for export. On this machine run: npm run browsers:install — then restart the backend.";
+  }
+  if (/ECONNREFUSED|Failed to fetch|NetworkError/i.test(raw)) {
+    return "Cannot reach the backend. Start it with npm run dev:server (port 3001).";
+  }
+  return raw;
+}
+
 export function AssetEditor({ asset, onBack }: Props) {
+  const flags = useFeatureFlags();
   const [props, setProps] = useState<Record<string, string | number>>({
     ...asset.defaults,
   });
-  const [exporting, setExporting] = useState(false);
+  const [phase, setPhase] = useState<ExportPhase>("idle");
   const [exportError, setExportError] = useState<string | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [exportedKey, setExportedKey] = useState<string | null>(null);
+
+  const busy = phase === "rendering" || phase === "downloading";
+
+  const visibleFields = useMemo(
+    () =>
+      asset.fields.filter(
+        (field) => flags.videoSound || field.key !== "sound",
+      ),
+    [asset.fields, flags.videoSound],
+  );
 
   async function onImageChange(key: string, file: File | null) {
     if (!file) return;
@@ -42,24 +73,31 @@ export function AssetEditor({ asset, onBack }: Props) {
   }
 
   const variables = useMemo(
-    () => ({
-      template: asset.template,
-      ...props,
-    }),
-    [asset.template, props],
+    () =>
+      withFeatureFlagVariables(
+        {
+          template: asset.template,
+          ...props,
+        },
+        flags,
+      ),
+    [asset.template, props, flags],
   );
 
-  // Debounce live preview vars so typing doesn't thrash scene reloads
   const [previewVariables, setPreviewVariables] = useState(variables);
 
   useEffect(() => {
-    const next = { template: asset.template, ...asset.defaults };
+    const next = withFeatureFlagVariables(
+      { template: asset.template, ...asset.defaults },
+      flags,
+    );
     setProps({ ...asset.defaults });
     setPreviewVariables(next);
     setVideoUrl(null);
     setExportedKey(null);
     setExportError(null);
-  }, [asset.id]);
+    setPhase("idle");
+  }, [asset.id, flags.videoSound]);
 
   useEffect(() => {
     const t = window.setTimeout(() => setPreviewVariables(variables), 180);
@@ -77,25 +115,42 @@ export function AssetEditor({ asset, onBack }: Props) {
 
   function setField(key: string, value: string | number) {
     setProps((prev) => ({ ...prev, [key]: value }));
+    setPhase((p) => (p === "done" ? "idle" : p));
   }
 
   async function renderCurrentSettings(): Promise<string> {
     const keyAtStart = currentKeyRef.current;
-    const res = await fetch(apiUrl("/api/revideo-render"), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        variables: {
-          template: asset.template,
-          ...props,
-        },
-      }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      throw new Error(data.error || "Could not export video.");
+    const res = await fetchWithTimeout(
+      apiUrl("/api/revideo-render"),
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          variables: withFeatureFlagVariables(
+            {
+              template: asset.template,
+              ...props,
+            },
+            flags,
+          ),
+        }),
+      },
+      RENDER_TIMEOUT_MS,
+      "Export",
+    );
+    let data: { videoUrl?: string; error?: string } = {};
+    try {
+      data = await res.json();
+    } catch {
+      /* non-JSON */
     }
-    const url = data.videoUrl as string;
+    if (!res.ok) {
+      throw new Error(data.error || `Export failed (${res.status}).`);
+    }
+    const url = data.videoUrl;
+    if (!url) {
+      throw new Error("Export succeeded but no video URL was returned.");
+    }
     if (keyAtStart === currentKeyRef.current) {
       setVideoUrl(url);
       setExportedKey(keyAtStart);
@@ -105,18 +160,51 @@ export function AssetEditor({ asset, onBack }: Props) {
 
   async function onDownloadMp4() {
     setExportError(null);
-    setExporting(true);
     try {
-      const url = exportMatchesCurrent
-        ? (videoUrl as string)
-        : await renderCurrentSettings();
+      let url = videoUrl;
+      if (!exportMatchesCurrent || !url) {
+        setPhase("rendering");
+        url = await renderCurrentSettings();
+      }
+      setPhase("downloading");
       await downloadVideo(url, videoFilename(asset.name, asset.id));
+      setPhase("done");
     } catch (err) {
-      setExportError(err instanceof Error ? err.message : "Export failed.");
-    } finally {
-      setExporting(false);
+      const raw =
+        err instanceof TimeoutError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : "Export failed.";
+      setExportError(friendlyExportError(raw));
+      setPhase("idle");
     }
   }
+
+  const primaryLabel =
+    phase === "rendering"
+      ? "Rendering MP4…"
+      : phase === "downloading"
+        ? "Downloading…"
+        : phase === "done" && exportMatchesCurrent
+          ? "Download again"
+          : exportMatchesCurrent
+            ? "Download MP4"
+            : "Export & download MP4";
+
+  const statusText = exportError
+    ? exportError
+    : phase === "rendering"
+      ? `Rendering on the backend (up to ${Math.round(RENDER_TIMEOUT_MS / 1000)}s)…`
+      : phase === "downloading"
+        ? "Saving MP4 to your Downloads folder…"
+        : phase === "done" && exportMatchesCurrent
+          ? "Download started. You can download again without re-exporting until you change settings."
+          : exportMatchesCurrent
+            ? "Ready — MP4 is cached for these settings."
+            : videoUrl
+              ? "Settings changed — next click will re-export, then download."
+              : "Click Export & download to render an MP4 with your current settings.";
 
   return (
     <section className="asset-editor">
@@ -129,12 +217,8 @@ export function AssetEditor({ asset, onBack }: Props) {
           <p>{asset.description}</p>
         </div>
         <div className="asset-editor-actions">
-          <button type="button" onClick={onDownloadMp4} disabled={exporting}>
-            {exporting
-              ? "Rendering MP4…"
-              : exportMatchesCurrent
-                ? "Download MP4"
-                : "Export & download MP4"}
+          <button type="button" onClick={onDownloadMp4} disabled={busy}>
+            {primaryLabel}
           </button>
         </div>
       </div>
@@ -143,11 +227,11 @@ export function AssetEditor({ asset, onBack }: Props) {
         <aside className="asset-controls">
           <div className="pane-label">Customize</div>
           <p className="control-hint">
-            Edit text and colors below — preview updates live. Download always
-            uses your latest settings.
+            Edit text and colors — preview updates live. Download uses your
+            latest settings.
           </p>
 
-          {asset.fields.map((field) => (
+          {visibleFields.map((field) => (
             <FieldControl
               key={field.key}
               field={field}
@@ -164,34 +248,36 @@ export function AssetEditor({ asset, onBack }: Props) {
               setProps({ ...asset.defaults });
               setVideoUrl(null);
               setExportedKey(null);
+              setPhase("idle");
+              setExportError(null);
             }}
           >
             Reset to defaults
           </button>
 
-          <button type="button" onClick={onDownloadMp4} disabled={exporting}>
-            {exporting
-              ? "Rendering MP4…"
-              : exportMatchesCurrent
-                ? "Download MP4"
-                : "Export & download MP4"}
-          </button>
-          <div className={`status ${exportError ? "error" : ""}`}>
-            {exportError ||
-              (exporting
-                ? "Rendering with your current settings…"
-                : exportMatchesCurrent
-                  ? "Latest settings exported — download is instant until you change something."
-                  : videoUrl
-                    ? "Settings changed — next download will re-export the new version."
-                    : "")}
-          </div>
-          {exportMatchesCurrent && videoUrl ? (
-            <div className="asset-export-preview">
-              <video src={apiUrl(videoUrl)} controls preload="metadata" />
-              <DownloadVideoButton videoUrl={videoUrl} title={asset.name} />
+          <div className="asset-download-panel">
+            <button type="button" onClick={onDownloadMp4} disabled={busy}>
+              {primaryLabel}
+            </button>
+            <div className={`status ${exportError ? "error" : ""}`}>
+              {statusText}
             </div>
-          ) : null}
+            {exportMatchesCurrent && videoUrl ? (
+              <div className="asset-export-preview">
+                <video
+                  key={videoUrl}
+                  src={apiUrl(videoUrl)}
+                  controls
+                  preload="metadata"
+                />
+                <DownloadVideoButton
+                  videoUrl={videoUrl}
+                  title={asset.name}
+                  label="Download again"
+                />
+              </div>
+            ) : null}
+          </div>
         </aside>
 
         <div className="asset-preview-pane">
@@ -248,6 +334,9 @@ function FieldControl({
       {field.type === "number" ? (
         <input
           type="number"
+          step={field.step ?? "any"}
+          min={field.min}
+          max={field.max}
           value={Number(value ?? 0)}
           onChange={(e) => onChange(Number(e.target.value))}
         />
@@ -262,16 +351,11 @@ function FieldControl({
       ) : null}
 
       {field.type === "select" ? (
-        <select
+        <DarkSelect
           value={String(value ?? "")}
-          onChange={(e) => onChange(e.target.value)}
-        >
-          {(field.options || []).map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
+          options={field.options || []}
+          onChange={onChange}
+        />
       ) : null}
 
       {field.type === "image" ? (
@@ -289,5 +373,62 @@ function FieldControl({
         </div>
       ) : null}
     </label>
+  );
+}
+
+function DarkSelect({
+  value,
+  options,
+  onChange,
+}: {
+  value: string;
+  options: { label: string; value: string }[];
+  onChange: (value: string | number) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const selected = options.find((opt) => opt.value === value);
+
+  useEffect(() => {
+    function onDoc(event: MouseEvent) {
+      if (!rootRef.current?.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, []);
+
+  return (
+    <div className={open ? "dark-select open" : "dark-select"} ref={rootRef}>
+      <button
+        type="button"
+        className="dark-select-trigger"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => setOpen((prev) => !prev)}
+      >
+        <span>{selected?.label ?? value}</span>
+        <span className="dark-select-chevron" aria-hidden />
+      </button>
+      {open ? (
+        <ul className="dark-select-menu" role="listbox">
+          {options.map((opt) => (
+            <li key={opt.value} role="option" aria-selected={opt.value === value}>
+              <button
+                type="button"
+                className={opt.value === value ? "active" : undefined}
+                onClick={() => {
+                  onChange(opt.value);
+                  setOpen(false);
+                }}
+              >
+                {opt.label}
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
   );
 }

@@ -13,6 +13,9 @@ export type AssetField = {
   placeholder?: string;
   options?: { label: string; value: string }[];
   hint?: string;
+  step?: number;
+  min?: number;
+  max?: number;
 };
 
 export type AssetCategory =
@@ -42,6 +45,7 @@ export type AssetDefinition = {
   fields: AssetField[];
   defaults: Record<string, string | number>;
   accent: string;
+  subcategory?: string;
   /** Passed to the Revideo scene as `template` */
   template: string;
 };

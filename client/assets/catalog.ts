@@ -1,4 +1,5 @@
-import type { AssetDefinition } from "./types";
+import { CHART_ASSETS, CHART_SUBCATEGORIES } from "./chartCatalog";
+import type { AssetDefinition, AssetField } from "./types";
 
 const PLACE_OPTIONS = [
   {
@@ -70,7 +71,44 @@ const base = {
   durationInFrames: 150,
 };
 
-export const ASSETS: AssetDefinition[] = [
+const timingFields: AssetField[] = [
+  { key: "startDelay", label: "Start delay (sec)", type: "number", hint: "Wait before the first animation", step: 0.01, min: 0 },
+  { key: "stepDelay", label: "Step delay (sec)", type: "number", hint: "Pause between each event, node, chip, or bar", step: 0.01, min: 0 },
+  { key: "connectDelay", label: "Connector delay (sec)", type: "number", hint: "Wait before drawing the line or link to the next item", step: 0.01, min: 0 },
+  { key: "lineDuration", label: "Line draw time (sec)", type: "number", hint: "How long connectors, rails, spokes, and wipes take to draw", step: 0.01, min: 0.05 },
+  { key: "revealDuration", label: "Reveal time (sec)", type: "number", hint: "How long each node, card, chip, or label takes to pop in", step: 0.01, min: 0.08 },
+  { key: "itemDelays", label: "Per-item extra delays", type: "text", hint: "Optional extra pause before each item, comma-separated seconds (e.g. 0, 0.4, 0.1)", placeholder: "0, 0.4, 0.1" },
+  { key: "sound", label: "Sound", type: "select", options: [{ label: "On (CC0)", value: "on" }, { label: "Off", value: "off" }], hint: "Kenney interface sounds, CC0 — fetched only for this scene, not bundled" },
+];
+
+const timingDefaults = {
+  startDelay: 0,
+  stepDelay: 0.12,
+  connectDelay: 0.08,
+  lineDuration: 0.55,
+  revealDuration: 0.32,
+  itemDelays: "",
+  sound: "on",
+};
+
+const FONT_OPTIONS = [
+  { label: "Libre Baskerville", value: "Libre Baskerville, Georgia, serif" },
+  { label: "Playfair Display", value: "Playfair Display, Georgia, serif" },
+  { label: "Instrument Serif", value: "Instrument Serif, Georgia, serif" },
+  { label: "Old Standard", value: "Old Standard TT, Times New Roman, serif" },
+  { label: "Oswald", value: "Oswald, Arial Narrow, sans-serif" },
+  { label: "Sora", value: "Sora, Helvetica, sans-serif" },
+];
+
+const fontField: AssetField = {
+  key: "fontFamily",
+  label: "Font",
+  type: "select",
+  options: FONT_OPTIONS,
+  hint: "Typeface for headlines, names, and captions",
+};
+
+const ALL_ASSETS: AssetDefinition[] = [
   {
     ...base,
     id: "book-area-highlight",
@@ -86,7 +124,8 @@ export const ASSETS: AssetDefinition[] = [
       { key: "callout", label: "Callout label", type: "text" },
       { key: "shape", label: "Shape", type: "select", options: [{"label":"Circle","value":"circle"},{"label":"Box","value":"box"}] },
       { key: "accent", label: "Accent", type: "color" },
-      { key: "bg", label: "Background", type: "color" }
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "chapter": "Annex B",
@@ -94,7 +133,8 @@ export const ASSETS: AssetDefinition[] = [
       "callout": "Budget line 17",
       "shape": "circle",
       "accent": "#e63946",
-      "bg": "#0a0806"
+      "bg": "#0a0806",
+      ...timingDefaults,
     },
   },
   {
@@ -112,7 +152,8 @@ export const ASSETS: AssetDefinition[] = [
       { key: "pageText", label: "Page text", type: "textarea" },
       { key: "coverColor", label: "Cover color", type: "color" },
       { key: "accent", label: "Accent", type: "color" },
-      { key: "bg", label: "Background", type: "color" }
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "coverTitle": "The Hidden Files",
@@ -120,7 +161,8 @@ export const ASSETS: AssetDefinition[] = [
       "pageText": "They opened the file expecting a routine note. Instead they found a name that had been erased from every public record.",
       "coverColor": "#1e3a5f",
       "accent": "#e63946",
-      "bg": "#0a0806"
+      "bg": "#0a0806",
+      ...timingDefaults,
     },
   },
   {
@@ -139,7 +181,8 @@ export const ASSETS: AssetDefinition[] = [
       { key: "imageUrl", label: "Cover image (optional)", type: "image" },
       { key: "coverColor", label: "Cover color", type: "color" },
       { key: "accent", label: "Accent", type: "color" },
-      { key: "bg", label: "Background", type: "color" }
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "title": "The Hidden Files",
@@ -148,7 +191,8 @@ export const ASSETS: AssetDefinition[] = [
       "imageUrl": "",
       "coverColor": "#1e3a5f",
       "accent": "#e63946",
-      "bg": "#07090e"
+      "bg": "#07090e",
+      ...timingDefaults,
     },
   },
   {
@@ -166,7 +210,8 @@ export const ASSETS: AssetDefinition[] = [
       { key: "imageUrl", label: "Cover image", type: "image" },
       { key: "coverColor", label: "Cover color", type: "color" },
       { key: "accent", label: "Accent", type: "color" },
-      { key: "bg", label: "Background", type: "color" }
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "title": "The Long Game",
@@ -174,7 +219,8 @@ export const ASSETS: AssetDefinition[] = [
       "imageUrl": "",
       "coverColor": "#152238",
       "accent": "#7dd3a0",
-      "bg": "#06080c"
+      "bg": "#06080c",
+      ...timingDefaults,
     },
   },
   {
@@ -193,7 +239,8 @@ export const ASSETS: AssetDefinition[] = [
       { key: "line3", label: "Line 3", type: "text" },
       { key: "scanColor", label: "Scan band", type: "color" },
       { key: "accent", label: "Accent", type: "color" },
-      { key: "bg", label: "Background", type: "color" }
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "chapter": "Testimony",
@@ -202,7 +249,8 @@ export const ASSETS: AssetDefinition[] = [
       "line3": "Witness C: Nobody signed their real name.",
       "scanColor": "#ffe566",
       "accent": "#e63946",
-      "bg": "#090b10"
+      "bg": "#090b10",
+      ...timingDefaults,
     },
   },
   {
@@ -221,16 +269,18 @@ export const ASSETS: AssetDefinition[] = [
       { key: "afterText", label: "After highlight", type: "textarea" },
       { key: "markerColor", label: "Marker color", type: "color" },
       { key: "accent", label: "Accent", type: "color" },
-      { key: "bg", label: "Background", type: "color" }
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "chapter": "Page 142",
       "beforeText": "The report concluded that the operation had been",
       "highlightText": "deliberately buried",
       "afterText": "for more than a decade.",
-      "markerColor": "#ffe566",
+      "markerColor": "#FAFF00",
       "accent": "#e63946",
-      "bg": "#0c0a08"
+      "bg": "#0c0a08",
+      ...timingDefaults,
     },
   },
   {
@@ -249,7 +299,8 @@ export const ASSETS: AssetDefinition[] = [
       { key: "pageLabel", label: "Page label", type: "text" },
       { key: "accent", label: "Accent", type: "color" },
       { key: "coverColor", label: "Gutter tint", type: "color" },
-      { key: "bg", label: "Background", type: "color" }
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "title": "Chapter 3",
@@ -258,7 +309,8 @@ export const ASSETS: AssetDefinition[] = [
       "pageLabel": "pp. 84–85",
       "accent": "#e63946",
       "coverColor": "#1a1410",
-      "bg": "#0c0a08"
+      "bg": "#0c0a08",
+      ...timingDefaults,
     },
   },
   {
@@ -276,7 +328,8 @@ export const ASSETS: AssetDefinition[] = [
       { key: "line3", label: "Page 3", type: "text" },
       { key: "line4", label: "Page 4", type: "text" },
       { key: "accent", label: "Accent", type: "color" },
-      { key: "bg", label: "Background", type: "color" }
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "line1": "1947 — First mention in the archives",
@@ -284,7 +337,8 @@ export const ASSETS: AssetDefinition[] = [
       "line3": "1991 — The paper trail widens",
       "line4": "2019 — Public questions return",
       "accent": "#e63946",
-      "bg": "#080a10"
+      "bg": "#080a10",
+      ...timingDefaults,
     },
   },
   {
@@ -301,14 +355,16 @@ export const ASSETS: AssetDefinition[] = [
       { key: "quote", label: "Quote", type: "textarea" },
       { key: "attribution", label: "Attribution", type: "text" },
       { key: "accent", label: "Accent", type: "color" },
-      { key: "bg", label: "Background", type: "color" }
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "chapter": "Foreword",
       "quote": "History is not what happened. It is what was written down.",
       "attribution": "— Anonymous marginal note",
       "accent": "#e63946",
-      "bg": "#090b10"
+      "bg": "#090b10",
+      ...timingDefaults,
     },
   },
   {
@@ -328,7 +384,8 @@ export const ASSETS: AssetDefinition[] = [
       { key: "imageUrl", label: "Cover image", type: "image" },
       { key: "coverColor", label: "Cover color", type: "color" },
       { key: "accent", label: "Accent", type: "color" },
-      { key: "bg", label: "Background", type: "color" }
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "eyebrow": "SOURCE",
@@ -338,7 +395,8 @@ export const ASSETS: AssetDefinition[] = [
       "imageUrl": "",
       "coverColor": "#1a2f4a",
       "accent": "#e63946",
-      "bg": "#07090e"
+      "bg": "#07090e",
+      ...timingDefaults,
     },
   },
   {
@@ -356,7 +414,8 @@ export const ASSETS: AssetDefinition[] = [
       { key: "spineLabel", label: "Spine text", type: "text" },
       { key: "coverColor", label: "Cover color", type: "color" },
       { key: "accent", label: "Accent", type: "color" },
-      { key: "bg", label: "Background", type: "color" }
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "title": "Power & Silence",
@@ -364,7 +423,8 @@ export const ASSETS: AssetDefinition[] = [
       "spineLabel": "POWER & SILENCE",
       "coverColor": "#2a1810",
       "accent": "#d4a373",
-      "bg": "#0a0806"
+      "bg": "#0a0806",
+      ...timingDefaults,
     },
   },
   {
@@ -383,7 +443,8 @@ export const ASSETS: AssetDefinition[] = [
       { key: "book3", label: "Book 3", type: "text" },
       { key: "book4", label: "Book 4", type: "text" },
       { key: "accent", label: "Accent", type: "color" },
-      { key: "bg", label: "Background", type: "color" }
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "title": "On the shelf",
@@ -392,7 +453,8 @@ export const ASSETS: AssetDefinition[] = [
       "book3": "Closed Doors",
       "book4": "After Midnight",
       "accent": "#e63946",
-      "bg": "#0a0c12"
+      "bg": "#0a0c12",
+      ...timingDefaults,
     },
   },
   {
@@ -410,7 +472,8 @@ export const ASSETS: AssetDefinition[] = [
       { key: "underlineText", label: "Underlined phrase", type: "text" },
       { key: "afterText", label: "After", type: "text" },
       { key: "accent", label: "Accent", type: "color" },
-      { key: "bg", label: "Background", type: "color" }
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "chapter": "Conclusion",
@@ -418,7 +481,8 @@ export const ASSETS: AssetDefinition[] = [
       "underlineText": "it waited for someone to look",
       "afterText": ".",
       "accent": "#e63946",
-      "bg": "#0c0a08"
+      "bg": "#0c0a08",
+      ...timingDefaults,
     },
   },
   {
@@ -440,7 +504,8 @@ export const ASSETS: AssetDefinition[] = [
       { key: "page4", label: "Page 4", type: "textarea" },
       { key: "coverColor", label: "Cover color", type: "color" },
       { key: "accent", label: "Accent", type: "color" },
-      { key: "bg", label: "Background", type: "color" }
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "coverTitle": "The Hidden Files",
@@ -452,7 +517,8 @@ export const ASSETS: AssetDefinition[] = [
       "page4": "What changed was not the ink. It was who was willing to read it.",
       "coverColor": "#1e3a5f",
       "accent": "#e63946",
-      "bg": "#07090e"
+      "bg": "#07090e",
+      ...timingDefaults,
     },
   },
   {
@@ -470,7 +536,8 @@ export const ASSETS: AssetDefinition[] = [
       { key: "subtitle", label: "Subtitle", type: "text" },
       { key: "accent", label: "Gold / accent", type: "color" },
       { key: "coverColor", label: "Cover color", type: "color" },
-      { key: "bg", label: "Background", type: "color" }
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "title": "ENCYCLOPEDIA",
@@ -478,14 +545,15 @@ export const ASSETS: AssetDefinition[] = [
       "subtitle": "Conflicts & Consequences",
       "accent": "#d4af37",
       "coverColor": "#1a1208",
-      "bg": "#050408"
+      "bg": "#050408",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "news-clip-zoom",
     name: "Clipping zoom + marker",
-    description: "Slow zoom into a clipping while the marker sweeps the key words.",
+    description: "Small tilted cutting on a dark desk — camera pushes in, then a marker paints the headline.",
     category: "newspaper",
     accent: "#ffe566",
     template: "news-clip-zoom",
@@ -496,22 +564,24 @@ export const ASSETS: AssetDefinition[] = [
       { key: "headline", label: "Headline", type: "textarea" },
       { key: "highlight", label: "Phrase to highlight", type: "text", hint: "Must appear inside the headline" },
       { key: "accent", label: "Marker color", type: "color" },
-      { key: "ink", label: "Ink color", type: "color" }
+      { key: "ink", label: "Ink color", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "masthead": "CITY TIMES",
       "byline": "By Staff Reporter",
       "headline": "Record turnout at the polls today",
       "highlight": "Record turnout",
-      "accent": "#ffe566",
-      "ink": "#1c1814"
+      "accent": "#FAFF00",
+      "ink": "#1c1814",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "news-draw-line",
     name: "Draw-line highlight",
-    description: "Hand-drawn underline, marker wash, or strike-through on editorial text.",
+    description: "Dark editorial card — kicker, giant headline, then a blue pen underline / marker / strike.",
     category: "newspaper",
     accent: "#1b4dff",
     template: "news-draw-line",
@@ -523,7 +593,8 @@ export const ASSETS: AssetDefinition[] = [
       { key: "sub", label: "Subline", type: "text" },
       { key: "mode", label: "Mark style", type: "select", options: [{"label":"Hand underline","value":"underline"},{"label":"Marker wash","value":"marker"},{"label":"Both","value":"both"},{"label":"Strike-through","value":"strike"}] },
       { key: "accent", label: "Pen color", type: "color" },
-      { key: "ink", label: "Ink color", type: "color" }
+      { key: "ink", label: "Ink color", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "kicker": "EDITORIAL",
@@ -532,14 +603,15 @@ export const ASSETS: AssetDefinition[] = [
       "sub": "Why patience and clarity matter more than ever.",
       "mode": "underline",
       "accent": "#1b4dff",
-      "ink": "#16120e"
+      "ink": "#16120e",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "news-front-page",
     name: "Front page + stamp",
-    description: "Two-column front page with a slamming BREAKING stamp.",
+    description: "Full broadsheet with masthead, two columns, and a BREAKING stamp that slams in.",
     category: "newspaper",
     accent: "#c1121f",
     template: "news-front-page",
@@ -553,7 +625,8 @@ export const ASSETS: AssetDefinition[] = [
       { key: "col2", label: "Column 2", type: "textarea" },
       { key: "stamp", label: "Stamp text", type: "text" },
       { key: "accent", label: "Stamp color", type: "color" },
-      { key: "ink", label: "Ink color", type: "color" }
+      { key: "ink", label: "Ink color", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "masthead": "THE NATIONAL",
@@ -564,14 +637,15 @@ export const ASSETS: AssetDefinition[] = [
       "col2": "Markets opened higher. Civil society groups called for careful implementation in the months ahead.",
       "stamp": "BREAKING",
       "accent": "#c1121f",
-      "ink": "#151210"
+      "ink": "#151210",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "news-headline-stack",
     name: "Headline stack",
-    description: "Three clipped headlines slam in with sequential rule lines.",
+    description: "Three paper strips fly in from the left, one after another, each with a rule line.",
     category: "newspaper",
     accent: "#c1121f",
     template: "news-headline-stack",
@@ -582,7 +656,8 @@ export const ASSETS: AssetDefinition[] = [
       { key: "line2", label: "Headline 2", type: "text" },
       { key: "line3", label: "Headline 3", type: "text" },
       { key: "accent", label: "Rule color", type: "color" },
-      { key: "ink", label: "Ink color", type: "color" }
+      { key: "ink", label: "Ink color", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "title": "In the papers",
@@ -590,14 +665,15 @@ export const ASSETS: AssetDefinition[] = [
       "line2": "Cabinet clears infrastructure push",
       "line3": "States race to implement the plan",
       "accent": "#c1121f",
-      "ink": "#151210"
+      "ink": "#151210",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "news-magnifier",
     name: "Magnifier reveal",
-    description: "Lens sweeps the page while a phrase gets a marker wash.",
+    description: "A glass lens tracks across the column, then a marker wash locks onto the phrase.",
     category: "newspaper",
     accent: "#ffb703",
     template: "news-magnifier",
@@ -606,20 +682,22 @@ export const ASSETS: AssetDefinition[] = [
       { key: "body", label: "Body text", type: "textarea" },
       { key: "highlight", label: "Phrase to highlight", type: "text", hint: "Must appear inside the body text" },
       { key: "accent", label: "Marker color", type: "color" },
-      { key: "ink", label: "Ink color", type: "color" }
+      { key: "ink", label: "Ink color", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "body": "The committee noted that infrastructure, education and health must move together if the gains are to last. Growth without inclusion, they warned, would leave the story unfinished.",
       "highlight": "Growth without inclusion",
       "accent": "#ffb703",
-      "ink": "#171310"
+      "ink": "#171310",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "news-photo-caption",
     name: "Photo caption underline",
-    description: "News photo with caption and an animated draw-line under a phrase.",
+    description: "Nitish-style split: photo plate on the left, caption + red underline on the right.",
     category: "newspaper",
     accent: "#e63946",
     template: "news-photo-caption",
@@ -630,7 +708,8 @@ export const ASSETS: AssetDefinition[] = [
       { key: "highlight", label: "Phrase to underline", type: "text", hint: "Must appear inside the caption" },
       { key: "credit", label: "Credit", type: "text" },
       { key: "accent", label: "Line color", type: "color" },
-      { key: "ink", label: "Ink color", type: "color" }
+      { key: "ink", label: "Ink color", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "imageUrl": "",
@@ -638,14 +717,15 @@ export const ASSETS: AssetDefinition[] = [
       "highlight": "results are announced",
       "credit": "Staff photo",
       "accent": "#e63946",
-      "ink": "#171310"
+      "ink": "#171310",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "news-quote-box",
     name: "Quote box draw",
-    description: "Ink pen draws a box around a quote, then underlines the credit.",
+    description: "Giant quote on a dark field — a pen draws the box clockwise, then underlines the credit.",
     category: "newspaper",
     accent: "#1d3557",
     template: "news-quote-box",
@@ -654,20 +734,22 @@ export const ASSETS: AssetDefinition[] = [
       { key: "quote", label: "Quote", type: "textarea" },
       { key: "attribution", label: "Attribution", type: "text" },
       { key: "accent", label: "Pen color", type: "color" },
-      { key: "ink", label: "Ink color", type: "color" }
+      { key: "ink", label: "Ink color", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "quote": "History is written by those who show up.",
       "attribution": "— Anonymous editorial",
       "accent": "#1d3557",
-      "ink": "#151210"
+      "ink": "#151210",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "news-red-circle",
     name: "Red pen circle",
-    description: "Newsprint page with a hand-drawn red circle around a key phrase.",
+    description: "Centered newsprint page; a red ellipse snaps onto the headline like a felt-tip circle.",
     category: "newspaper",
     accent: "#d62828",
     template: "news-red-circle",
@@ -678,7 +760,8 @@ export const ASSETS: AssetDefinition[] = [
       { key: "circleWord", label: "Phrase to circle", type: "text", hint: "Must appear inside the headline" },
       { key: "body", label: "Body copy", type: "textarea" },
       { key: "accent", label: "Pen color", type: "color" },
-      { key: "ink", label: "Ink color", type: "color" }
+      { key: "ink", label: "Ink color", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "masthead": "MORNING POST",
@@ -686,14 +769,15 @@ export const ASSETS: AssetDefinition[] = [
       "circleWord": "historic high",
       "body": "Markets reacted sharply as numbers crossed every forecast. Experts call it a generational shift.",
       "accent": "#d62828",
-      "ink": "#171310"
+      "ink": "#171310",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "news-slide-highlight",
     name: "Newspaper slide + highlight",
-    description: "Paper flies in (VOX-style), then a marker paints across your chosen phrase.",
+    description: "Vox / Rathee move: tilted paper slides in from the right, then a yellow marker paints the phrase.",
     category: "newspaper",
     accent: "#f5d76e",
     template: "news-slide-highlight",
@@ -706,7 +790,8 @@ export const ASSETS: AssetDefinition[] = [
       { key: "body", label: "Body copy", type: "textarea" },
       { key: "accent", label: "Marker color", type: "color" },
       { key: "ink", label: "Ink color", type: "color" },
-      { key: "rotation", label: "Tilt (degrees)", type: "number" }
+      { key: "rotation", label: "Tilt (degrees)", type: "number" },
+      ...timingFields,
     ],
     defaults: {
       "masthead": "THE DAILY CHRONICLE",
@@ -716,14 +801,15 @@ export const ASSETS: AssetDefinition[] = [
       "body": "In a landmark development, leaders gathered as history turned a new page. Analysts say the decision will reshape the decade ahead.",
       "accent": "#f5d76e",
       "ink": "#1a1510",
-      "rotation": -4
+      "rotation": -4,
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "news-ultra-circle",
     name: "Ultra red pen circle",
-    description: "Aged newsprint with a realistic hand-drawn red circle.",
+    description: "Aged paper with a double hand-drawn circle — outer thick, inner sketchy.",
     category: "newspaper",
     accent: "#c1121f",
     template: "news-ultra-circle",
@@ -734,7 +820,8 @@ export const ASSETS: AssetDefinition[] = [
       { key: "circleWord", label: "Phrase to circle", type: "text", hint: "Must appear inside the headline" },
       { key: "body", label: "Body", type: "textarea" },
       { key: "accent", label: "Pen color", type: "color" },
-      { key: "paperTint", label: "Paper tint", type: "color" }
+      { key: "paperTint", label: "Paper tint", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "masthead": "MORNING POST",
@@ -742,14 +829,15 @@ export const ASSETS: AssetDefinition[] = [
       "circleWord": "historic high",
       "body": "Markets reacted sharply as numbers crossed every forecast. Experts call it a generational shift.",
       "accent": "#c1121f",
-      "paperTint": "#f3ead6"
+      "paperTint": "#f3ead6",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "news-ultra-extra",
     name: "Ultra EXTRA edition",
-    description: "Broadsheet with slamming EXTRA banner + headline highlight.",
+    description: "Red EXTRA / LATE CITY bar drops from the top, then the headline and marker land.",
     category: "newspaper",
     accent: "#b00000",
     template: "news-ultra-extra",
@@ -762,7 +850,8 @@ export const ASSETS: AssetDefinition[] = [
       { key: "sub", label: "Subline", type: "text" },
       { key: "bannerColor", label: "Banner color", type: "color" },
       { key: "markerColor", label: "Marker color", type: "color" },
-      { key: "paperTint", label: "Paper tint", type: "color" }
+      { key: "paperTint", label: "Paper tint", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "masthead": "THE DAILY RECORD",
@@ -771,15 +860,16 @@ export const ASSETS: AssetDefinition[] = [
       "highlight": "Breaking developments",
       "sub": "Live updates as officials scramble to respond",
       "bannerColor": "#b00000",
-      "markerColor": "#ffe566",
-      "paperTint": "#f1e6d0"
+      "markerColor": "#FAFF00",
+      "paperTint": "#f1e6d0",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "news-ultra-fold",
     name: "Ultra paper fold",
-    description: "3D fold/unroll onto the desk, then marker paints the phrase.",
+    description: "Sheet starts as a thin fold, unrolls across the desk, then a marker hits the headline.",
     category: "newspaper",
     accent: "#f5d76e",
     template: "news-ultra-fold",
@@ -790,22 +880,24 @@ export const ASSETS: AssetDefinition[] = [
       { key: "highlight", label: "Phrase to highlight", type: "text", hint: "Must appear inside the headline" },
       { key: "body", label: "Body copy", type: "textarea" },
       { key: "markerColor", label: "Marker color", type: "color" },
-      { key: "paperTint", label: "Paper tint", type: "color" }
+      { key: "paperTint", label: "Paper tint", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "masthead": "EVENING POST",
       "headline": "Secrets buried in the archives finally surface",
       "highlight": "finally surface",
       "body": "A newly released cache of documents is forcing a rewrite of the official narrative. Investigators say the trail runs through offices that once denied any link.",
-      "markerColor": "#f5d76e",
-      "paperTint": "#efe4cc"
+      "markerColor": "#FAFF00",
+      "paperTint": "#efe4cc",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "news-ultra-front",
     name: "Ultra front page",
-    description: "Broadsheet with masthead, drop-cap columns, photo & marker — fully configurable.",
+    description: "Full morning paper: masthead, kicker, photo plate, two columns, then marker on the headline.",
     category: "newspaper",
     accent: "#ffe566",
     template: "news-ultra-front",
@@ -825,7 +917,8 @@ export const ASSETS: AssetDefinition[] = [
       { key: "col1", label: "Column 1", type: "textarea" },
       { key: "col2", label: "Column 2", type: "textarea" },
       { key: "markerColor", label: "Marker color", type: "color" },
-      { key: "paperTint", label: "Paper tint", type: "color" }
+      { key: "paperTint", label: "Paper tint", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "masthead": "THE MORNING TRIBUNE",
@@ -841,15 +934,16 @@ export const ASSETS: AssetDefinition[] = [
       "caption": "Supporters gather outside the counting centre late into the night.",
       "col1": "Preliminary counts show a decisive shift that few pollsters had predicted. Local organizers described scenes of jubilation and disbelief as the night stretched into morning.",
       "col2": "Opposition leaders called for calm and a careful reading of the numbers. Markets opened higher, while civil society groups urged patience as official tallies continue.",
-      "markerColor": "#ffe566",
-      "paperTint": "#f2e8d4"
+      "markerColor": "#FAFF00",
+      "paperTint": "#f2e8d4",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "news-ultra-letterpress",
     name: "Ultra letterpress underline",
-    description: "Letterpress headline with hand-ink underline draw.",
+    description: "Dark letterpress lockup — heavy serif on a cream slab, then a thick ink underline.",
     category: "newspaper",
     accent: "#1d4ed8",
     template: "news-ultra-letterpress",
@@ -861,7 +955,8 @@ export const ASSETS: AssetDefinition[] = [
       { key: "body", label: "Body", type: "textarea" },
       { key: "accent", label: "Ink accent", type: "color" },
       { key: "ink", label: "Headline ink", type: "color" },
-      { key: "paperTint", label: "Paper tint", type: "color" }
+      { key: "paperTint", label: "Paper tint", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "kicker": "EDITORIAL",
@@ -870,14 +965,15 @@ export const ASSETS: AssetDefinition[] = [
       "body": "In an age of noise, the printed word still demands we slow down and look closer. That discipline is not nostalgia — it is accountability.",
       "accent": "#1d4ed8",
       "ink": "#1a1510",
-      "paperTint": "#efe6d2"
+      "paperTint": "#efe6d2",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "news-ultra-push",
     name: "Ultra clip camera push",
-    description: "Slow Ken-Burns push into newsprint while the marker sweeps.",
+    description: "Ken Burns into a slightly tilted cutting — slow push, then the marker sweeps.",
     category: "newspaper",
     accent: "#ffe566",
     template: "news-ultra-push",
@@ -890,7 +986,8 @@ export const ASSETS: AssetDefinition[] = [
       { key: "highlight", label: "Phrase to highlight", type: "text", hint: "Must appear inside the headline" },
       { key: "body", label: "Body", type: "textarea" },
       { key: "markerColor", label: "Marker color", type: "color" },
-      { key: "paperTint", label: "Paper tint", type: "color" }
+      { key: "paperTint", label: "Paper tint", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "masthead": "CITY TIMES",
@@ -899,15 +996,16 @@ export const ASSETS: AssetDefinition[] = [
       "headline": "Record crowds demand answers at the gates",
       "highlight": "Record crowds",
       "body": "From dawn the avenues filled. Chants rolled between buildings as marshals struggled to keep corridors open for emergency vehicles.",
-      "markerColor": "#ffe566",
-      "paperTint": "#f4ead8"
+      "markerColor": "#FAFF00",
+      "paperTint": "#f4ead8",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "news-ultra-spread",
     name: "Ultra two-page spread",
-    description: "Open newspaper spread with left photo story + right column.",
+    description: "Two pages open from the gutter — left investigation, right markets.",
     category: "newspaper",
     accent: "#8b1e1e",
     template: "news-ultra-spread",
@@ -920,7 +1018,8 @@ export const ASSETS: AssetDefinition[] = [
       { key: "rightMasthead", label: "Right section", type: "text" },
       { key: "rightHeadline", label: "Right headline", type: "textarea" },
       { key: "rightBody", label: "Right body", type: "textarea" },
-      { key: "paperTint", label: "Paper tint", type: "color" }
+      { key: "paperTint", label: "Paper tint", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "leftMasthead": "THE NATIONAL",
@@ -930,14 +1029,15 @@ export const ASSETS: AssetDefinition[] = [
       "rightMasthead": "WORLD",
       "rightHeadline": "Markets react as the news breaks",
       "rightBody": "Investors scrambled for clarity as statements conflicted across capitals.",
-      "paperTint": "#f2e8d4"
+      "paperTint": "#f2e8d4",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "news-ultra-stack",
     name: "Ultra paper stack",
-    description: "Stack of aged papers; top sheet slides in with highlight.",
+    description: "A pile of aged papers; the top sheet drops onto the stack, then highlight.",
     category: "newspaper",
     accent: "#f5d76e",
     template: "news-ultra-stack",
@@ -949,7 +1049,8 @@ export const ASSETS: AssetDefinition[] = [
       { key: "line2", label: "Line 2", type: "text" },
       { key: "line3", label: "Line 3", type: "text" },
       { key: "markerColor", label: "Marker color", type: "color" },
-      { key: "paperTint", label: "Paper tint", type: "color" }
+      { key: "paperTint", label: "Paper tint", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "masthead": "WEEKLY OBSERVER",
@@ -957,15 +1058,16 @@ export const ASSETS: AssetDefinition[] = [
       "highlight": "tried to bury",
       "line2": "Editors race to verify a flood of fresh claims",
       "line3": "Public demands a full and open inquiry",
-      "markerColor": "#f5d76e",
-      "paperTint": "#f0e5cf"
+      "markerColor": "#FAFF00",
+      "paperTint": "#f0e5cf",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "news-ultra-torn",
     name: "Ultra torn clipping",
-    description: "Vox-style hand-torn edges (jagged, not straight) with fiber rim, tilt & marker.",
+    description: "Rotated torn clipping with jagged edge tabs, then a lime marker on the headline.",
     category: "newspaper",
     accent: "#c8f542",
     template: "news-ultra-torn",
@@ -982,7 +1084,8 @@ export const ASSETS: AssetDefinition[] = [
       { key: "paperTint", label: "Paper tint", type: "color" },
       { key: "rotation", label: "Tilt (degrees)", type: "number" },
       { key: "tornRoughness", label: "Tear roughness", type: "number", hint: "Higher = more jagged hand-torn edge (8–28)" },
-      { key: "tornSeed", label: "Tear pattern seed", type: "number" }
+      { key: "tornSeed", label: "Tear pattern seed", type: "number" },
+      ...timingFields,
     ],
     defaults: {
       "masthead": "DAILY NEWS",
@@ -992,18 +1095,19 @@ export const ASSETS: AssetDefinition[] = [
       "body": "Editors love this beat: a clipped story with ragged edges, sitting above a dark grid like it was ripped from the morning edition.",
       "imageUrl": "",
       "caption": "Archive photo",
-      "markerColor": "#c8f542",
+      "markerColor": "#FAFF00",
       "paperTint": "#f4ead8",
       "rotation": -6,
       "tornRoughness": 18,
-      "tornSeed": 7
+      "tornSeed": 7,
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "news-ultra-torn-reveal",
     name: "Ultra torn reveal",
-    description: "Clipping tears open left→right with a jagged edge, then marker highlights.",
+    description: "Cover sheet peels left-to-right like a tear, then the marker paints the phrase.",
     category: "newspaper",
     accent: "#ffe566",
     template: "news-ultra-torn-reveal",
@@ -1016,222 +1120,26 @@ export const ASSETS: AssetDefinition[] = [
       { key: "markerColor", label: "Marker color", type: "color" },
       { key: "paperTint", label: "Paper tint", type: "color" },
       { key: "tornRoughness", label: "Tear roughness", type: "number" },
-      { key: "tornSeed", label: "Tear pattern seed", type: "number" }
+      { key: "tornSeed", label: "Tear pattern seed", type: "number" },
+      ...timingFields,
     ],
     defaults: {
       "masthead": "THE EVENING CLIP",
       "headline": "Ripped from today's front page",
       "highlight": "Ripped from",
       "body": "A slow tear reveals the clipping — not a hard rectangular wipe, but an uneven edge the way fingers would pull newsprint apart.",
-      "markerColor": "#ffe566",
+      "markerColor": "#FAFF00",
       "paperTint": "#f2e8d4",
       "tornRoughness": 20,
-      "tornSeed": 11
-    },
-  },
-  {
-    ...base,
-    id: "fire-campfire",
-    name: "Campfire",
-    description: "Procedural flame tongues over logs with rising embers.",
-    category: "fire",
-    accent: "#ff6a00",
-    template: "fire-campfire",
-    durationInFrames: 150,
-    fields: [
-      { key: "title", label: "Title", type: "text" },
-      { key: "subtitle", label: "Subtitle", type: "text" },
-      { key: "flameCount", label: "Flame count", type: "number" },
-      { key: "emberCount", label: "Ember count", type: "number" },
-      { key: "accent", label: "Accent", type: "color" },
-      { key: "bg", label: "Background", type: "color" }
-    ],
-    defaults: {
-      "title": "CAMPFIRE",
-      "subtitle": "Stay close to the warmth",
-      "flameCount": 9,
-      "emberCount": 28,
-      "accent": "#ff6a00",
-      "bg": "#07040a"
-    },
-  },
-  {
-    ...base,
-    id: "fire-candle",
-    name: "Candle flame",
-    description: "Soft flickering candle with intimate caption.",
-    category: "fire",
-    accent: "#ffb347",
-    template: "fire-candle",
-    durationInFrames: 140,
-    fields: [
-      { key: "title", label: "Title", type: "text" },
-      { key: "subtitle", label: "Subtitle", type: "text" },
-      { key: "accent", label: "Flame color", type: "color" },
-      { key: "bg", label: "Background", type: "color" }
-    ],
-    defaults: {
-      "title": "A single flame",
-      "subtitle": "Is enough to start",
-      "accent": "#ffb347",
-      "bg": "#06040a"
-    },
-  },
-  {
-    ...base,
-    id: "fire-embers",
-    name: "Ember storm",
-    description: "Field of rising or falling sparks.",
-    category: "fire",
-    accent: "#ff9f43",
-    template: "fire-embers",
-    durationInFrames: 150,
-    fields: [
-      { key: "title", label: "Title", type: "text" },
-      { key: "count", label: "Particle count", type: "number" },
-      { key: "direction", label: "Direction", type: "select", options: [{"label":"Rising","value":"up"},{"label":"Falling","value":"down"}] },
-      { key: "accent", label: "Ember color", type: "color" },
-      { key: "bg", label: "Background", type: "color" }
-    ],
-    defaults: {
-      "title": "Embers",
-      "count": 48,
-      "direction": "up",
-      "accent": "#ff9f43",
-      "bg": "#08040a"
-    },
-  },
-  {
-    ...base,
-    id: "fire-explosion",
-    name: "Fire explosion",
-    description: "Radial blast with shockwave and sparks.",
-    category: "fire",
-    accent: "#ff3b00",
-    template: "fire-explosion",
-    durationInFrames: 110,
-    fields: [
-      { key: "title", label: "Title", type: "text" },
-      { key: "accent", label: "Blast color", type: "color" },
-      { key: "bg", label: "Background", type: "color" }
-    ],
-    defaults: {
-      "title": "BOOM",
-      "accent": "#ff3b00",
-      "bg": "#050000"
-    },
-  },
-  {
-    ...base,
-    id: "fire-heat-haze",
-    name: "Heat haze title",
-    description: "Title shimmering over rising ground flames.",
-    category: "fire",
-    accent: "#ff6a00",
-    template: "fire-heat-haze",
-    durationInFrames: 120,
-    fields: [
-      { key: "title", label: "Title", type: "text" },
-      { key: "subtitle", label: "Subtitle", type: "text" },
-      { key: "accent", label: "Accent", type: "color" },
-      { key: "bg", label: "Background", type: "color" }
-    ],
-    defaults: {
-      "title": "HEAT WARNING",
-      "subtitle": "Temperatures rising",
-      "accent": "#ff6a00",
-      "bg": "#0a0608"
-    },
-  },
-  {
-    ...base,
-    id: "fire-inferno",
-    name: "Inferno wash",
-    description: "Full-screen wall of fire with title burn-in.",
-    category: "fire",
-    accent: "#ff3b00",
-    template: "fire-inferno",
-    durationInFrames: 140,
-    fields: [
-      { key: "title", label: "Title", type: "text" },
-      { key: "intensity", label: "Intensity", type: "number", hint: "0.5 – 2 recommended" },
-      { key: "accent", label: "Accent", type: "color" },
-      { key: "bg", label: "Background", type: "color" }
-    ],
-    defaults: {
-      "title": "INFERNO",
-      "intensity": 1,
-      "accent": "#ff3b00",
-      "bg": "#0a0202"
-    },
-  },
-  {
-    ...base,
-    id: "fire-match",
-    name: "Match strike",
-    description: "Match slides in, tip sparks, flame blooms.",
-    category: "fire",
-    accent: "#ff7a18",
-    template: "fire-match",
-    durationInFrames: 130,
-    fields: [
-      { key: "label", label: "Caption", type: "text" },
-      { key: "accent", label: "Accent", type: "color" },
-      { key: "bg", label: "Background", type: "color" }
-    ],
-    defaults: {
-      "label": "It only takes a spark",
-      "accent": "#ff7a18",
-      "bg": "#060308"
-    },
-  },
-  {
-    ...base,
-    id: "fire-ring",
-    name: "Fire ring portal",
-    description: "Expanding flaming ring with center title.",
-    category: "fire",
-    accent: "#ff5a00",
-    template: "fire-ring",
-    durationInFrames: 130,
-    fields: [
-      { key: "title", label: "Title", type: "text" },
-      { key: "subtitle", label: "Subtitle", type: "text" },
-      { key: "accent", label: "Ring color", type: "color" },
-      { key: "bg", label: "Background", type: "color" }
-    ],
-    defaults: {
-      "title": "ENTER",
-      "subtitle": "Through the flames",
-      "accent": "#ff5a00",
-      "bg": "#050208"
-    },
-  },
-  {
-    ...base,
-    id: "fire-text-burn",
-    name: "Fire text burn",
-    description: "Letters rise through flame glow with ground fire.",
-    category: "fire",
-    accent: "#ff6a00",
-    template: "fire-text-burn",
-    durationInFrames: 120,
-    fields: [
-      { key: "text", label: "Text", type: "text" },
-      { key: "accent", label: "Flame color", type: "color" },
-      { key: "bg", label: "Background", type: "color" }
-    ],
-    defaults: {
-      "text": "ON FIRE",
-      "accent": "#ff6a00",
-      "bg": "#08040a"
+      "tornSeed": 11,
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "yt-connection",
     name: "Connection reveal",
-    description: "A → B boxes with drawing link — connect two beats of the story.",
+    description: "Two boxes land, then a red line draws A → B under the claim.",
     category: "yt",
     accent: "#e63946",
     template: "yt-connection",
@@ -1241,21 +1149,23 @@ export const ASSETS: AssetDefinition[] = [
       { key: "toLabel", label: "To", type: "text" },
       { key: "claim", label: "Claim line", type: "textarea" },
       { key: "accent", label: "Accent", type: "color" },
-      { key: "bg", label: "Background", type: "color" }
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "fromLabel": "Protest site",
       "toLabel": "Decision makers",
       "claim": "A direct line between the street and the statement.",
       "accent": "#e63946",
-      "bg": "#07090e"
+      "bg": "#07090e",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "yt-dark-quote",
     name: "Dark quote card",
-    description: "Italic quote with red rule — witness / statement beat.",
+    description: "Italic witness quote; a tall red rule grows beside it.",
     category: "yt",
     accent: "#e63946",
     template: "yt-dark-quote",
@@ -1264,20 +1174,22 @@ export const ASSETS: AssetDefinition[] = [
       { key: "quote", label: "Quote", type: "textarea" },
       { key: "attribution", label: "Attribution", type: "text" },
       { key: "accent", label: "Accent", type: "color" },
-      { key: "bg", label: "Background", type: "color" }
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "quote": "We were never told the full story.",
       "attribution": "— On-ground witness",
       "accent": "#e63946",
-      "bg": "#07090e"
+      "bg": "#07090e",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "yt-date-rail",
     name: "Date rail timeline",
-    description: "Horizontal date nodes for protest / files chronology.",
+    description: "A red rail grows, then date nodes punch along the chronology.",
     category: "yt",
     accent: "#e63946",
     template: "yt-date-rail",
@@ -1286,20 +1198,22 @@ export const ASSETS: AssetDefinition[] = [
       { key: "title", label: "Title", type: "text" },
       { key: "events", label: "Events", type: "textarea", hint: "One per line: Year|Label" },
       { key: "accent", label: "Accent", type: "color" },
-      { key: "bg", label: "Background", type: "color" }
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "title": "Timeline",
-      "events": "2015|First reportsn2019|Public confrontationn2021|Documents surfacen2024|Fresh questions",
+      "events": "2015|First reports\n2019|Public confrontation\n2021|Documents surface\n2024|Fresh questions",
       "accent": "#e63946",
-      "bg": "#07090e"
+      "bg": "#07090e",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "yt-evidence-board",
     name: "Evidence board",
-    description: "Three photos linked by drawing strings — conspiracy / network board.",
+    description: "Three tilted polaroids pop in; red strings draw between them.",
     category: "yt",
     accent: "#e63946",
     template: "yt-evidence-board",
@@ -1313,7 +1227,8 @@ export const ASSETS: AssetDefinition[] = [
       { key: "label3", label: "Card 3 label", type: "text" },
       { key: "image3", label: "Card 3 photo", type: "image" },
       { key: "accent", label: "String color", type: "color" },
-      { key: "bg", label: "Background", type: "color" }
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "title": "The network",
@@ -1324,14 +1239,15 @@ export const ASSETS: AssetDefinition[] = [
       "label3": "Person C",
       "image3": "",
       "accent": "#e63946",
-      "bg": "#0a0c10"
+      "bg": "#0a0c10",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "yt-fact-cascade",
     name: "Fact cascade",
-    description: "Bullets that slide in one by one — “what we know” beat.",
+    description: "Numbered facts slide in one-by-one from the left.",
     category: "yt",
     accent: "#e63946",
     template: "yt-fact-cascade",
@@ -1340,20 +1256,22 @@ export const ASSETS: AssetDefinition[] = [
       { key: "title", label: "Title", type: "text" },
       { key: "facts", label: "Facts (one per line)", type: "textarea" },
       { key: "accent", label: "Accent", type: "color" },
-      { key: "bg", label: "Background", type: "color" }
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "title": "What we know",
-      "facts": "Thousands gathered at the sitenDemands were clear and repeatednOfficials issued conflicting statementsnTimeline still being pieced together",
+      "facts": "Thousands gathered at the site\nDemands were clear and repeated\nOfficials issued conflicting statements\nTimeline still being pieced together",
       "accent": "#e63946",
-      "bg": "#07090e"
+      "bg": "#07090e",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "yt-location-pin",
     name: "Location pin drop",
-    description: "Map-style pin slam for protest / place intros (e.g. Jantar Mantar).",
+    description: "Map rings pulse, pin drops onto the place name (Jantar Mantar style).",
     category: "yt",
     accent: "#e63946",
     template: "yt-location-pin",
@@ -1363,21 +1281,23 @@ export const ASSETS: AssetDefinition[] = [
       { key: "city", label: "City / region", type: "text" },
       { key: "detail", label: "Detail", type: "textarea" },
       { key: "accent", label: "Pin color", type: "color" },
-      { key: "bg", label: "Background", type: "color" }
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "place": "Jantar Mantar",
       "city": "New Delhi",
       "detail": "The ground where voices gathered.",
       "accent": "#e63946",
-      "bg": "#0a1018"
+      "bg": "#0a1018",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "yt-part-bumper",
     name: "Part / chapter bumper",
-    description: "PART 01 style section divider between story chapters.",
+    description: "Vertical red bar + PART 01 + chapter title — section cut between beats.",
     category: "yt",
     accent: "#e63946",
     template: "yt-part-bumper",
@@ -1386,20 +1306,22 @@ export const ASSETS: AssetDefinition[] = [
       { key: "part", label: "Part label", type: "text" },
       { key: "title", label: "Chapter title", type: "text" },
       { key: "accent", label: "Accent", type: "color" },
-      { key: "bg", label: "Background", type: "color" }
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "part": "PART 01",
       "title": "How it started",
       "accent": "#e63946",
-      "bg": "#05070b"
+      "bg": "#05070b",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "yt-person-card",
     name: "Person dossier card",
-    description: "Portrait + role + detail — introduce a key figure.",
+    description: "Portrait plate left, name/role right, accent bar grows — introduce a figure.",
     category: "yt",
     accent: "#e63946",
     template: "yt-person-card",
@@ -1410,7 +1332,8 @@ export const ASSETS: AssetDefinition[] = [
       { key: "role", label: "Role", type: "text" },
       { key: "detail", label: "Detail", type: "textarea" },
       { key: "accent", label: "Accent", type: "color" },
-      { key: "bg", label: "Background", type: "color" }
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "imageUrl": "",
@@ -1418,14 +1341,15 @@ export const ASSETS: AssetDefinition[] = [
       "role": "Key figure",
       "detail": "Appears across multiple documents and timelines.",
       "accent": "#e63946",
-      "bg": "#07090e"
+      "bg": "#07090e",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "yt-photo-lower",
     name: "Photo lower-third",
-    description: "Slow photo zoom with caption bar — B-roll style.",
+    description: "Ken Burns on a dark plate; caption bar rises from the bottom.",
     category: "yt",
     accent: "#e63946",
     template: "yt-photo-lower",
@@ -1434,20 +1358,22 @@ export const ASSETS: AssetDefinition[] = [
       { key: "imageUrl", label: "Photo", type: "image" },
       { key: "title", label: "Title", type: "text" },
       { key: "subtitle", label: "Subtitle", type: "text" },
-      { key: "accent", label: "Accent", type: "color" }
+      { key: "accent", label: "Accent", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "imageUrl": "",
       "title": "On the ground",
       "subtitle": "Crowds fill the avenue as night falls",
-      "accent": "#e63946"
+      "accent": "#e63946",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "yt-question-hook",
     name: "Question hook",
-    description: "BUT + big question — tension beat before the reveal.",
+    description: "BUT flashes red, then the giant question scales in.",
     category: "yt",
     accent: "#e63946",
     template: "yt-question-hook",
@@ -1456,20 +1382,22 @@ export const ASSETS: AssetDefinition[] = [
       { key: "prefix", label: "Prefix", type: "text" },
       { key: "question", label: "Question", type: "textarea" },
       { key: "accent", label: "Accent", type: "color" },
-      { key: "bg", label: "Background", type: "color" }
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "prefix": "BUT",
       "question": "Why did nobody stop it?",
       "accent": "#e63946",
-      "bg": "#05070b"
+      "bg": "#05070b",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "yt-reality-stamp",
     name: "Reality stamp",
-    description: "REALITY / EXPOSED stamp slam — dark-truth beat.",
+    description: "REALITY / EXPOSED stamp slams in rotated, like a rubber stamp.",
     category: "yt",
     accent: "#e63946",
     template: "yt-reality-stamp",
@@ -1478,20 +1406,22 @@ export const ASSETS: AssetDefinition[] = [
       { key: "stamp", label: "Stamp text", type: "text" },
       { key: "line", label: "Supporting line", type: "text" },
       { key: "accent", label: "Stamp color", type: "color" },
-      { key: "bg", label: "Background", type: "color" }
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "stamp": "REALITY",
       "line": "What the cameras didn’t show",
       "accent": "#e63946",
-      "bg": "#05070b"
+      "bg": "#05070b",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "yt-redacted-file",
     name: "Redacted case file",
-    description: "Dossier page with CLASSIFIED stamp and black redaction bars.",
+    description: "Cream dossier, black redaction bars grow, CLASSIFIED stamp slams.",
     category: "yt",
     accent: "#e63946",
     template: "yt-redacted-file",
@@ -1503,7 +1433,8 @@ export const ASSETS: AssetDefinition[] = [
       { key: "line2", label: "Line 2", type: "text" },
       { key: "line3", label: "Line 3 (redacted)", type: "text" },
       { key: "accent", label: "Stamp color", type: "color" },
-      { key: "bg", label: "Background", type: "color" }
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "stamp": "CLASSIFIED",
@@ -1512,14 +1443,15 @@ export const ASSETS: AssetDefinition[] = [
       "line2": "Status: Under review",
       "line3": "Pages: ████████  ·  ███",
       "accent": "#e63946",
-      "bg": "#0b0e14"
+      "bg": "#0b0e14",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "yt-source-strip",
     name: "Source strip",
-    description: "“According to…” credibility lower bar.",
+    description: "Claim in the center; an “According to…” bar slides up from the bottom.",
     category: "yt",
     accent: "#e63946",
     template: "yt-source-strip",
@@ -1528,20 +1460,22 @@ export const ASSETS: AssetDefinition[] = [
       { key: "source", label: "Source line", type: "text" },
       { key: "body", label: "Body", type: "textarea" },
       { key: "accent", label: "Accent", type: "color" },
-      { key: "bg", label: "Background", type: "color" }
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "source": "According to official records",
       "body": "Multiple filings mention the same sequence of meetings and transfers.",
       "accent": "#e63946",
-      "bg": "#0a0c10"
+      "bg": "#0a0c10",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "yt-stat-bomb",
     name: "Stat bomb",
-    description: "Huge counting number for crowd size / money / pages.",
+    description: "Huge crowd/money number drops onto the label from above.",
     category: "yt",
     accent: "#e63946",
     template: "yt-stat-bomb",
@@ -1552,7 +1486,8 @@ export const ASSETS: AssetDefinition[] = [
       { key: "label", label: "Label", type: "text" },
       { key: "caption", label: "Caption", type: "text" },
       { key: "accent", label: "Accent", type: "color" },
-      { key: "bg", label: "Background", type: "color" }
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "value": 10000,
@@ -1560,14 +1495,15 @@ export const ASSETS: AssetDefinition[] = [
       "label": "People on the ground",
       "caption": "Estimated gathering size",
       "accent": "#e63946",
-      "bg": "#07090e"
+      "bg": "#07090e",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "yt-topic-slam",
     name: "Topic title slam",
-    description: "Big hook title with red underline — classic topic-video opener.",
+    description: "Eyebrow + giant hook title, then a red underline draws — classic topic opener.",
     category: "yt",
     accent: "#e63946",
     template: "yt-topic-slam",
@@ -1577,21 +1513,23 @@ export const ASSETS: AssetDefinition[] = [
       { key: "title", label: "Title", type: "textarea" },
       { key: "highlight", label: "Phrase to underline", type: "text", hint: "Must appear inside the title" },
       { key: "accent", label: "Accent", type: "color" },
-      { key: "bg", label: "Background", type: "color" }
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "eyebrow": "THE REAL STORY",
       "title": "What was really happening?",
       "highlight": "really happening",
       "accent": "#e63946",
-      "bg": "#07090e"
+      "bg": "#07090e",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "yt-year-punch",
     name: "Year punch",
-    description: "Counting years that slam into the key date — Nitish timeline beat.",
+    description: "Giant year slams from overscale — Nitish turning-point beat.",
     category: "yt",
     accent: "#e63946",
     template: "yt-year-punch",
@@ -1601,212 +1539,231 @@ export const ASSETS: AssetDefinition[] = [
       { key: "label", label: "Label", type: "text" },
       { key: "subtitle", label: "Subtitle", type: "text" },
       { key: "accent", label: "Accent", type: "color" },
-      { key: "bg", label: "Background", type: "color" }
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "year": 2019,
       "label": "THE TURNING POINT",
       "subtitle": "Everything changed after this.",
       "accent": "#e63946",
-      "bg": "#05070b"
+      "bg": "#05070b",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "timeline-eras",
     name: "Era blocks",
-    description: "Chapter columns grow in height for decade / era storytelling.",
+    description: "Full-width era bands wipe in and stack down the frame as decade chapters. Tune start, step, and wipe delays independently.",
     category: "timeline",
     accent: "#e8a54b",
     template: "timeline-eras",
-    durationInFrames: 140,
+    durationInFrames: 200,
     fields: [
       { key: "title", label: "Title", type: "text" },
       { key: "events", label: "Eras", type: "textarea", hint: "One per line: Range|Name|Detail" },
       { key: "accent", label: "Accent", type: "color" },
-      { key: "bg", label: "Background", type: "color" }
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "title": "Eras",
       "events": "1947–1964|Nehru years|Nation building\n1965–1984|Trials|Wars & shifts\n1991–2010|Opening|Reform age\n2014–now|Present|New mandate",
       "accent": "#e8a54b",
-      "bg": "#120e0a"
+      "bg": "#120e0a",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "timeline-focus",
     name: "Focus event spotlight",
-    description: "One event fills the frame while a mini-timeline runs underneath (history-channel style).",
+    description: "Giant year on the left, faded year-stack on the right — history-channel focus. Delay each stacked year independently.",
     category: "timeline",
     accent: "#5b8cff",
     template: "timeline-focus",
-    durationInFrames: 130,
+    durationInFrames: 180,
     fields: [
       { key: "title", label: "Eyebrow", type: "text" },
       { key: "events", label: "Events", type: "textarea", hint: "One per line: Year|Title|Detail" },
       { key: "focusIndex", label: "Focus index (0-based)", type: "number", hint: "Which event is spotlighted in the big card" },
       { key: "accent", label: "Accent", type: "color" },
-      { key: "bg", label: "Background", type: "color" }
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "title": "In focus",
       "events": "1947|Independence|Freedom at midnight\n1950|Republic|Constitution adopted\n1991|Reforms|Liberalization begins\n2014|Mandate|New chapter\n2024|Present|A rising chapter",
       "focusIndex": 2,
       "accent": "#5b8cff",
-      "bg": "#0a0e18"
+      "bg": "#0a0e18",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "timeline-journey",
     name: "Journey steps",
-    description: "Numbered steps with connecting dashes drawing between them.",
+    description: "Vertical numbered steps with connecting arrows. Delay each step and each arrow independently.",
     category: "timeline",
     accent: "#c4f542",
     template: "timeline-journey",
-    durationInFrames: 140,
+    durationInFrames: 210,
     fields: [
       { key: "title", label: "Title", type: "text" },
       { key: "events", label: "Steps", type: "textarea", hint: "One per line: 01|Title|Detail" },
       { key: "accent", label: "Accent", type: "color" },
-      { key: "bg", label: "Background", type: "color" }
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "title": "How it unfolded",
       "events": "01|Spark|The idea takes hold\n02|Build|Institutions rise\n03|Test|Crisis & resolve\n04|Leap|A new chapter",
       "accent": "#c4f542",
-      "bg": "#0c140c"
+      "bg": "#0c140c",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "timeline-milestones",
     name: "Milestone cards",
-    description: "Cards alternate above/below a growing center line.",
+    description: "Zigzag slabs alternate left/right as each turning point lands. Delay between each card is editable.",
     category: "timeline",
     accent: "#7dd3a0",
     template: "timeline-milestones",
-    durationInFrames: 140,
+    durationInFrames: 180,
     fields: [
       { key: "title", label: "Title", type: "text" },
       { key: "events", label: "Events (max 5)", type: "textarea", hint: "One per line: Year|Title|Detail" },
       { key: "accent", label: "Accent", type: "color" },
-      { key: "bg", label: "Background", type: "color" }
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "title": "Turning points",
       "events": "1947|Independence|Freedom\n1950|Republic|Constitution\n1991|Reforms|Markets open\n2014|Mandate|New era\n2024|Present|Next chapter",
       "accent": "#7dd3a0",
-      "bg": "#081410"
+      "bg": "#081410",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "timeline-nodes",
     name: "Horizontal node timeline",
-    description: "Lottie-style rail: line draws, nodes pop, labels rise. Great for milestone beats.",
+    description: "Technical tick-rail: each diamond pops, then a segment draws to the next. Delay nodes and connectors separately.",
     category: "timeline",
     accent: "#3dd6c6",
     template: "timeline-nodes",
-    durationInFrames: 140,
+    durationInFrames: 220,
     fields: [
       { key: "title", label: "Title", type: "text" },
       { key: "events", label: "Events", type: "textarea", hint: "One per line: Year|Title|Detail  (e.g. 1947|Independence|Freedom at midnight)" },
       { key: "accent", label: "Accent", type: "color" },
       { key: "lineColor", label: "Track color", type: "color" },
-      { key: "bg", label: "Background", type: "color" }
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "title": "Key milestones",
       "events": "1947|Independence|Freedom at midnight\n1950|Republic|Constitution adopted\n1991|Reforms|Liberalization begins\n2014|Mandate|New chapter\n2024|Present|A rising chapter",
       "accent": "#3dd6c6",
       "lineColor": "#2a3a48",
-      "bg": "#0a1218"
+      "bg": "#0a1218",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "timeline-chapters",
     name: "Chapter wipe",
-    description: "Full-bleed documentary chapters wipe in sequence — year + title per beat.",
+    description: "Split-screen wipes: huge year left, chapter title right, new color each beat. Hold and wipe times are editable.",
     category: "timeline",
     accent: "#ff6b4a",
     template: "timeline-chapters",
-    durationInFrames: 160,
+    durationInFrames: 240,
     fields: [
       { key: "title", label: "Eyebrow", type: "text" },
       { key: "events", label: "Chapters", type: "textarea", hint: "One per line: Year|Title|Detail" },
-      { key: "accent", label: "Accent", type: "color" }
+      { key: "accent", label: "Accent", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "title": "Chapters",
       "events": "1947|Independence|Freedom at midnight\n1950|Republic|Constitution adopted\n1991|Reforms|Economy opens\n2014|Mandate|A new chapter",
-      "accent": "#ff6b4a"
+      "accent": "#ff6b4a",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "timeline-ring",
     name: "Progress ring",
-    description: "Circular percent timeline / completion bumper.",
+    description: "Concentric ring draws around a counting percent bumper. Start delay and draw time are editable.",
     category: "timeline",
     accent: "#3dd6c6",
     template: "timeline-ring",
-    durationInFrames: 120,
+    durationInFrames: 150,
     fields: [
       { key: "title", label: "Title", type: "text" },
       { key: "label", label: "Label", type: "text" },
       { key: "percent", label: "Percent", type: "number" },
       { key: "accent", label: "Accent", type: "color" },
-      { key: "bg", label: "Background", type: "color" }
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "title": "Progress",
       "label": "Complete",
       "percent": 72,
       "accent": "#3dd6c6",
-      "bg": "#071018"
+      "bg": "#071018",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "timeline-vertical",
     name: "Vertical event timeline",
-    description: "Spine grows downward as dated events slide in — doc explainer style.",
+    description: "Left spine grows to each plate, then the card slides in. Delay the connector and each card separately.",
     category: "timeline",
     accent: "#d8a11a",
     template: "timeline-vertical",
-    durationInFrames: 150,
+    durationInFrames: 220,
     fields: [
       { key: "title", label: "Title", type: "text" },
       { key: "events", label: "Events", type: "textarea", hint: "One per line: Year|Title|Detail" },
       { key: "accent", label: "Accent", type: "color" },
-      { key: "bg", label: "Background", type: "color" }
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "title": "The story so far",
       "events": "1947|Independence|Freedom at midnight\n1965|Conflict|A defining war\n1991|Reforms|Economy opens\n2014|Mandate|Voters redraw the map\n2024|Present|Looking ahead",
       "accent": "#d8a11a",
-      "bg": "#071018"
+      "bg": "#071018",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "timeline-year-scrub",
     name: "Year rail scrub",
-    description: "Big counting year with a playhead scrubbing the rail — classic YouTube history beat.",
+    description: "Huge counting year fills the frame while a playhead scrubs the rail. Start delay and scrub duration are editable.",
     category: "timeline",
     accent: "#ff6b4a",
     template: "timeline-year-scrub",
-    durationInFrames: 120,
+    durationInFrames: 150,
     fields: [
       { key: "title", label: "Title", type: "text" },
       { key: "startYear", label: "Start year", type: "number" },
       { key: "endYear", label: "End year", type: "number" },
       { key: "markerYears", label: "Marker years", type: "text", hint: "Comma-separated years shown under the rail" },
       { key: "accent", label: "Accent", type: "color" },
-      { key: "bg", label: "Background", type: "color" }
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "title": "Across the decades",
@@ -1814,135 +1771,165 @@ export const ASSETS: AssetDefinition[] = [
       "endYear": 2026,
       "markerYears": "1947, 1965, 1991, 2014, 2024",
       "accent": "#ff6b4a",
-      "bg": "#0b1020"
+      "bg": "#0b1020",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "india-chakra",
     name: "Ashoka Chakra spin",
-    description: "Spinning 24-spoke chakra with configurable motto text.",
+    description: "Spokes draw one by one, then the chakra spins — delay each spoke and the spin independently.",
     category: "india",
     accent: "#000080",
     template: "india-chakra",
-    durationInFrames: 120,
+    durationInFrames: 180,
     fields: [
       { key: "title", label: "Title", type: "text" },
       { key: "subtitle", label: "Subtitle", type: "text" },
-      { key: "spokes", label: "Spokes", type: "number" },
+      { key: "spokes", label: "Spokes", type: "number", min: 8, max: 36 },
       { key: "accent", label: "Chakra color", type: "color" },
-      { key: "bg", label: "Background", type: "color" }
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "title": "Truth alone triumphs",
       "subtitle": "Satyameva Jayate",
       "spokes": 24,
       "accent": "#000080",
-      "bg": "#fff8f0"
+      "bg": "#fff8f0",
+      ...timingDefaults,
+      startDelay: 0,
+      stepDelay: 0.02,
+      connectDelay: 0.01,
+      lineDuration: 1.2,
+      revealDuration: 0.14,
     },
   },
   {
     ...base,
     id: "india-diversity",
     name: "Diversity chips",
-    description: "Languages / states chips — comma-separated list.",
+    description: "Language/state chips pop in, then a connector draws to the next. Delay each chip and each link.",
     category: "india",
     accent: "#138808",
     template: "india-diversity",
-    durationInFrames: 120,
+    durationInFrames: 200,
     fields: [
       { key: "title", label: "Title", type: "text" },
       { key: "items", label: "Items (comma separated)", type: "textarea", hint: "Example: Hindi, Tamil, Bengali, Marathi" },
-      { key: "accent", label: "Accent", type: "color" }
+      { key: "accent", label: "Accent", type: "color" },
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "title": "Many languages, one nation",
       "items": "Hindi, English, Tamil, Bengali, Marathi, Telugu, Gujarati, Kannada",
-      "accent": "#138808"
+      "accent": "#138808",
+      "bg": "#0a1210",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "india-festival",
     name: "Festival burst",
-    description: "Diwali-style particle burst with configurable greeting.",
+    description: "Diwali-style burst: sparks pop, then streak outward. Delay sparks and the connecting burst.",
     category: "india",
     accent: "#FF9933",
     template: "india-festival",
-    durationInFrames: 120,
+    durationInFrames: 170,
     fields: [
       { key: "title", label: "Title", type: "text" },
       { key: "subtitle", label: "Subtitle", type: "text" },
-      { key: "particleCount", label: "Particles", type: "number" },
-      { key: "accent", label: "Accent", type: "color" }
+      { key: "particleCount", label: "Particles", type: "number", min: 8, max: 64 },
+      { key: "accent", label: "Accent", type: "color" },
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "title": "Happy Diwali",
       "subtitle": "Festival of lights",
       "particleCount": 36,
-      "accent": "#FF9933"
+      "accent": "#FF9933",
+      "bg": "#120a04",
+      ...timingDefaults,
+      stepDelay: 0.04,
+      connectDelay: 0.18,
+      lineDuration: 0.7,
+      revealDuration: 0.2,
     },
   },
   {
     ...base,
     id: "india-map-pulse",
     name: "India map pulse",
-    description: "Real India outline zoom + glow with configurable fact line.",
+    description: "Stylized peninsula, pulse rings, then a fact line. Delay rings and the connecting glow.",
     category: "india",
     accent: "#FF9933",
     template: "india-map-pulse",
-    durationInFrames: 140,
+    durationInFrames: 180,
     fields: [
       { key: "title", label: "Title", type: "text" },
       { key: "subtitle", label: "Subtitle", type: "text" },
       { key: "fact", label: "Fact line", type: "textarea" },
       { key: "highlight", label: "Highlight phrase", type: "text" },
-      { key: "accent", label: "Accent", type: "color" }
+      { key: "accent", label: "Accent", type: "color" },
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "title": "INDIA",
       "subtitle": "Unity in diversity",
       "fact": "1.4 billion stories",
       "highlight": "1.4 billion",
-      "accent": "#FF9933"
+      "accent": "#FF9933",
+      "bg": "#071018",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "india-preamble",
     name: "Preamble type-on",
-    description: "Constitution-style typewriter card.",
+    description: "Constitution card: eyebrow lands, then the body types on. Delay the typewriter beat.",
     category: "india",
     accent: "#FF9933",
     template: "india-preamble",
-    durationInFrames: 140,
+    durationInFrames: 200,
     fields: [
       { key: "eyebrow", label: "Eyebrow", type: "text" },
       { key: "body", label: "Body text", type: "textarea" },
-      { key: "accent", label: "Accent", type: "color" }
+      { key: "accent", label: "Accent", type: "color" },
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "eyebrow": "WE, THE PEOPLE OF INDIA",
       "body": "having solemnly resolved to constitute India into a Sovereign Socialist Secular Democratic Republic...",
-      "accent": "#FF9933"
+      "accent": "#FF9933",
+      "bg": "#1a1208",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "india-rupee",
     name: "Rupee growth bumper",
-    description: "Big ₹ number animation for economy / budget beats.",
+    description: "Big ₹ count-up for economy / budget beats. Delay the number, then the connecting underline.",
     category: "india",
     accent: "#FF9933",
     template: "india-rupee",
-    durationInFrames: 120,
+    durationInFrames: 160,
     fields: [
       { key: "title", label: "Title", type: "text" },
       { key: "prefix", label: "Prefix", type: "text" },
-      { key: "value", label: "Number", type: "number" },
+      { key: "value", label: "Number", type: "number", step: 0.1 },
       { key: "suffix", label: "Suffix", type: "text" },
       { key: "caption", label: "Caption", type: "text" },
-      { key: "accent", label: "Accent", type: "color" }
+      { key: "accent", label: "Accent", type: "color" },
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "title": "Economy snapshot",
@@ -1950,195 +1937,234 @@ export const ASSETS: AssetDefinition[] = [
       "value": 4.1,
       "suffix": "T",
       "caption": "GDP milestone",
-      "accent": "#FF9933"
+      "accent": "#FF9933",
+      "bg": "#0a1210",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "india-score",
     name: "Score bumper",
-    description: "Cricket-style lower scoreboard bumper.",
+    description: "Cricket-style scoreboard: team, score, overs, then status. Delay each plate and the linking bars.",
     category: "india",
     accent: "#FF9933",
     template: "india-score",
-    durationInFrames: 120,
+    durationInFrames: 170,
     fields: [
       { key: "team", label: "Team", type: "text" },
       { key: "score", label: "Score", type: "text" },
       { key: "overs", label: "Overs", type: "text" },
       { key: "status", label: "Status line", type: "text" },
-      { key: "accent", label: "Accent", type: "color" }
+      { key: "accent", label: "Accent", type: "color" },
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "team": "IND",
       "score": "342/4",
       "overs": "48.2",
       "status": "Need 38 from 10 balls",
-      "accent": "#FF9933"
+      "accent": "#FF9933",
+      "bg": "#07140c",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "india-tricolor-rise",
     name: "Tricolor meaning rise",
-    description: "Three rising bars for saffron, white, and green meanings.",
+    description: "Saffron, white, and green bars rise in sequence. Delay each bar and the connecting rise.",
     category: "india",
     accent: "#FF9933",
     template: "india-tricolor-rise",
-    durationInFrames: 120,
+    durationInFrames: 180,
     fields: [
       { key: "title", label: "Title", type: "text" },
       { key: "line1", label: "Saffron line", type: "text" },
       { key: "line2", label: "White line", type: "text" },
-      { key: "line3", label: "Green line", type: "text" }
+      { key: "line3", label: "Green line", type: "text" },
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "title": "Tiranga",
       "line1": "Saffron — Courage",
       "line2": "White — Truth",
-      "line3": "Green — Faith"
+      "line3": "Green — Faith",
+      "bg": "#0a0c12",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "india-years",
     name: "Years of freedom",
-    description: "Counting years from independence to a target year.",
+    description: "Count from independence while a rail connects start year to target. Delay the count and the rail.",
     category: "india",
     accent: "#FF9933",
     template: "india-years",
-    durationInFrames: 120,
+    durationInFrames: 170,
     fields: [
       { key: "label", label: "Label", type: "text" },
       { key: "startYear", label: "Start year", type: "number" },
       { key: "endYear", label: "End year", type: "number" },
-      { key: "accent", label: "Accent", type: "color" }
+      { key: "accent", label: "Accent", type: "color" },
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "label": "Years of Independence",
       "startYear": 1947,
       "endYear": 2026,
-      "accent": "#FF9933"
+      "accent": "#FF9933",
+      "bg": "#0a0c12",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "short-big-claim",
     name: "Big claim slam",
-    description: "Shorts opener — bold claim with highlight underline.",
+    description: "Eyebrow, then the claim slams, then a highlight underline draws. Delay each beat.",
     category: "shorts",
     accent: "#FF9933",
     template: "short-big-claim",
-    durationInFrames: 120,
+    durationInFrames: 150,
     fields: [
       { key: "eyebrow", label: "Eyebrow", type: "text" },
       { key: "claim", label: "Claim", type: "textarea" },
       { key: "highlight", label: "Highlight phrase", type: "text" },
-      { key: "accent", label: "Accent", type: "color" }
+      { key: "accent", label: "Accent", type: "color" },
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "eyebrow": "HISTORY CHECK",
       "claim": "The Most Powerful Government of All Time",
       "highlight": "Most Powerful",
-      "accent": "#FF9933"
+      "accent": "#FF9933",
+      "bg": "#07080c",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "short-era",
     name: "Era stamp",
-    description: "Decade/era stamp overlay (e.g. 2014—2024).",
+    description: "Two years connect across a drawn dash — decade stamp overlay. Delay the years and the link.",
     category: "shorts",
     accent: "#FF9933",
     template: "short-era",
-    durationInFrames: 120,
+    durationInFrames: 150,
     fields: [
       { key: "label", label: "Label", type: "text" },
-      { key: "era", label: "Era text", type: "text" },
-      { key: "accent", label: "Accent", type: "color" }
+      { key: "era", label: "Era text", type: "text", hint: "e.g. 2014 — 2024" },
+      { key: "accent", label: "Accent", type: "color" },
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "label": "A DEFINING DECADE",
       "era": "2014 — 2024",
-      "accent": "#FF9933"
+      "accent": "#FF9933",
+      "bg": "#0a0c12",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "short-flag-wipe",
     name: "Tricolor wipe",
-    description: "Saffron–white–green wipe transition for India-focused shorts.",
+    description: "Full-frame saffron, white, green wipes in sequence, then the title. Delay each wipe.",
     category: "shorts",
     accent: "#FF9933",
     template: "short-flag-wipe",
-    durationInFrames: 90,
+    durationInFrames: 160,
     fields: [
       { key: "title", label: "Title", type: "text" },
-      { key: "subtitle", label: "Subtitle", type: "text" }
+      { key: "subtitle", label: "Subtitle", type: "text" },
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "title": "INDIA",
-      "subtitle": "A new chapter"
+      "subtitle": "A new chapter",
+      "bg": "#0a0c12",
+      ...timingDefaults,
+      connectDelay: 0.12,
+      lineDuration: 0.4,
     },
   },
   {
     ...base,
     id: "short-kinetic",
     name: "Kinetic words",
-    description: "Word-by-word hook text for vertical Shorts pacing.",
+    description: "Words slam one by one; a tick draws before the next. Delay each word and each link.",
     category: "shorts",
     accent: "#FF9933",
     template: "short-kinetic",
-    durationInFrames: 120,
+    durationInFrames: 160,
     fields: [
       { key: "text", label: "Words", type: "textarea" },
-      { key: "accent", label: "Last-word color", type: "color" }
+      { key: "accent", label: "Last-word color", type: "color" },
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "text": "Strong Stable Decisive Mandate",
-      "accent": "#FF9933"
+      "accent": "#FF9933",
+      "bg": "#07080c",
+      ...timingDefaults,
+      stepDelay: 0.08,
     },
   },
   {
     ...base,
     id: "short-leader",
     name: "Leader portrait reveal",
-    description: "Portrait + name + years — swap photo and copy.",
+    description: "Portrait, then name, then a bar, then role and years. Delay each plate and the bar.",
     category: "shorts",
     accent: "#FF9933",
     template: "short-leader",
-    durationInFrames: 120,
+    durationInFrames: 170,
     fields: [
       { key: "imageUrl", label: "Portrait", type: "image" },
       { key: "name", label: "Name", type: "text" },
       { key: "role", label: "Role", type: "text" },
       { key: "years", label: "Years", type: "text" },
-      { key: "accent", label: "Accent", type: "color" }
+      { key: "accent", label: "Accent", type: "color" },
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "imageUrl": "",
       "name": "Leader Name",
       "role": "Prime Minister",
       "years": "2014 — Present",
-      "accent": "#FF9933"
+      "accent": "#FF9933",
+      "bg": "#0a0c12",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "short-majority",
     name: "Majority / seats meter",
-    description: "Animated seats meter with majority mark line.",
+    description: "Seat count, then the meter fills, then the majority mark drops. Delay each beat.",
     category: "shorts",
     accent: "#FF9933",
     template: "short-majority",
-    durationInFrames: 110,
+    durationInFrames: 160,
     fields: [
       { key: "title", label: "Title", type: "text" },
       { key: "label", label: "Label", type: "text" },
       { key: "seats", label: "Seats", type: "number" },
       { key: "total", label: "Total seats", type: "number" },
       { key: "majorityMark", label: "Majority mark", type: "number" },
-      { key: "accent", label: "Accent", type: "color" }
+      { key: "accent", label: "Accent", type: "color" },
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "title": "Lok Sabha strength",
@@ -2146,25 +2172,29 @@ export const ASSETS: AssetDefinition[] = [
       "seats": 303,
       "total": 543,
       "majorityMark": 272,
-      "accent": "#FF9933"
+      "accent": "#FF9933",
+      "bg": "#07090e",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "short-montage",
     name: "Photo montage grid",
-    description: "2×2 photo montage with caption — upload four images.",
+    description: "2×2 frames pop in sequence, then a connector to the next. Delay each tile and link.",
     category: "shorts",
     accent: "#FF9933",
     template: "short-montage",
-    durationInFrames: 120,
+    durationInFrames: 180,
     fields: [
       { key: "image1", label: "Photo 1", type: "image" },
       { key: "image2", label: "Photo 2", type: "image" },
       { key: "image3", label: "Photo 3", type: "image" },
       { key: "image4", label: "Photo 4", type: "image" },
       { key: "caption", label: "Caption", type: "text" },
-      { key: "accent", label: "Accent", type: "color" }
+      { key: "accent", label: "Accent", type: "color" },
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "image1": "",
@@ -2172,215 +2202,264 @@ export const ASSETS: AssetDefinition[] = [
       "image3": "",
       "image4": "",
       "caption": "A decade of decisions",
-      "accent": "#FF9933"
+      "accent": "#FF9933",
+      "bg": "#08090d",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "short-rank",
     name: "Rank badge slam",
-    description: "#1 / most-powerful badge slam for Shorts hooks.",
+    description: "Badge ring, then the rank, then a bar to the label. Delay each slam and the connector.",
     category: "shorts",
     accent: "#FF9933",
     template: "short-rank",
-    durationInFrames: 120,
+    durationInFrames: 150,
     fields: [
       { key: "rank", label: "Rank", type: "text" },
       { key: "label", label: "Label", type: "text" },
       { key: "sublabel", label: "Sublabel", type: "text" },
-      { key: "accent", label: "Accent", type: "color" }
+      { key: "accent", label: "Accent", type: "color" },
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "rank": "#1",
       "label": "Most Powerful",
       "sublabel": "In independent India",
-      "accent": "#FF9933"
+      "accent": "#FF9933",
+      "bg": "#08060a",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "short-vs",
     name: "Then vs Now",
-    description: "Split comparison panel used in political explainers.",
+    description: "THEN and NOW panels slam in, then a VS divider draws between them. Delay each side and the link.",
     category: "shorts",
     accent: "#FF9933",
     template: "short-vs",
-    durationInFrames: 120,
+    durationInFrames: 160,
     fields: [
       { key: "leftTitle", label: "Left title", type: "text" },
       { key: "leftText", label: "Left text", type: "textarea" },
       { key: "rightTitle", label: "Right title", type: "text" },
       { key: "rightText", label: "Right text", type: "textarea" },
-      { key: "accent", label: "Accent", type: "color" }
+      { key: "accent", label: "Accent", type: "color" },
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "leftTitle": "THEN",
       "leftText": "Fragile coalition",
       "rightTitle": "NOW",
       "rightText": "Full majority",
-      "accent": "#FF9933"
+      "accent": "#FF9933",
+      "bg": "#07080c",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "airplane-route",
     name: "Airplane route map",
-    description: "Real great-circle flight path on a d3-geo orthographic globe (world-atlas).",
+    description: "Great-circle flight on a real orthographic Earth (Natural Earth coastlines). Origin pin, path, then destination.",
     category: "maps",
     accent: "#5ce1ff",
     template: "airplane-route",
-    durationInFrames: 140,
+    durationInFrames: 210,
     fields: [
       { key: "title", label: "Title", type: "text" },
       { key: "fromPlace", label: "From country", type: "select", options: PLACE_OPTIONS },
       { key: "toPlace", label: "To country", type: "select", options: PLACE_OPTIONS },
       { key: "accent", label: "Plane color", type: "color" },
-      { key: "lineColor", label: "Path color", type: "color" }
+      { key: "lineColor", label: "Path color", type: "color" },
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "title": "India to USA",
       "fromPlace": "india",
       "toPlace": "usa",
       "accent": "#d8a11a",
-      "lineColor": "#5ce1ff"
+      "lineColor": "#5ce1ff",
+      "bg": "#05080d",
+      ...timingDefaults,
+      lineDuration: 1.8,
+      revealDuration: 0.4,
     },
   },
   {
     ...base,
     id: "country-highlight",
     name: "Country highlight globe",
-    description: "Documentary-style globe that draws and fills a real country outline.",
+    description: "The globe turns to the selected country, then its real outline fills. Delay the camera and the fill.",
     category: "maps",
     accent: "#FF9933",
     template: "country-highlight",
-    durationInFrames: 150,
+    durationInFrames: 200,
     fields: [
       { key: "placeKey", label: "Country", type: "select", options: PLACE_OPTIONS },
       { key: "title", label: "Title", type: "text" },
       { key: "subtitle", label: "Subtitle", type: "text" },
-      { key: "accent", label: "Highlight color", type: "color" }
+      { key: "accent", label: "Highlight color", type: "color" },
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "placeKey": "india",
       "title": "INDIA",
       "subtitle": "SOUTH ASIA",
-      "accent": "#FF9933"
+      "accent": "#FF9933",
+      "bg": "#05080d",
+      ...timingDefaults,
+      lineDuration: 1.5,
+      revealDuration: 0.4,
     },
   },
   {
     ...base,
     id: "map-spotlight",
     name: "Map region spotlight",
-    description: "Equirectangular world map with a real country spotlight pulse.",
+    description: "Equirectangular Natural Earth map. The country fills, then geodesic rings pulse out. Delay the fill and rings.",
     category: "maps",
     accent: "#d8a11a",
     template: "map-spotlight",
-    durationInFrames: 120,
+    durationInFrames: 160,
     fields: [
       { key: "placeKey", label: "Country", type: "select", options: PLACE_OPTIONS },
       { key: "region", label: "Region label", type: "text" },
       { key: "fact", label: "Fact line", type: "textarea" },
       { key: "highlight", label: "Highlight phrase", type: "text" },
-      { key: "accent", label: "Accent", type: "color" }
+      { key: "accent", label: "Accent", type: "color" },
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "placeKey": "india",
       "region": "South Asia",
       "fact": "Fastest growing internet region",
       "highlight": "Fastest growing",
-      "accent": "#d8a11a"
+      "accent": "#d8a11a",
+      "bg": "#05080d",
+      ...timingDefaults,
+      lineDuration: 1.2,
     },
   },
   {
     ...base,
     id: "zoom-location",
     name: "Zoom into country",
-    description: "Camera zooms into a real country on an orthographic globe.",
+    description: "The camera flies from a world view into the real country, then a capital pin drops. Delay the zoom and the pin.",
     category: "maps",
     accent: "#d8a11a",
     template: "zoom-location",
-    durationInFrames: 130,
+    durationInFrames: 210,
     fields: [
       { key: "placeKey", label: "Country", type: "select", options: PLACE_OPTIONS },
       { key: "city", label: "City label", type: "text" },
       { key: "detail", label: "Detail line", type: "textarea" },
       { key: "highlight", label: "Highlight phrase", type: "text" },
-      { key: "accent", label: "Accent", type: "color" }
+      { key: "accent", label: "Accent", type: "color" },
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "placeKey": "india",
       "city": "Mumbai",
       "detail": "Financial capital under pressure",
       "highlight": "pressure",
-      "accent": "#d8a11a"
+      "accent": "#d8a11a",
+      "bg": "#05080d",
+      ...timingDefaults,
+      lineDuration: 1.6,
+      revealDuration: 0.4,
     },
   },
   {
     ...base,
     id: "globe-spin",
     name: "3D Earth globe",
-    description: "Textured blue-marble Earth (Three.js) with stars and a real lat/lon pin.",
+    description: "A real Earth globe spins onto the focus country, then a pin drops on the capital. Delay the spin and the pin.",
     category: "3d",
     accent: "#d8a11a",
     template: "globe-spin",
-    durationInFrames: 150,
+    durationInFrames: 210,
     fields: [
       { key: "title", label: "Title", type: "text" },
       { key: "subtitle", label: "Subtitle", type: "text" },
       { key: "placeKey", label: "Focus country", type: "select", options: PLACE_OPTIONS },
       { key: "pinLabel", label: "Pin label", type: "text" },
-      { key: "accent", label: "Accent", type: "color" }
+      { key: "accent", label: "Accent", type: "color" },
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "title": "Around the world",
       "subtitle": "Global stories, animated",
       "placeKey": "india",
       "pinLabel": "New Delhi",
-      "accent": "#d8a11a"
+      "accent": "#d8a11a",
+      "bg": "#05080d",
+      ...timingDefaults,
+      lineDuration: 1.8,
+      revealDuration: 0.4,
     },
   },
   {
     ...base,
     id: "headline-slam",
     name: "Headline slam",
-    description: "Bold news-style title with highlight control.",
+    description: "Bold news-style title with highlight control. Delay the slam and the underline.",
     category: "text",
     accent: "#d8a11a",
     template: "headline-slam",
-    durationInFrames: 120,
+    durationInFrames: 140,
     fields: [
       { key: "eyebrow", label: "Eyebrow", type: "text" },
       { key: "headline", label: "Headline", type: "textarea" },
       { key: "highlight", label: "Highlight phrase", type: "text" },
-      { key: "accent", label: "Accent", type: "color" }
+      { key: "accent", label: "Accent", type: "color" },
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "eyebrow": "Tonight",
       "headline": "The deal nobody voted for",
       "highlight": "nobody voted",
-      "accent": "#d8a11a"
+      "accent": "#d8a11a",
+      "bg": "#07080c",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "quote-callout",
     name: "Quote callout",
-    description: "Large quote with attribution and phrase underline.",
+    description: "Large quote with attribution and phrase underline. Delay each beat.",
     category: "text",
     accent: "#d8a11a",
     template: "quote-callout",
-    durationInFrames: 120,
+    durationInFrames: 140,
     fields: [
       { key: "quote", label: "Quote", type: "textarea" },
       { key: "highlight", label: "Highlight phrase", type: "text" },
       { key: "attribution", label: "Attribution", type: "text" },
-      { key: "accent", label: "Accent", type: "color" }
+      { key: "markerColor", label: "Highlight color", type: "color" },
+      { key: "accent", label: "Accent", type: "color" },
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "quote": "Democracy dies in darkness",
       "highlight": "darkness",
       "attribution": "— Editorial board",
-      "accent": "#d8a11a"
+      "markerColor": "#FAFF00",
+      "accent": "#d8a11a",
+      "bg": "#07080c",
+      ...timingDefaults,
     },
   },
   {
@@ -2396,15 +2475,21 @@ export const ASSETS: AssetDefinition[] = [
       { key: "text", label: "Main text", type: "textarea" },
       { key: "highlight", label: "Word / phrase to highlight", type: "text", hint: "Must appear inside the main text" },
       { key: "mode", label: "Highlight style", type: "select", options: [{"label":"Underline draw","value":"underline"},{"label":"Marker highlight","value":"marker"},{"label":"Both","value":"both"}] },
+      { key: "markerColor", label: "Highlight color", type: "color" },
       { key: "accent", label: "Accent color", type: "color" },
-      { key: "textColor", label: "Text color", type: "color" }
+      { key: "textColor", label: "Text color", type: "color" },
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "text": "Nobody asked for this trade-off",
       "highlight": "trade-off",
       "mode": "both",
+      "markerColor": "#FAFF00",
       "accent": "#ff8b7a",
-      "textColor": "#e8f0ea"
+      "textColor": "#e8f0ea",
+      "bg": "#07080c",
+      ...timingDefaults,
     },
   },
   {
@@ -2420,15 +2505,21 @@ export const ASSETS: AssetDefinition[] = [
       { key: "text", label: "Main text", type: "textarea" },
       { key: "highlight", label: "Word / phrase to highlight", type: "text", hint: "Must appear inside the main text" },
       { key: "mode", label: "Highlight style", type: "select", options: [{"label":"Underline draw","value":"underline"},{"label":"Marker highlight","value":"marker"},{"label":"Both","value":"both"}] },
+      { key: "markerColor", label: "Highlight color", type: "color" },
       { key: "accent", label: "Accent color", type: "color" },
-      { key: "textColor", label: "Text color", type: "color" }
+      { key: "textColor", label: "Text color", type: "color" },
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "text": "The real cost was hidden in the fine print",
       "highlight": "fine print",
       "mode": "marker",
+      "markerColor": "#FAFF00",
       "accent": "#f0d35a",
-      "textColor": "#e8f0ea"
+      "textColor": "#e8f0ea",
+      "bg": "#07080c",
+      ...timingDefaults,
     },
   },
   {
@@ -2444,57 +2535,73 @@ export const ASSETS: AssetDefinition[] = [
       { key: "text", label: "Main text", type: "textarea" },
       { key: "highlight", label: "Word / phrase to highlight", type: "text", hint: "Must appear inside the main text" },
       { key: "mode", label: "Highlight style", type: "select", options: [{"label":"Underline draw","value":"underline"},{"label":"Marker highlight","value":"marker"},{"label":"Both","value":"both"}] },
+      { key: "markerColor", label: "Highlight color", type: "color" },
       { key: "accent", label: "Accent color", type: "color" },
-      { key: "textColor", label: "Text color", type: "color" }
+      { key: "textColor", label: "Text color", type: "color" },
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "text": "This policy changed everything",
       "highlight": "everything",
       "mode": "underline",
+      "markerColor": "#FAFF00",
       "accent": "#d8a11a",
-      "textColor": "#e8f0ea"
+      "textColor": "#e8f0ea",
+      "bg": "#07080c",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "before-after",
     name: "Before / after wipe",
-    description: "Two photos with an animated wipe reveal.",
+    description: "Two photos with an animated wipe reveal. Delay the wipe.",
     category: "photos",
     accent: "#d8a11a",
     template: "before-after",
-    durationInFrames: 120,
+    durationInFrames: 150,
     fields: [
       { key: "beforeImage", label: "Before photo", type: "image" },
       { key: "afterImage", label: "After photo", type: "image" },
       { key: "beforeLabel", label: "Before label", type: "text" },
       { key: "afterLabel", label: "After label", type: "text" },
-      { key: "accent", label: "Accent", type: "color" }
+      fontField,
+      { key: "accent", label: "Accent", type: "color" },
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "beforeImage": "",
       "afterImage": "",
       "beforeLabel": "Before",
       "afterLabel": "After",
-      "accent": "#d8a11a"
+      "fontFamily": "Libre Baskerville, Georgia, serif",
+      "accent": "#d8a11a",
+      "bg": "#07080c",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "person-card",
     name: "Person card",
-    description: "Portrait + name + quote — change photo and highlight words.",
+    description: "Portrait + name + quote — change photo, font, and blended highlight. Delay each plate.",
     category: "photos",
     accent: "#d8a11a",
     template: "person-card",
-    durationInFrames: 120,
+    durationInFrames: 160,
     fields: [
       { key: "imageUrl", label: "Portrait", type: "image" },
       { key: "name", label: "Name", type: "text" },
       { key: "role", label: "Role", type: "text" },
       { key: "quote", label: "Quote", type: "textarea" },
-      { key: "highlight", label: "Highlight phrase", type: "text" },
-      { key: "accent", label: "Accent", type: "color" }
+      { key: "highlight", label: "Phrase to highlight", type: "text", hint: "Must appear in the quote. Marker blends so type stays readable." },
+      fontField,
+      { key: "markerColor", label: "Highlight color", type: "color" },
+      { key: "accent", label: "Accent", type: "color" },
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "imageUrl": "",
@@ -2502,31 +2609,220 @@ export const ASSETS: AssetDefinition[] = [
       "role": "Policy Analyst",
       "quote": "The numbers tell a different story",
       "highlight": "different story",
-      "accent": "#d8a11a"
+      "fontFamily": "Libre Baskerville, Georgia, serif",
+      "markerColor": "#FAFF00",
+      "accent": "#d8a11a",
+      "bg": "#07080c",
+      ...timingDefaults,
     },
   },
   {
     ...base,
     id: "photo-kenburns",
     name: "Photo Ken Burns",
-    description: "Swap the photo, caption, and which words get underlined.",
+    description: "Swap the photo, font, caption, and which words get a blended highlight.",
     category: "photos",
     accent: "#d8a11a",
     template: "photo-kenburns",
-    durationInFrames: 120,
+    durationInFrames: 160,
     fields: [
       { key: "imageUrl", label: "Photo", type: "image" },
       { key: "caption", label: "Caption", type: "textarea" },
-      { key: "highlight", label: "Highlight phrase", type: "text" },
-      { key: "accent", label: "Accent", type: "color" }
+      { key: "highlight", label: "Phrase to highlight", type: "text", hint: "Must appear inside the caption" },
+      fontField,
+      { key: "markerColor", label: "Highlight color", type: "color" },
+      { key: "accent", label: "Accent", type: "color" },
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "imageUrl": "",
       "caption": "A moment that shaped the decade",
       "highlight": "decade",
-      "accent": "#d8a11a"
+      "fontFamily": "Libre Baskerville, Georgia, serif",
+      "markerColor": "#FAFF00",
+      "accent": "#d8a11a",
+      "bg": "#07080c",
+      ...timingDefaults,
     },
   },
+  {
+    ...base,
+    id: "photo-news-meet",
+    name: "Newspaper + portrait meet",
+    description: "News clipping slides in from the left; a customizable portrait comes from the right. Chosen words get a blended highlighter so the ink stays readable.",
+    category: "photos",
+    accent: "#c1121f",
+    template: "photo-news-meet",
+    durationInFrames: 200,
+    fields: [
+      { key: "imageUrl", label: "Person photo", type: "image" },
+      { key: "name", label: "Person name", type: "text" },
+      { key: "role", label: "Role / caption", type: "text" },
+      { key: "masthead", label: "Masthead", type: "text" },
+      { key: "date", label: "Date line", type: "text" },
+      { key: "headline", label: "Headline", type: "textarea" },
+      { key: "highlight", label: "Phrase to highlight", type: "text", hint: "Must appear inside the headline. Highlight sits behind the letters." },
+      { key: "body", label: "Body copy", type: "textarea" },
+      fontField,
+      { key: "markerColor", label: "Highlight color", type: "color" },
+      { key: "accent", label: "Accent", type: "color" },
+      { key: "ink", label: "Ink color", type: "color" },
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
+    ],
+    defaults: {
+      "imageUrl": "",
+      "name": "Alex Morgan",
+      "role": "Witness",
+      "masthead": "THE DAILY RECORD",
+      "date": "Monday, August 18, 2026",
+      "headline": "A defining moment for the nation",
+      "highlight": "defining moment",
+      "body": "Leaders gathered as the story broke. What followed would rewrite the official account.",
+      "fontFamily": "Libre Baskerville, Georgia, serif",
+      "markerColor": "#FAFF00",
+      "accent": "#c1121f",
+      "ink": "#171310",
+      "bg": "#0a0c12",
+      ...timingDefaults,
+    },
+  },
+  {
+    ...base,
+    id: "photo-polaroid",
+    name: "Polaroid drop",
+    description: "A photo card drops from above, settles at a tilt, then the caption highlight blends under the type.",
+    category: "photos",
+    accent: "#e63946",
+    template: "photo-polaroid",
+    durationInFrames: 170,
+    fields: [
+      { key: "imageUrl", label: "Photo", type: "image" },
+      { key: "name", label: "Card label", type: "text" },
+      { key: "caption", label: "Caption", type: "textarea" },
+      { key: "highlight", label: "Phrase to highlight", type: "text", hint: "Must appear inside the caption" },
+      fontField,
+      { key: "markerColor", label: "Highlight color", type: "color" },
+      { key: "accent", label: "Accent", type: "color" },
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
+    ],
+    defaults: {
+      "imageUrl": "",
+      "name": "Field note",
+      "caption": "The night everything changed",
+      "highlight": "everything changed",
+      "fontFamily": "Playfair Display, Georgia, serif",
+      "markerColor": "#FAFF00",
+      "accent": "#e63946",
+      "bg": "#090b10",
+      ...timingDefaults,
+    },
+  },
+  {
+    ...base,
+    id: "photo-split",
+    name: "Split photo meet",
+    description: "Two customizable photos slam in from opposite sides. The center line draws, then a blended highlight hits the caption.",
+    category: "photos",
+    accent: "#d8a11a",
+    template: "photo-split",
+    durationInFrames: 180,
+    fields: [
+      { key: "leftImage", label: "Left photo", type: "image" },
+      { key: "rightImage", label: "Right photo", type: "image" },
+      { key: "leftLabel", label: "Left label", type: "text" },
+      { key: "rightLabel", label: "Right label", type: "text" },
+      { key: "caption", label: "Center caption", type: "textarea" },
+      { key: "highlight", label: "Phrase to highlight", type: "text", hint: "Must appear inside the caption" },
+      fontField,
+      { key: "markerColor", label: "Highlight color", type: "color" },
+      { key: "accent", label: "Accent", type: "color" },
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
+    ],
+    defaults: {
+      "leftImage": "",
+      "rightImage": "",
+      "leftLabel": "Then",
+      "rightLabel": "Now",
+      "caption": "The same room. Two different stories.",
+      "highlight": "different stories",
+      "fontFamily": "Oswald, Arial Narrow, sans-serif",
+      "markerColor": "#FAFF00",
+      "accent": "#d8a11a",
+      "bg": "#07080c",
+      ...timingDefaults,
+    },
+  },
+  {
+    ...base,
+    id: "photo-overlay",
+    name: "Image overlay caption",
+    description: "A full-bleed photo slides in from the right. A caption plate rises, then the chosen phrase highlights with blend.",
+    category: "photos",
+    accent: "#e63946",
+    template: "photo-overlay",
+    durationInFrames: 180,
+    fields: [
+      { key: "imageUrl", label: "Photo", type: "image" },
+      { key: "kicker", label: "Kicker", type: "text" },
+      { key: "caption", label: "Caption", type: "textarea" },
+      { key: "highlight", label: "Phrase to highlight", type: "text", hint: "Must appear inside the caption" },
+      fontField,
+      { key: "markerColor", label: "Highlight color", type: "color" },
+      { key: "accent", label: "Accent", type: "color" },
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
+    ],
+    defaults: {
+      "imageUrl": "",
+      "kicker": "ON THE GROUND",
+      "caption": "Crowds filled the avenue as night fell",
+      "highlight": "night fell",
+      "fontFamily": "Sora, Helvetica, sans-serif",
+      "markerColor": "#FAFF00",
+      "accent": "#e63946",
+      "bg": "#05070b",
+      ...timingDefaults,
+    },
+  },
+  {
+    ...base,
+    id: "photo-pin",
+    name: "Pin board layers",
+    description: "Clipping from the left, portrait from the right, a pin drops and a string draws. Highlight uses blend so type stays on top.",
+    category: "photos",
+    accent: "#e63946",
+    template: "photo-pin",
+    durationInFrames: 200,
+    fields: [
+      { key: "imageUrl", label: "Person photo", type: "image" },
+      { key: "name", label: "Name on pin", type: "text" },
+      { key: "headline", label: "Clipping headline", type: "textarea" },
+      { key: "highlight", label: "Phrase to highlight", type: "text", hint: "Must appear inside the headline" },
+      { key: "detail", label: "Detail line", type: "textarea" },
+      fontField,
+      { key: "markerColor", label: "Highlight color", type: "color" },
+      { key: "accent", label: "Pin / string color", type: "color" },
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
+    ],
+    defaults: {
+      "imageUrl": "",
+      "name": "Unknown Subject",
+      "headline": "The meeting nobody recorded",
+      "highlight": "nobody recorded",
+      "detail": "Filed, stamped, and forgotten — until tonight.",
+      "fontFamily": "Instrument Serif, Georgia, serif",
+      "markerColor": "#FAFF00",
+      "accent": "#e63946",
+      "bg": "#0c1016",
+      ...timingDefaults,
+    },
+  },
+  ...CHART_ASSETS,
   {
     ...base,
     id: "d3-area",
@@ -2538,11 +2834,17 @@ export const ASSETS: AssetDefinition[] = [
     durationInFrames: 130,
     fields: [
       { key: "title", label: "Title", type: "text" },
-      { key: "accent", label: "Fill color", type: "color" }
+      { key: "data", label: "Data", type: "textarea", hint: "One per line: Label|Value" },
+      { key: "accent", label: "Fill color", type: "color" },
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "title": "Area trend",
-      "dataJson": "JSON.stringify(SAMPLE_BARS"
+      "data": "2019|42\n2020|55\n2021|61\n2022|48\n2023|70",
+      "accent": "#7ddea2",
+      "bg": "#07080c",
+      ...timingDefaults,
     },
   },
   {
@@ -2557,12 +2859,18 @@ export const ASSETS: AssetDefinition[] = [
     fields: [
       { key: "title", label: "Title", type: "text" },
       { key: "yLabel", label: "Y-axis label", type: "text" },
-      { key: "accent", label: "Accent color", type: "color" }
+      { key: "data", label: "Data", type: "textarea", hint: "One per line: Label|Value" },
+      { key: "accent", label: "Accent color", type: "color" },
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "title": "Year-over-year growth",
       "yLabel": "Index",
-      "dataJson": "JSON.stringify(SAMPLE_BARS"
+      "data": "2019|42\n2020|55\n2021|61\n2022|48\n2023|70",
+      "accent": "#d8a11a",
+      "bg": "#07080c",
+      ...timingDefaults,
     },
   },
   {
@@ -2576,11 +2884,17 @@ export const ASSETS: AssetDefinition[] = [
     durationInFrames: 130,
     fields: [
       { key: "title", label: "Title", type: "text" },
-      { key: "accent", label: "Accent color", type: "color" }
+      { key: "data", label: "Data", type: "textarea", hint: "One per line: Label|Value" },
+      { key: "accent", label: "Accent color", type: "color" },
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "title": "Share of total",
-      "dataJson": "JSON.stringify(SAMPLE_BUDGET"
+      "data": "Health|32\nEducation|24\nDefense|18\nOther|26",
+      "accent": "#5ce1ff",
+      "bg": "#07080c",
+      ...timingDefaults,
     },
   },
   {
@@ -2596,13 +2910,17 @@ export const ASSETS: AssetDefinition[] = [
       { key: "title", label: "Title", type: "text" },
       { key: "label", label: "Caption", type: "text" },
       { key: "value", label: "Percent", type: "number" },
-      { key: "accent", label: "Accent color", type: "color" }
+      { key: "accent", label: "Accent color", type: "color" },
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "title": "Completion",
       "label": "Target met",
       "value": 72,
-      "accent": "#d8a11a"
+      "accent": "#d8a11a",
+      "bg": "#07080c",
+      ...timingDefaults,
     },
   },
   {
@@ -2616,11 +2934,21 @@ export const ASSETS: AssetDefinition[] = [
     durationInFrames: 130,
     fields: [
       { key: "title", label: "Title", type: "text" },
-      { key: "accent", label: "Accent color", type: "color" }
+      { key: "seriesA", label: "Series A", type: "text" },
+      { key: "seriesB", label: "Series B", type: "text" },
+      { key: "data", label: "Data", type: "textarea", hint: "One per line: Label|SeriesA|SeriesB" },
+      { key: "accent", label: "Accent color", type: "color" },
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "title": "Urban vs rural",
-      "dataJson": "JSON.stringify(SAMPLE_SERIES"
+      "seriesA": "Urban",
+      "seriesB": "Rural",
+      "data": "2019|40|28\n2020|48|30\n2021|55|33\n2022|52|36",
+      "accent": "#d8a11a",
+      "bg": "#07080c",
+      ...timingDefaults,
     },
   },
   {
@@ -2634,11 +2962,17 @@ export const ASSETS: AssetDefinition[] = [
     durationInFrames: 120,
     fields: [
       { key: "title", label: "Title", type: "text" },
-      { key: "accent", label: "Accent color", type: "color" }
+      { key: "data", label: "Data", type: "textarea", hint: "One per line: Label|Value" },
+      { key: "accent", label: "Accent color", type: "color" },
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "title": "Category ranking",
-      "dataJson": "JSON.stringify(SAMPLE_BUDGET"
+      "data": "Health|32\nEducation|24\nDefense|18\nOther|26",
+      "accent": "#5ce1ff",
+      "bg": "#07080c",
+      ...timingDefaults,
     },
   },
   {
@@ -2652,11 +2986,17 @@ export const ASSETS: AssetDefinition[] = [
     durationInFrames: 130,
     fields: [
       { key: "title", label: "Title", type: "text" },
-      { key: "accent", label: "Line color", type: "color" }
+      { key: "data", label: "Data", type: "textarea", hint: "One per line: Label|Value" },
+      { key: "accent", label: "Line color", type: "color" },
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "title": "Trend over time",
-      "dataJson": "JSON.stringify(SAMPLE_BARS"
+      "data": "2019|42\n2020|55\n2021|61\n2022|48\n2023|70",
+      "accent": "#5ce1ff",
+      "bg": "#07080c",
+      ...timingDefaults,
     },
   },
   {
@@ -2670,11 +3010,17 @@ export const ASSETS: AssetDefinition[] = [
     durationInFrames: 140,
     fields: [
       { key: "title", label: "Title", type: "text" },
-      { key: "accent", label: "Accent color", type: "color" }
+      { key: "data", label: "Data", type: "textarea", hint: "One per line: Label|SeriesA|SeriesB" },
+      { key: "accent", label: "Accent color", type: "color" },
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "title": "Comparing trends",
-      "dataJson": "JSON.stringify(SAMPLE_SERIES"
+      "data": "2019|40|28\n2020|48|30\n2021|55|33\n2022|52|36",
+      "accent": "#ff8b7a",
+      "bg": "#07080c",
+      ...timingDefaults,
     },
   },
   {
@@ -2688,11 +3034,17 @@ export const ASSETS: AssetDefinition[] = [
     durationInFrames: 130,
     fields: [
       { key: "title", label: "Title", type: "text" },
-      { key: "accent", label: "Accent color", type: "color" }
+      { key: "data", label: "Data", type: "textarea", hint: "One per line: Label|Value" },
+      { key: "accent", label: "Accent color", type: "color" },
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "title": "Budget allocation",
-      "dataJson": "JSON.stringify(SAMPLE_BUDGET"
+      "data": "Health|32\nEducation|24\nDefense|18\nOther|26",
+      "accent": "#d8a11a",
+      "bg": "#07080c",
+      ...timingDefaults,
     },
   },
   {
@@ -2706,11 +3058,17 @@ export const ASSETS: AssetDefinition[] = [
     durationInFrames: 130,
     fields: [
       { key: "title", label: "Title", type: "text" },
-      { key: "accent", label: "Accent color", type: "color" }
+      { key: "data", label: "Data", type: "textarea", hint: "One per line: Label|SeriesA|SeriesB" },
+      { key: "accent", label: "Accent color", type: "color" },
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "title": "Stacked composition",
-      "dataJson": "JSON.stringify(SAMPLE_SERIES"
+      "data": "2019|40|28\n2020|48|30\n2021|55|33\n2022|52|36",
+      "accent": "#c089ff",
+      "bg": "#07080c",
+      ...timingDefaults,
     },
   },
   {
@@ -2728,7 +3086,9 @@ export const ASSETS: AssetDefinition[] = [
       { key: "suffix", label: "Suffix", type: "text" },
       { key: "note", label: "Note", type: "textarea" },
       { key: "highlight", label: "Highlight phrase", type: "text" },
-      { key: "accent", label: "Accent", type: "color" }
+      { key: "accent", label: "Accent", type: "color" },
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "label": "People affected",
@@ -2736,7 +3096,9 @@ export const ASSETS: AssetDefinition[] = [
       "suffix": "%",
       "note": "Across major cities in 2024",
       "highlight": "2024",
-      "accent": "#d8a11a"
+      "accent": "#d8a11a",
+      "bg": "#07080c",
+      ...timingDefaults,
     },
   },
   {
@@ -2755,7 +3117,9 @@ export const ASSETS: AssetDefinition[] = [
       { key: "event2", label: "Event 2", type: "text" },
       { key: "year3", label: "Year 3", type: "text" },
       { key: "event3", label: "Event 3", type: "text" },
-      { key: "accent", label: "Accent", type: "color" }
+      { key: "accent", label: "Accent", type: "color" },
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "year1": "2019",
@@ -2764,7 +3128,9 @@ export const ASSETS: AssetDefinition[] = [
       "event2": "Public backlash",
       "year3": "2025",
       "event3": "Reform passed",
-      "accent": "#d8a11a"
+      "accent": "#d8a11a",
+      "bg": "#07080c",
+      ...timingDefaults,
     },
   },
   {
@@ -2782,7 +3148,9 @@ export const ASSETS: AssetDefinition[] = [
       { key: "item2", label: "Point 2", type: "text" },
       { key: "item3", label: "Point 3", type: "text" },
       { key: "highlight", label: "Highlight phrase", type: "text" },
-      { key: "accent", label: "Accent", type: "color" }
+      { key: "accent", label: "Accent", type: "color" },
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "title": "Three key takeaways",
@@ -2790,7 +3158,9 @@ export const ASSETS: AssetDefinition[] = [
       "item2": "Regional gaps widened",
       "item3": "Public trust fell sharply",
       "highlight": "trust",
-      "accent": "#d8a11a"
+      "accent": "#d8a11a",
+      "bg": "#07080c",
+      ...timingDefaults,
     },
   },
   {
@@ -2805,12 +3175,16 @@ export const ASSETS: AssetDefinition[] = [
     fields: [
       { key: "text", label: "Button text", type: "textarea" },
       { key: "highlight", label: "Highlight phrase", type: "text" },
-      { key: "accent", label: "Accent", type: "color" }
+      { key: "accent", label: "Accent", type: "color" },
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "text": "Subscribe for more explainers",
       "highlight": "Subscribe",
-      "accent": "#d8a11a"
+      "accent": "#d8a11a",
+      "bg": "#07080c",
+      ...timingDefaults,
     },
   },
   {
@@ -2825,12 +3199,16 @@ export const ASSETS: AssetDefinition[] = [
     fields: [
       { key: "brand", label: "Brand", type: "text" },
       { key: "tagline", label: "Tagline", type: "text" },
-      { key: "accent", label: "Accent", type: "color" }
+      { key: "accent", label: "Accent", type: "color" },
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "brand": "BestMotions",
       "tagline": "Motion that explains",
-      "accent": "#d8a11a"
+      "accent": "#d8a11a",
+      "bg": "#07080c",
+      ...timingDefaults,
     },
   },
   {
@@ -2845,12 +3223,16 @@ export const ASSETS: AssetDefinition[] = [
     fields: [
       { key: "title", label: "Title", type: "text" },
       { key: "subtitle", label: "Subtitle", type: "text" },
-      { key: "accent", label: "Accent", type: "color" }
+      { key: "accent", label: "Accent", type: "color" },
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "title": "Breaking context",
       "subtitle": "What the headlines missed",
-      "accent": "#d8a11a"
+      "accent": "#d8a11a",
+      "bg": "#07080c",
+      ...timingDefaults,
     },
   },
   {
@@ -2866,26 +3248,35 @@ export const ASSETS: AssetDefinition[] = [
       { key: "badge", label: "Badge", type: "text" },
       { key: "line", label: "Ticker line", type: "textarea" },
       { key: "highlight", label: "Highlight phrase", type: "text" },
-      { key: "accent", label: "Accent", type: "color" }
+      { key: "accent", label: "Accent", type: "color" },
+      { key: "bg", label: "Background", type: "color" },
+      ...timingFields,
     ],
     defaults: {
       "badge": "LIVE",
       "line": "Markets react as new climate rules take effect worldwide",
       "highlight": "climate rules",
-      "accent": "#ff5a4a"
+      "accent": "#ff5a4a",
+      "bg": "#07080c",
+      ...timingDefaults,
     },
   }
 ];
+
+export const ASSETS: AssetDefinition[] = ALL_ASSETS.filter(
+  (asset) => asset.category !== "charts" || Boolean(asset.subcategory),
+);
 
 export function getAssetById(id: string): AssetDefinition | undefined {
   return ASSETS.find((a) => a.id === id);
 }
 
+export { CHART_SUBCATEGORIES };
+
 export const CATEGORIES: { id: AssetDefinition["category"] | "all"; label: string }[] = [
   { id: "all", label: "All" },
   { id: "books", label: "Books" },
   { id: "newspaper", label: "Newspaper" },
-  { id: "fire", label: "Fire" },
   { id: "yt", label: "YT Topic" },
   { id: "timeline", label: "Timeline" },
   { id: "india", label: "India pack" },

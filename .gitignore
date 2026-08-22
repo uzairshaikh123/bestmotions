@@ -4,10 +4,15 @@ dist
 .env.local
 *.local
 public/videos
+.cache
+.puppeteer
 .remotion
 *.log
 .DS_Store
 Thumbs.db
+
+data/
+*.sqlite
 
 # Archival Remotion recovery dumps (not part of the app)
 scripts/_recovery/
