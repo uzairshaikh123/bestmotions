@@ -56,6 +56,25 @@ Or both:
 npm run dev
 ```
 
+## Docker deployment
+
+Use two separate containers/services:
+
+1. Backend API: Node + Express + Revideo render server
+2. Frontend: Vite static build behind Nginx
+
+The backend should not serve the frontend in production. Set this env var on the API container:
+
+```env
+SERVE_FRONTEND=false
+```
+
+Then build the frontend with a backend URL:
+
+```bash
+VITE_API_BASE=https://api.example.com npm run build
+```
+
 Optional:
 
 ```bash
@@ -63,6 +82,18 @@ npm run revideo:editor
 npm run build
 npm start
 ```
+
+### Docker compose example
+
+```bash
+docker compose up --build
+```
+
+This repo includes separate Dockerfiles for:
+
+- `Dockerfile.backend` for the API server
+- `Dockerfile.frontend` for the static frontend
+- `docker-compose.yml` to run both together locally
 
 ## App tabs
 

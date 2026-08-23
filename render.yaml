@@ -1,12 +1,13 @@
-# Render Blueprint — https://render.com/docs/blueprint-spec
+# Render Blueprint for the backend API only.
+# The frontend is deployed separately as a static site.
 services:
   - type: web
-    name: bestmotions
+    name: bestmotions-api
     runtime: node
     plan: free
     region: oregon
     branch: main
-    buildCommand: bash scripts/render-build.sh
+    buildCommand: npm install && npx puppeteer browsers install chrome
     startCommand: npm start
     healthCheckPath: /api/health
     envVars:
@@ -14,6 +15,8 @@ services:
         value: "20"
       - key: HOST
         value: "0.0.0.0"
+      - key: SERVE_FRONTEND
+        value: "false"
       - key: FEATURE_VIDEO_SOUND
         value: "false"
-      # PORT is provided by Render automatically
+      # Render injects PORT automatically.
