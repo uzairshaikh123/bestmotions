@@ -2,18 +2,6 @@
 import { makeScene2D } from "@revideo/2d";
 import { str, titleSlam, v, all } from "../lib/helpers";
 import { playScore } from "../lib/sfx";
-import { runBooks } from "./books";
-import { runChartVariant } from "./packs/chartVariants";
-import { runCharts } from "./packs/charts";
-import { runIndia } from "./packs/india";
-import { runMaps } from "./packs/maps";
-import { runNewspaper } from "./packs/newspaper";
-import { runPhotos } from "./packs/photos";
-import { runShorts } from "./packs/shorts";
-import { runText } from "./packs/text";
-import { runTimeline } from "./packs/timeline";
-import { runUi } from "./packs/ui";
-import { runYt } from "./packs/yt";
 
 const BOOK_MAP: Record<string, string> = {
   "book-thumb-through": "thumb-through",
@@ -80,34 +68,50 @@ const PHOTO_IDS = new Set([
   "photo-pin",
 ]);
 
+/** Load one pack at a time so Chrome/Vite don't keep every scene in memory. */
+function* loadMod<T>(loader: () => Promise<T>): Generator<Promise<T>, T, T> {
+  return yield loader();
+}
+
 export default makeScene2D("main", function* (view) {
   const template = String(v("template", "cover-slam"));
+  if (template === "magic-board") {
+    const { runMagicBoard } = yield* loadMod(() => import("./packs/board"));
+    yield* runMagicBoard(view);
+    return;
+  }
   yield* all(runTemplate(view, template), playScore(view, template));
 });
 
 function* runTemplate(view: any, template: string) {
   if (BOOK_MAP[template]) {
+    const { runBooks } = yield* loadMod(() => import("./books"));
     yield* runBooks(view, BOOK_MAP[template]);
     return;
   }
 
   if (template.startsWith("yt-")) {
+    const { runYt } = yield* loadMod(() => import("./packs/yt"));
     yield* runYt(view, template);
     return;
   }
   if (template.startsWith("news-")) {
+    const { runNewspaper } = yield* loadMod(() => import("./packs/newspaper"));
     yield* runNewspaper(view, template);
     return;
   }
   if (template.startsWith("timeline-")) {
+    const { runTimeline } = yield* loadMod(() => import("./packs/timeline"));
     yield* runTimeline(view, template);
     return;
   }
   if (template.startsWith("india-")) {
+    const { runIndia } = yield* loadMod(() => import("./packs/india"));
     yield* runIndia(view, template);
     return;
   }
   if (template.startsWith("short-")) {
+    const { runShorts } = yield* loadMod(() => import("./packs/shorts"));
     yield* runShorts(view, template);
     return;
   }
@@ -118,25 +122,31 @@ function* runTemplate(view: any, template: string) {
     template === "timeline"
   ) {
     if (template.startsWith("chart-")) {
+      const { runChartVariant } = yield* loadMod(() => import("./packs/chartVariants"));
       yield* runChartVariant(view, template);
       return;
     }
+    const { runCharts } = yield* loadMod(() => import("./packs/charts"));
     yield* runCharts(view, template);
     return;
   }
   if (MAP_IDS.has(template)) {
+    const { runMaps } = yield* loadMod(() => import("./packs/maps"));
     yield* runMaps(view, template);
     return;
   }
   if (PHOTO_IDS.has(template)) {
+    const { runPhotos } = yield* loadMod(() => import("./packs/photos"));
     yield* runPhotos(view, template);
     return;
   }
   if (TEXT_IDS.has(template)) {
+    const { runText } = yield* loadMod(() => import("./packs/text"));
     yield* runText(view, template);
     return;
   }
   if (UI_IDS.has(template)) {
+    const { runUi } = yield* loadMod(() => import("./packs/ui"));
     yield* runUi(view, template);
     return;
   }

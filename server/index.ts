@@ -5,11 +5,10 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import {
-  applySoundFlag,
   getPublicFlags,
   setFlagEnabled,
 } from "./featureFlags.js";
-import { renderRevideoVideo } from "./revideoRender.js";
+import { registerBoardRoutes } from "./boards.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -24,6 +23,8 @@ const serveFrontend = process.env.SERVE_FRONTEND === "true";
 app.use(cors());
 app.use(express.json({ limit: "20mb" }));
 app.use("/videos", express.static(path.join(rootDir, "public", "videos")));
+
+registerBoardRoutes(app, rootDir);
 
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true });
@@ -48,23 +49,11 @@ app.put("/api/admin/feature-flags", (req, res) => {
   res.status(405).json(setFlagEnabled(key, Boolean(req.body?.enabled)));
 });
 
-/** Render a Revideo scene (with variables) to MP4. Rejects after RENDER_TIMEOUT_MS (default 15s). */
-app.post("/api/revideo-render", async (req, res) => {
-  const raw =
-    req.body?.variables && typeof req.body.variables === "object"
-      ? req.body.variables
-      : {};
-  const variables = applySoundFlag(raw) as Record<string, unknown>;
-
-  try {
-    const id = `revideo-${Date.now()}`;
-    const videoUrl = await renderRevideoVideo(id, variables);
-    res.json({ videoUrl });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    const timedOut = /timed out/i.test(message);
-    res.status(timedOut ? 504 : 500).json({ error: message });
-  }
+app.post("/api/revideo-render", (_req, res) => {
+  res.status(410).json({
+    error:
+      "Server Chromium export was removed. Download records the live preview in the browser.",
+  });
 });
 
 if (serveFrontend && fs.existsSync(clientDist)) {

@@ -17,6 +17,7 @@
     "server/**/*",
     "client/**/*",
     "revideo/**/*",
+    "shared/**/*",
     "vite.config.ts"
   ],
   "exclude": [

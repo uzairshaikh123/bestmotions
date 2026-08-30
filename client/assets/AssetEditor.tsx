@@ -1,13 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { apiUrl } from "../backend";
-import { DownloadVideoButton } from "../DownloadVideoButton";
-import { downloadVideo, videoFilename } from "../downloadVideo";
+import { downloadBlob, recordCanvas } from "../recordCanvas";
+import { videoFilename } from "../downloadVideo";
 import {
   useFeatureFlags,
   withFeatureFlagVariables,
 } from "../featureFlags";
-import { fetchWithTimeout, RENDER_TIMEOUT_MS, TimeoutError } from "../http";
-import { RevideoPreview } from "./RevideoPreview";
+import {
+  RevideoPreview,
+  type RevideoPreviewHandle,
+} from "./RevideoPreview";
 import type { AssetDefinition, AssetField } from "./types";
 
 type Props = {
@@ -34,16 +35,31 @@ function readFileAsDataUrl(file: File): Promise<string> {
 }
 
 function friendlyExportError(raw: string): string {
-  if (/timed out|TimeoutError/i.test(raw)) {
-    return `Export timed out after ${Math.round(RENDER_TIMEOUT_MS / 1000)}s. Check backend logs, or raise VITE_RENDER_TIMEOUT_MS / RENDER_TIMEOUT_MS.`;
-  }
-  if (/Chrome|Chromium|puppeteer/i.test(raw)) {
-    return "Chrome is missing for export. On this machine run: npm run browsers:install — then restart the backend.";
-  }
-  if (/ECONNREFUSED|Failed to fetch|NetworkError/i.test(raw)) {
-    return "Cannot reach the backend. Start it with npm run dev:server (port 3001).";
+  if (/captureStream|MediaRecorder|cannot record/i.test(raw)) {
+    return "This browser cannot record the preview. Use Chrome or Edge.";
   }
   return raw;
+}
+
+function waitForPreview(
+  handle: RevideoPreviewHandle,
+  timeoutMs = 12_000,
+): Promise<void> {
+  const start = Date.now();
+  return new Promise((resolve, reject) => {
+    function tick() {
+      if (handle.isReady() && handle.getDuration() > 0.2) {
+        resolve();
+        return;
+      }
+      if (Date.now() - start > timeoutMs) {
+        reject(new Error("Preview is not ready yet. Wait a moment and try again."));
+        return;
+      }
+      window.requestAnimationFrame(tick);
+    }
+    tick();
+  });
 }
 
 export function AssetEditor({ asset, onBack }: Props) {
@@ -51,10 +67,12 @@ export function AssetEditor({ asset, onBack }: Props) {
   const [props, setProps] = useState<Record<string, string | number>>({
     ...asset.defaults,
   });
+  const previewRef = useRef<RevideoPreviewHandle>(null);
   const [phase, setPhase] = useState<ExportPhase>("idle");
   const [exportError, setExportError] = useState<string | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [exportedKey, setExportedKey] = useState<string | null>(null);
+  const videoUrlRef = useRef<string | null>(null);
 
   const busy = phase === "rendering" || phase === "downloading";
 
@@ -93,6 +111,8 @@ export function AssetEditor({ asset, onBack }: Props) {
     );
     setProps({ ...asset.defaults });
     setPreviewVariables(next);
+    if (videoUrlRef.current) URL.revokeObjectURL(videoUrlRef.current);
+    videoUrlRef.current = null;
     setVideoUrl(null);
     setExportedKey(null);
     setExportError(null);
@@ -120,62 +140,46 @@ export function AssetEditor({ asset, onBack }: Props) {
 
   async function renderCurrentSettings(): Promise<string> {
     const keyAtStart = currentKeyRef.current;
-    const res = await fetchWithTimeout(
-      apiUrl("/api/revideo-render"),
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          variables: withFeatureFlagVariables(
-            {
-              template: asset.template,
-              ...props,
-            },
-            flags,
-          ),
-        }),
-      },
-      RENDER_TIMEOUT_MS,
-      "Export",
-    );
-    let data: { videoUrl?: string; error?: string } = {};
-    try {
-      data = await res.json();
-    } catch {
-      /* non-JSON */
-    }
-    if (!res.ok) {
-      throw new Error(data.error || `Export failed (${res.status}).`);
-    }
-    const url = data.videoUrl;
-    if (!url) {
-      throw new Error("Export succeeded but no video URL was returned.");
-    }
+    const handle = previewRef.current;
+    if (!handle) throw new Error("Preview is not mounted.");
+    await waitForPreview(handle);
+    const canvas = handle.getCanvas();
+    if (!canvas) throw new Error("Could not find the preview canvas.");
+    handle.seek(0);
+    handle.play();
+    const seconds = Math.max(handle.getDuration(), 1);
+    const { blob, ext } = await recordCanvas(canvas, seconds * 1000);
+    handle.pause();
+    handle.seek(0);
+    const url = URL.createObjectURL(blob);
+    if (videoUrlRef.current) URL.revokeObjectURL(videoUrlRef.current);
+    videoUrlRef.current = url;
     if (keyAtStart === currentKeyRef.current) {
       setVideoUrl(url);
       setExportedKey(keyAtStart);
     }
+    const base = videoFilename(asset.name, asset.id).replace(/\.mp4$/i, "");
+    downloadBlob(blob, `${base}.${ext}`);
     return url;
   }
 
   async function onDownloadMp4() {
     setExportError(null);
     try {
-      let url = videoUrl;
-      if (!exportMatchesCurrent || !url) {
-        setPhase("rendering");
-        url = await renderCurrentSettings();
+      if (exportMatchesCurrent && videoUrl) {
+        setPhase("downloading");
+        const a = document.createElement("a");
+        a.href = videoUrl;
+        a.download = videoFilename(asset.name, asset.id);
+        a.click();
+        setPhase("done");
+        return;
       }
-      setPhase("downloading");
-      await downloadVideo(url, videoFilename(asset.name, asset.id));
+      setPhase("rendering");
+      await renderCurrentSettings();
       setPhase("done");
     } catch (err) {
-      const raw =
-        err instanceof TimeoutError
-          ? err.message
-          : err instanceof Error
-            ? err.message
-            : "Export failed.";
+      const raw = err instanceof Error ? err.message : "Export failed.";
       setExportError(friendlyExportError(raw));
       setPhase("idle");
     }
@@ -195,16 +199,16 @@ export function AssetEditor({ asset, onBack }: Props) {
   const statusText = exportError
     ? exportError
     : phase === "rendering"
-      ? `Rendering on the backend (up to ${Math.round(RENDER_TIMEOUT_MS / 1000)}s)…`
+      ? "Recording the live preview in your browser…"
       : phase === "downloading"
-        ? "Saving MP4 to your Downloads folder…"
+        ? "Saving the video to your Downloads folder…"
         : phase === "done" && exportMatchesCurrent
-          ? "Download started. You can download again without re-exporting until you change settings."
+          ? "Download started. You can download again without re-recording until you change settings."
           : exportMatchesCurrent
-            ? "Ready — MP4 is cached for these settings."
+            ? "Ready — this take is cached for these settings."
             : videoUrl
-              ? "Settings changed — next click will re-export, then download."
-              : "Click Export & download to render an MP4 with your current settings.";
+              ? "Settings changed — next click will record again, then download."
+              : "Click Export to record the preview in your browser (no server render).";
 
   return (
     <section className="asset-editor">
@@ -246,6 +250,8 @@ export function AssetEditor({ asset, onBack }: Props) {
             className="secondary"
             onClick={() => {
               setProps({ ...asset.defaults });
+              if (videoUrlRef.current) URL.revokeObjectURL(videoUrlRef.current);
+              videoUrlRef.current = null;
               setVideoUrl(null);
               setExportedKey(null);
               setPhase("idle");
@@ -266,14 +272,9 @@ export function AssetEditor({ asset, onBack }: Props) {
               <div className="asset-export-preview">
                 <video
                   key={videoUrl}
-                  src={apiUrl(videoUrl)}
+                  src={videoUrl}
                   controls
                   preload="metadata"
-                />
-                <DownloadVideoButton
-                  videoUrl={videoUrl}
-                  title={asset.name}
-                  label="Download again"
                 />
               </div>
             ) : null}
@@ -284,6 +285,7 @@ export function AssetEditor({ asset, onBack }: Props) {
           <div className="pane-label">Live preview</div>
           <div className="preview-shell asset-player">
             <RevideoPreview
+              ref={previewRef}
               instanceKey={`editor-${asset.id}`}
               variables={previewVariables}
               playing={false}

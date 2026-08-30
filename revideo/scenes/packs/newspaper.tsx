@@ -1,5 +1,5 @@
 /** @jsxImportSource @revideo/2d/lib */
-import { Circle, Layout, Rect, Txt } from "@revideo/2d";
+import { Circle, Layout, Node, Rect, Txt } from "@revideo/2d";
 import {
   all,
   createRef,
@@ -35,12 +35,7 @@ function paperHeadline(
   },
 ) {
   return (
-    <Layout
-      y={opts.y ?? 0}
-      width={opts.width}
-      layout
-      justifyContent={"center"}
-    >
+    <Node y={opts.y ?? 0}>
       {blendPhrase(headline, highlight, mark, {
         font: SERIF,
         size: opts.size,
@@ -50,7 +45,7 @@ function paperHeadline(
         align: "center",
         width: opts.width,
       })}
-    </Layout>
+    </Node>
   );
 }
 

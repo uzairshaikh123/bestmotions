@@ -1,7 +1,24 @@
 import type { Player as CorePlayer } from "@revideo/core";
 import { Player } from "@revideo/player-react";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { findCanvas } from "../recordCanvas";
 import project from "../../revideo/project";
+
+export type RevideoPreviewHandle = {
+  getCanvas: () => HTMLCanvasElement | null;
+  getDuration: () => number;
+  isReady: () => boolean;
+  seek: (seconds: number) => void;
+  play: () => void;
+  pause: () => void;
+};
 
 type Props = {
   variables: Record<string, string | number>;
@@ -72,21 +89,28 @@ function unmutePlayer(player: CorePlayer) {
  * `playing={false}` and calling togglePlayback in onPlayerReady races the
  * web component attribute sync and pauses many gallery thumbs again.
  */
-export function RevideoPreview({
-  variables,
-  playing = false,
-  controls = true,
-  muted = false,
-  quality = 1,
-  className,
-  instanceKey,
-}: Props) {
+export const RevideoPreview = forwardRef<RevideoPreviewHandle, Props>(
+  function RevideoPreview(
+    {
+      variables,
+      playing = false,
+      controls = true,
+      muted = false,
+      quality = 1,
+      className,
+      instanceKey,
+    },
+    ref,
+  ) {
+  const rootRef = useRef<HTMLDivElement>(null);
   const coreRef = useRef<CorePlayer | null>(null);
   const [ready, setReady] = useState(false);
   const [isPlaying, setIsPlaying] = useState(playing);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const wantPlay = useRef(playing);
+  const durationRef = useRef(0);
+  durationRef.current = duration;
 
   useEffect(() => {
     wantPlay.current = playing;
@@ -135,13 +159,42 @@ export function RevideoPreview({
     });
   }
 
-  function seekTo(ratio: number) {
+  function seekSeconds(seconds: number) {
     const player = coreRef.current;
-    if (!player || !ready || duration <= 0) return;
-    const t = Math.max(0, Math.min(1, ratio)) * duration;
-    player.requestSeek(t * player.playback.fps);
+    if (!player) return;
+    const fps = player.playback.fps || 30;
+    const d = durationRef.current;
+    const t = d > 0 ? Math.max(0, Math.min(d, seconds)) : Math.max(0, seconds);
+    player.requestSeek(t * fps);
     setCurrentTime(t);
   }
+
+  function seekTo(ratio: number) {
+    const d = durationRef.current;
+    if (!coreRef.current || !ready || d <= 0) return;
+    seekSeconds(Math.max(0, Math.min(1, ratio)) * d);
+  }
+
+  useImperativeHandle(ref, () => ({
+    getCanvas: () => findCanvas(rootRef.current),
+    getDuration: () => durationRef.current,
+    isReady: () => Boolean(coreRef.current && ready),
+    seek: seekSeconds,
+    play: () => {
+      const player = coreRef.current;
+      if (!player) return;
+      if (!muted) {
+        unlockMediaPlayback();
+        unmutePlayer(player);
+      }
+      player.togglePlayback(true);
+      setIsPlaying(true);
+    },
+    pause: () => {
+      coreRef.current?.togglePlayback(false);
+      setIsPlaying(false);
+    },
+  }));
 
   function onScrubPointer(event: React.PointerEvent<HTMLDivElement>) {
     const rect = event.currentTarget.getBoundingClientRect();
@@ -154,6 +207,7 @@ export function RevideoPreview({
 
   return (
     <div
+      ref={rootRef}
       className={
         className ? `revideo-preview ${className}` : "revideo-preview"
       }
@@ -232,4 +286,5 @@ export function RevideoPreview({
       ) : null}
     </div>
   );
-}
+  },
+);

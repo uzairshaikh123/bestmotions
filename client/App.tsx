@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { BoardApp } from "./board/BoardApp";
 import { AssetEditor } from "./assets/AssetEditor";
 import { AssetGallery } from "./assets/AssetGallery";
 import { getAssetById } from "./assets/catalog";
@@ -98,7 +99,8 @@ export function App() {
   }
 
   return (
-    <div className="app">
+    <div className={tab === "board" ? "app app-magic" : "app"}>
+      {tab !== "board" ? (
       <header className="top">
         <button
           type="button"
@@ -120,6 +122,13 @@ export function App() {
           </button>
           <button
             type="button"
+            className="tab"
+            onClick={() => goTab("board")}
+          >
+            Board
+          </button>
+          <button
+            type="button"
             className={tab === "prompt" ? "tab active" : "tab"}
             onClick={() => goTab("prompt")}
           >
@@ -128,6 +137,7 @@ export function App() {
           </button>
         </nav>
       </header>
+      ) : null}
 
       {tab === "prompt" ? (
         <section className="coming-soon-page">
@@ -143,6 +153,8 @@ export function App() {
           </button>
         </section>
       ) : null}
+
+      {tab === "board" ? <BoardApp onHome={() => goTab("assets")} /> : null}
 
       {tab === "assets" ? (
         selectedAsset ? (

@@ -23,11 +23,17 @@ export default defineConfig(({ mode }) => {
       ),
     },
     resolve: {
+      alias: {
+        "@shared": path.resolve(__dirname, "shared"),
+      },
       dedupe: ["react", "react-dom", "@revideo/core", "@revideo/2d"],
     },
     server: {
       port: 5173,
       host: true,
+      fs: {
+        allow: [path.resolve(__dirname)],
+      },
       proxy: {
         "/api/": env.VITE_API_BASE || "http://localhost:3001",
         "/videos": env.VITE_API_BASE || "http://localhost:3001",
@@ -40,6 +46,9 @@ export default defineConfig(({ mode }) => {
         "@revideo/player-react",
         "d3-geo",
         "topojson-client",
+        "konva",
+        "react-konva",
+        "gsap",
       ],
     },
     build: {

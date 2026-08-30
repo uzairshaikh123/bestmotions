@@ -1,5 +1,6 @@
 # Render Blueprint for the backend API only.
 # The frontend is deployed separately as a static site.
+# Video export runs in the user's browser — this service does not start Chromium.
 services:
   - type: web
     name: bestmotions-api
@@ -7,7 +8,7 @@ services:
     plan: free
     region: oregon
     branch: main
-    buildCommand: npm install && npx puppeteer browsers install chrome
+    buildCommand: npm install
     startCommand: npm start
     healthCheckPath: /api/health
     envVars:

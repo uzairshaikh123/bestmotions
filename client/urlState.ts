@@ -1,4 +1,4 @@
-export type AppTab = "prompt" | "assets";
+export type AppTab = "prompt" | "assets" | "board";
 
 export type AppUrlState = {
   tab: AppTab;
@@ -8,7 +8,7 @@ export type AppUrlState = {
   assetId: string | null;
 };
 
-const TABS: AppTab[] = ["prompt", "assets"];
+const TABS: AppTab[] = ["prompt", "assets", "board"];
 
 /** Map old Revideo-tab ids (`rv-*`) and Remotion code/saved tabs onto Assets. */
 const LEGACY_REVIDEO_IDS: Record<string, string> = {
