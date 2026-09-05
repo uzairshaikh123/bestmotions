@@ -29,6 +29,11 @@ type Props = {
   quality?: number;
   className?: string;
   instanceKey?: string;
+  /** Catalog estimate shown until the player finishes measuring the scene. */
+  estimatedDuration?: number;
+  /** Output canvas size. Defaults to 1280×720 (16:9). */
+  width?: number;
+  height?: number;
 };
 
 function formatTime(seconds: number) {
@@ -38,6 +43,26 @@ function formatTime(seconds: number) {
     .toString()
     .padStart(2, "0");
   return `${m}:${s}`;
+}
+
+function playerFps(player: CorePlayer) {
+  const fps = player.status?.fps || player.playback?.fps || 30;
+  return Number.isFinite(fps) && fps > 0 ? fps : 30;
+}
+
+/** Scene length in seconds from the core player (frames / fps). */
+function secondsFromPlayer(player: CorePlayer): number {
+  const fps = playerFps(player);
+  const candidates = [
+    player.playback?.duration,
+    player.onDurationChanged.current,
+  ];
+  for (const frames of candidates) {
+    if (!Number.isFinite(frames) || frames <= 0 || frames > 1e7) continue;
+    const seconds = frames / fps;
+    if (Number.isFinite(seconds) && seconds > 0.05) return seconds;
+  }
+  return 0;
 }
 
 const SILENT_WAV =
@@ -99,18 +124,39 @@ export const RevideoPreview = forwardRef<RevideoPreviewHandle, Props>(
       quality = 1,
       className,
       instanceKey,
+      estimatedDuration = 0,
+      width = 1280,
+      height = 720,
     },
     ref,
   ) {
   const rootRef = useRef<HTMLDivElement>(null);
   const coreRef = useRef<CorePlayer | null>(null);
+  const unsubRef = useRef<(() => void) | null>(null);
   const [ready, setReady] = useState(false);
   const [isPlaying, setIsPlaying] = useState(playing);
   const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
+  const seedDuration = Number.isFinite(estimatedDuration)
+    ? Math.max(0, estimatedDuration)
+    : 0;
+  const [duration, setDuration] = useState(seedDuration);
   const wantPlay = useRef(playing);
-  const durationRef = useRef(0);
-  durationRef.current = duration;
+  const durationRef = useRef(seedDuration);
+  const estimatedRef = useRef(seedDuration);
+  estimatedRef.current = seedDuration;
+
+  function commitDuration(seconds: number) {
+    if (!Number.isFinite(seconds) || seconds <= 0.05 || seconds > 1e6) return;
+    if (Math.abs(seconds - durationRef.current) < 0.04) return;
+    durationRef.current = seconds;
+    setDuration(seconds);
+  }
+
+  function syncDuration(player: CorePlayer | null) {
+    if (!player) return;
+    const live = secondsFromPlayer(player);
+    if (live > 0) commitDuration(live);
+  }
 
   useEffect(() => {
     wantPlay.current = playing;
@@ -118,12 +164,18 @@ export const RevideoPreview = forwardRef<RevideoPreviewHandle, Props>(
   }, [playing]);
 
   useEffect(() => {
+    const seed = estimatedRef.current;
     setReady(false);
-    setIsPlaying(playing);
+    setIsPlaying(wantPlay.current);
     setCurrentTime(0);
-    setDuration(0);
+    durationRef.current = seed;
+    setDuration(seed);
     coreRef.current = null;
-  }, [instanceKey]);
+    return () => {
+      unsubRef.current?.();
+      unsubRef.current = null;
+    };
+  }, [instanceKey, width, height]);
 
   const varsKey = useMemo(() => JSON.stringify(variables), [variables]);
   const stableVariables = useMemo(
@@ -132,8 +184,32 @@ export const RevideoPreview = forwardRef<RevideoPreviewHandle, Props>(
   );
 
   function handleReady(player: CorePlayer) {
+    unsubRef.current?.();
     coreRef.current = player;
     setReady(true);
+    syncDuration(player);
+
+    const unsubDur = player.onDurationChanged.subscribe((frames) => {
+      if (!Number.isFinite(frames) || frames <= 0 || frames > 1e7) return;
+      commitDuration(frames / playerFps(player));
+    });
+    const unsubRecalc = player.onRecalculated.subscribe(() => {
+      syncDuration(player);
+    });
+    let tries = 0;
+    const poll = window.setInterval(() => {
+      syncDuration(player);
+      tries += 1;
+      if (secondsFromPlayer(player) > 0.2 || tries > 40) {
+        window.clearInterval(poll);
+      }
+    }, 50);
+    unsubRef.current = () => {
+      window.clearInterval(poll);
+      unsubDur();
+      unsubRecalc();
+    };
+
     if (!muted) unmutePlayer(player);
     // Beat @revideo/player-react race: playing="true" before Ready clears
     // the flag; re-assert after ready.
@@ -177,7 +253,10 @@ export const RevideoPreview = forwardRef<RevideoPreviewHandle, Props>(
 
   useImperativeHandle(ref, () => ({
     getCanvas: () => findCanvas(rootRef.current),
-    getDuration: () => durationRef.current,
+    getDuration: () => {
+      const live = coreRef.current ? secondsFromPlayer(coreRef.current) : 0;
+      return live > 0 ? live : durationRef.current;
+    },
     isReady: () => Boolean(coreRef.current && ready),
     seek: seekSeconds,
     play: () => {
@@ -204,34 +283,47 @@ export const RevideoPreview = forwardRef<RevideoPreviewHandle, Props>(
   }
 
   const progress = duration > 0 ? Math.min(1, currentTime / duration) : 0;
+  const ratio = `${Math.max(1, width)} / ${Math.max(1, height)}`;
+  const orientation =
+    width === height ? "square" : width > height ? "landscape" : "portrait";
+  const sizeKey = `${Math.round(width)}x${Math.round(height)}`;
+  const playerKey = instanceKey ? `${instanceKey}-${sizeKey}` : sizeKey;
+
+  const rootClass = [
+    "revideo-preview",
+    `ar-${orientation}`,
+    className,
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <div
       ref={rootRef}
-      className={
-        className ? `revideo-preview ${className}` : "revideo-preview"
-      }
+      className={rootClass}
+      style={{ aspectRatio: ratio }}
       onPointerDown={() => {
         if (!muted) unlockMediaPlayback();
       }}
     >
       <Player
-        key={instanceKey}
+        key={playerKey}
         project={project}
         variables={stableVariables}
         playing={isPlaying}
         controls={false}
         looping
-        width={1280}
-        height={720}
+        width={width}
+        height={height}
         fps={30}
         quality={quality}
         volume={muted ? 0 : 1}
         onPlayerReady={handleReady}
-        onTimeUpdate={(t) => setCurrentTime(t)}
-        onDurationChange={(d) => {
-          if (Number.isFinite(d) && d > 0) setDuration(d);
+        onTimeUpdate={(t) => {
+          setCurrentTime(t);
+          syncDuration(coreRef.current);
         }}
+        onDurationChange={(d) => commitDuration(d)}
       />
 
       {controls ? (

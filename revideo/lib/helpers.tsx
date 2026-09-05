@@ -277,6 +277,30 @@ export function* bigStat(
   yield* waitFor(2.2);
 }
 
+/** Design space every pack is authored against. */
+export const DESIGN_WIDTH = 1280;
+export const DESIGN_HEIGHT = 720;
+
+/**
+ * Scale the 1280×720 layout to fit the current canvas (16:9, 9:16, 1:1, …).
+ * Background fills stay on the full view; content is letterboxed / pillarboxed.
+ */
+export function* fitDesignStage(view: any) {
+  const size = useScene().getSize();
+  const scale = Math.min(size.x / DESIGN_WIDTH, size.y / DESIGN_HEIGHT);
+  if (!Number.isFinite(scale) || scale <= 0) return;
+  if (Math.abs(scale - 1) < 0.002) return;
+
+  const stage = createRef<Layout>();
+  yield view.add(<Layout ref={stage} layout={false} scale={scale} />);
+  const originalAdd = view.add.bind(view);
+  view.add = (node: any) => {
+    const parent = stage();
+    if (!parent) return originalAdd(node);
+    return parent.add(node);
+  };
+}
+
 export {
   all,
   createRef,

@@ -9,7 +9,20 @@ import {
   RevideoPreview,
   type RevideoPreviewHandle,
 } from "./RevideoPreview";
-import type { AssetDefinition, AssetField } from "./types";
+import type { AssetDefinition, AssetField, AssetFieldColumn } from "./types";
+import {
+  columnsForField,
+  parsePipeRows,
+  serializePipeRows,
+  TIMING_FIELD_KEYS,
+  emptyPipeRow,
+} from "./pipeField";
+import {
+  VIDEO_FORMATS,
+  defaultFormatId,
+  formatById,
+  formatOrientation,
+} from "./videoFormats";
 
 type Props = {
   asset: AssetDefinition;
@@ -33,6 +46,8 @@ function readFileAsDataUrl(file: File): Promise<string> {
     reader.readAsDataURL(file);
   });
 }
+
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 
 function friendlyExportError(raw: string): string {
   if (/captureStream|MediaRecorder|cannot record/i.test(raw)) {
@@ -64,9 +79,11 @@ function waitForPreview(
 
 export function AssetEditor({ asset, onBack }: Props) {
   const flags = useFeatureFlags();
-  const [props, setProps] = useState<Record<string, string | number>>({
+  const [props, setProps] = useState<Record<string, string | number>>(() => ({
+    bgTransparent: "off",
+    frameFormat: defaultFormatId(asset.category),
     ...asset.defaults,
-  });
+  }));
   const previewRef = useRef<RevideoPreviewHandle>(null);
   const [phase, setPhase] = useState<ExportPhase>("idle");
   const [exportError, setExportError] = useState<string | null>(null);
@@ -76,6 +93,8 @@ export function AssetEditor({ asset, onBack }: Props) {
 
   const busy = phase === "rendering" || phase === "downloading";
 
+  const [timingOpen, setTimingOpen] = useState(false);
+
   const visibleFields = useMemo(
     () =>
       asset.fields.filter(
@@ -84,8 +103,27 @@ export function AssetEditor({ asset, onBack }: Props) {
     [asset.fields, flags.videoSound],
   );
 
+  const contentFields = useMemo(
+    () => visibleFields.filter((field) => !TIMING_FIELD_KEYS.has(field.key)),
+    [visibleFields],
+  );
+
+  const timingFields = useMemo(
+    () => visibleFields.filter((field) => TIMING_FIELD_KEYS.has(field.key)),
+    [visibleFields],
+  );
+
   async function onImageChange(key: string, file: File | null) {
     if (!file) return;
+    if (!file.type.startsWith("image/") || file.type === "image/svg+xml") {
+      setExportError("Please upload a PNG, JPG, or WebP image.");
+      return;
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      setExportError("Image is too large — use a file under 8 MB.");
+      return;
+    }
+    setExportError(null);
     const url = await readFileAsDataUrl(file);
     setField(key, url);
   }
@@ -96,6 +134,9 @@ export function AssetEditor({ asset, onBack }: Props) {
         {
           template: asset.template,
           ...props,
+          ...(String(props.bgTransparent ?? "off") === "on"
+            ? { bg: "rgba(0,0,0,0)" }
+            : null),
         },
         flags,
       ),
@@ -105,11 +146,21 @@ export function AssetEditor({ asset, onBack }: Props) {
   const [previewVariables, setPreviewVariables] = useState(variables);
 
   useEffect(() => {
+    const frameFormat = defaultFormatId(asset.category);
     const next = withFeatureFlagVariables(
-      { template: asset.template, ...asset.defaults },
+      {
+        template: asset.template,
+        bgTransparent: "off",
+        frameFormat,
+        ...asset.defaults,
+      },
       flags,
     );
-    setProps({ ...asset.defaults });
+    setProps({
+      bgTransparent: "off",
+      frameFormat,
+      ...asset.defaults,
+    });
     setPreviewVariables(next);
     if (videoUrlRef.current) URL.revokeObjectURL(videoUrlRef.current);
     videoUrlRef.current = null;
@@ -129,6 +180,12 @@ export function AssetEditor({ asset, onBack }: Props) {
     [asset.id, props],
   );
 
+  const [exportedExt, setExportedExt] = useState<"mp4" | "webm">("mp4");
+  const transparentBg = String(props.bgTransparent ?? "off") === "on";
+  const format = formatById(
+    props.frameFormat ?? defaultFormatId(asset.category),
+  );
+  const formatShape = formatOrientation(format);
   const exportMatchesCurrent = Boolean(videoUrl && exportedKey === currentKey);
   const currentKeyRef = useRef(currentKey);
   currentKeyRef.current = currentKey;
@@ -148,7 +205,9 @@ export function AssetEditor({ asset, onBack }: Props) {
     handle.seek(0);
     handle.play();
     const seconds = Math.max(handle.getDuration(), 1);
-    const { blob, ext } = await recordCanvas(canvas, seconds * 1000);
+    const { blob, ext } = await recordCanvas(canvas, seconds * 1000, 30, {
+      alpha: String(props.bgTransparent ?? "off") === "on",
+    });
     handle.pause();
     handle.seek(0);
     const url = URL.createObjectURL(blob);
@@ -157,8 +216,11 @@ export function AssetEditor({ asset, onBack }: Props) {
     if (keyAtStart === currentKeyRef.current) {
       setVideoUrl(url);
       setExportedKey(keyAtStart);
+      setExportedExt(ext);
     }
-    const base = videoFilename(asset.name, asset.id).replace(/\.mp4$/i, "");
+    const base = videoFilename(asset.name, asset.id)
+      .replace(/\.mp4$/i, "")
+      .concat(`-${format.width}x${format.height}`);
     downloadBlob(blob, `${base}.${ext}`);
     return url;
   }
@@ -170,7 +232,9 @@ export function AssetEditor({ asset, onBack }: Props) {
         setPhase("downloading");
         const a = document.createElement("a");
         a.href = videoUrl;
-        a.download = videoFilename(asset.name, asset.id);
+        a.download = videoFilename(asset.name, asset.id)
+          .replace(/\.mp4$/i, "")
+          .concat(`-${format.width}x${format.height}.${exportedExt}`);
         a.click();
         setPhase("done");
         return;
@@ -185,21 +249,24 @@ export function AssetEditor({ asset, onBack }: Props) {
     }
   }
 
+  const formatLabel = transparentBg ? "WebM" : "MP4";
   const primaryLabel =
     phase === "rendering"
-      ? "Rendering MP4…"
+      ? `Rendering ${formatLabel}…`
       : phase === "downloading"
         ? "Downloading…"
         : phase === "done" && exportMatchesCurrent
           ? "Download again"
           : exportMatchesCurrent
-            ? "Download MP4"
-            : "Export & download MP4";
+            ? `Download ${formatLabel}`
+            : `Export & download ${formatLabel}`;
 
   const statusText = exportError
     ? exportError
     : phase === "rendering"
-      ? "Recording the live preview in your browser…"
+      ? transparentBg
+        ? "Recording a transparent WebM from the live preview…"
+        : "Recording the live preview in your browser…"
       : phase === "downloading"
         ? "Saving the video to your Downloads folder…"
         : phase === "done" && exportMatchesCurrent
@@ -208,34 +275,74 @@ export function AssetEditor({ asset, onBack }: Props) {
             ? "Ready — this take is cached for these settings."
             : videoUrl
               ? "Settings changed — next click will record again, then download."
-              : "Click Export to record the preview in your browser (no server render).";
+              : transparentBg
+                ? "Transparent clips export as WebM so you can overlay them on other footage."
+                : "Click Export to record the preview in your browser (no server render).";
 
   return (
     <section className="asset-editor">
       <div className="asset-editor-top">
-        <button type="button" className="secondary" onClick={onBack}>
-          ← All assets
-        </button>
+        <div className="asset-editor-actions">
+          <button type="button" className="secondary" onClick={onBack}>
+            Back to library
+          </button>
+        </div>
         <div>
+          <p className="assets-kicker">{asset.category}</p>
           <h2>{asset.name}</h2>
           <p>{asset.description}</p>
-        </div>
-        <div className="asset-editor-actions">
-          <button type="button" onClick={onDownloadMp4} disabled={busy}>
-            {primaryLabel}
-          </button>
         </div>
       </div>
 
       <div className="asset-editor-grid">
         <aside className="asset-controls">
-          <div className="pane-label">Customize</div>
+          <div className="pane-label">Styles</div>
           <p className="control-hint">
-            Edit text and colors — preview updates live. Download uses your
-            latest settings.
+            Tweak copy, color, and timing. The preview updates live — then
+            export from this panel.
           </p>
 
-          {visibleFields.map((field) => (
+          <div className="field">
+            <span>Frame size</span>
+            <small>
+              Every template scales to this canvas. Export matches the selected
+              pixels.
+            </small>
+            <div className="format-grid" role="listbox" aria-label="Video frame size">
+              {VIDEO_FORMATS.map((option) => {
+                const shape = formatOrientation(option);
+                const active = option.id === format.id;
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    role="option"
+                    aria-selected={active}
+                    className={
+                      active ? `format-card active ${shape}` : `format-card ${shape}`
+                    }
+                    onClick={() => setField("frameFormat", option.id)}
+                  >
+                    <span
+                      className="format-card-frame"
+                      style={{
+                        aspectRatio: `${option.width} / ${option.height}`,
+                      }}
+                    />
+                    <div className="format-card-copy">
+                      <strong>{option.ratio}</strong>
+                      <em>
+                        {option.width}×{option.height}
+                      </em>
+                      <small>{option.hint}</small>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {contentFields.map((field) => (
             <FieldControl
               key={field.key}
               field={field}
@@ -245,11 +352,54 @@ export function AssetEditor({ asset, onBack }: Props) {
             />
           ))}
 
+          <div className="switch-field">
+            <span>
+              Transparent overlay
+              <small>Export as WebM so you can stack this on other footage.</small>
+            </span>
+            <button
+              type="button"
+              role="switch"
+              className={transparentBg ? "switch on" : "switch"}
+              aria-checked={transparentBg}
+              onClick={() => setField("bgTransparent", transparentBg ? "off" : "on")}
+            />
+          </div>
+
+          {timingFields.length > 0 ? (
+            <div className="timing-fold">
+              <button
+                type="button"
+                className="timing-fold-toggle"
+                aria-expanded={timingOpen}
+                onClick={() => setTimingOpen((open) => !open)}
+              >
+                <span>Timing & motion</span>
+                <span className="timing-fold-chevron" data-open={timingOpen} />
+              </button>
+              {timingOpen
+                ? timingFields.map((field) => (
+                    <FieldControl
+                      key={field.key}
+                      field={field}
+                      value={props[field.key]}
+                      onChange={(v) => setField(field.key, v)}
+                      onImage={(file) => onImageChange(field.key, file)}
+                    />
+                  ))
+                : null}
+            </div>
+          ) : null}
+
           <button
             type="button"
             className="secondary"
             onClick={() => {
-              setProps({ ...asset.defaults });
+              setProps({
+                bgTransparent: "off",
+                frameFormat: defaultFormatId(asset.category),
+                ...asset.defaults,
+              });
               if (videoUrlRef.current) URL.revokeObjectURL(videoUrlRef.current);
               videoUrlRef.current = null;
               setVideoUrl(null);
@@ -262,7 +412,7 @@ export function AssetEditor({ asset, onBack }: Props) {
           </button>
 
           <div className="asset-download-panel">
-            <button type="button" onClick={onDownloadMp4} disabled={busy}>
+            <button type="button" className="btn-cta" onClick={onDownloadMp4} disabled={busy}>
               {primaryLabel}
             </button>
             <div className={`status ${exportError ? "error" : ""}`}>
@@ -275,6 +425,7 @@ export function AssetEditor({ asset, onBack }: Props) {
                   src={videoUrl}
                   controls
                   preload="metadata"
+                  style={{ aspectRatio: `${format.width} / ${format.height}` }}
                 />
               </div>
             ) : null}
@@ -282,15 +433,33 @@ export function AssetEditor({ asset, onBack }: Props) {
         </aside>
 
         <div className="asset-preview-pane">
-          <div className="pane-label">Live preview</div>
-          <div className="preview-shell asset-player">
+          <div className="pane-label preview-pane-label">
+            <span>Live preview</span>
+            <span className="preview-size-tag">
+              {format.ratio} · {format.width}×{format.height}
+            </span>
+          </div>
+          <div
+            className={
+              [
+                "preview-shell asset-player",
+                transparentBg ? "transparent-bg" : "",
+                `player-${formatShape}`,
+              ]
+                .filter(Boolean)
+                .join(" ")
+            }
+          >
             <RevideoPreview
               ref={previewRef}
-              instanceKey={`editor-${asset.id}`}
+              instanceKey={`editor-${asset.id}-${format.id}`}
               variables={previewVariables}
               playing={false}
               controls
               quality={1}
+              width={format.width}
+              height={format.height}
+              estimatedDuration={asset.durationInFrames / Math.max(asset.fps, 1)}
             />
           </div>
         </div>
@@ -310,12 +479,33 @@ function FieldControl({
   onChange: (value: string | number) => void;
   onImage: (file: File | null) => void;
 }) {
-  return (
-    <label className="field">
-      <span>{field.label}</span>
-      {field.hint ? <small>{field.hint}</small> : null}
+  const columns = field.type === "textarea" ? columnsForField(field) : null;
+  const highlightHint =
+    /highlight|underline|callout/i.test(field.key) && !field.hint
+      ? "Must appear in the text above — the marker, underline, or circle snaps to this exact phrase."
+      : field.hint && columns
+        ? undefined
+        : field.hint;
 
-      {field.type === "textarea" ? (
+  const Tag = columns ? "div" : "label";
+
+  return (
+    <Tag className="field">
+      <span>{field.label}</span>
+      {highlightHint ? <small>{highlightHint}</small> : null}
+      {columns ? (
+        <small>Add or edit rows — no need to type | separators.</small>
+      ) : null}
+
+      {columns ? (
+        <PipeRowsEditor
+          columns={columns}
+          value={String(value ?? "")}
+          onChange={onChange}
+        />
+      ) : null}
+
+      {field.type === "textarea" && !columns ? (
         <textarea
           value={String(value ?? "")}
           onChange={(e) => onChange(e.target.value)}
@@ -364,7 +554,7 @@ function FieldControl({
         <div className="image-field">
           <input
             type="file"
-            accept="image/*"
+            accept="image/png,image/jpeg,image/webp,image/gif"
             onChange={(e) => onImage(e.target.files?.[0] ?? null)}
           />
           {value ? (
@@ -374,7 +564,95 @@ function FieldControl({
           )}
         </div>
       ) : null}
-    </label>
+    </Tag>
+  );
+}
+
+function PipeRowsEditor({
+  columns,
+  value,
+  onChange,
+}: {
+  columns: AssetFieldColumn[];
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const [rows, setRows] = useState(() => parsePipeRows(value, columns));
+  const synced = useRef(value);
+
+  useEffect(() => {
+    if (value === synced.current) return;
+    synced.current = value;
+    setRows(parsePipeRows(value, columns));
+  }, [value, columns]);
+
+  function commit(next: string[][]) {
+    setRows(next);
+    const serialized = serializePipeRows(next);
+    synced.current = serialized;
+    onChange(serialized);
+  }
+
+  function setCell(rowIndex: number, colIndex: number, cell: string) {
+    const next = rows.map((row) => [...row]);
+    next[rowIndex][colIndex] = cell;
+    commit(next);
+  }
+
+  return (
+    <div
+      className="pair-editor"
+      style={{ ["--cols" as string]: String(columns.length) }}
+    >
+      <div className="pair-editor-head">
+        {columns.map((col) => (
+          <span key={col.label}>{col.label}</span>
+        ))}
+        <span className="pair-editor-spacer" />
+      </div>
+      {rows.map((row, rowIndex) => (
+        <div className="pair-editor-row" key={rowIndex}>
+          {columns.map((col, colIndex) =>
+            col.kind === "color" ? (
+              <input
+                key={col.label}
+                type="color"
+                value={row[colIndex] || "#d8a11a"}
+                onChange={(e) => setCell(rowIndex, colIndex, e.target.value)}
+                aria-label={`${col.label} ${rowIndex + 1}`}
+              />
+            ) : (
+              <input
+                key={col.label}
+                type={col.kind === "number" ? "number" : "text"}
+                step={col.kind === "number" ? "any" : undefined}
+                value={row[colIndex] ?? ""}
+                placeholder={col.label}
+                onChange={(e) => setCell(rowIndex, colIndex, e.target.value)}
+                aria-label={`${col.label} ${rowIndex + 1}`}
+              />
+            ),
+          )}
+          <button
+            type="button"
+            className="tiny pair-remove"
+            disabled={rows.length <= 1}
+            onClick={() => commit(rows.filter((_, i) => i !== rowIndex))}
+          >
+            Remove
+          </button>
+        </div>
+      ))}
+      <button
+        type="button"
+        className="secondary tiny"
+        onClick={() =>
+          commit([...rows, emptyPipeRow(columns, rows.length)])
+        }
+      >
+        + Add row
+      </button>
+    </div>
   );
 }
 

@@ -1,6 +1,6 @@
 /** @jsxImportSource @revideo/2d/lib */
 import { makeScene2D } from "@revideo/2d";
-import { str, titleSlam, v, all } from "../lib/helpers";
+import { str, titleSlam, v, all, fitDesignStage } from "../lib/helpers";
 import { playScore } from "../lib/sfx";
 
 const BOOK_MAP: Record<string, string> = {
@@ -75,11 +75,18 @@ function* loadMod<T>(loader: () => Promise<T>): Generator<Promise<T>, T, T> {
 
 export default makeScene2D("main", function* (view) {
   const template = String(v("template", "cover-slam"));
+  const transparent =
+    String(v("bgTransparent", "off")).toLowerCase() === "on" ||
+    String(v("bgTransparent", "off")).toLowerCase() === "true";
+  // Clear stage. Templates still read `bg` from variables; when transparent,
+  // the client forces bg to rgba(0,0,0,0) so scene fills stay clear for WebM alpha.
+  view.fill(transparent ? "rgba(0,0,0,0)" : "#07090e");
   if (template === "magic-board") {
     const { runMagicBoard } = yield* loadMod(() => import("./packs/board"));
     yield* runMagicBoard(view);
     return;
   }
+  yield* fitDesignStage(view);
   yield* all(runTemplate(view, template), playScore(view, template));
 });
 
@@ -105,6 +112,16 @@ function* runTemplate(view: any, template: string) {
     yield* runTimeline(view, template);
     return;
   }
+  if (template.startsWith("hist-")) {
+    const { runDocHist } = yield* loadMod(() => import("./packs/docHist"));
+    yield* runDocHist(view, template);
+    return;
+  }
+  if (template.startsWith("time-")) {
+    const { runDocTime } = yield* loadMod(() => import("./packs/docTime"));
+    yield* runDocTime(view, template);
+    return;
+  }
   if (template.startsWith("india-")) {
     const { runIndia } = yield* loadMod(() => import("./packs/india"));
     yield* runIndia(view, template);
@@ -113,6 +130,21 @@ function* runTemplate(view: any, template: string) {
   if (template.startsWith("short-")) {
     const { runShorts } = yield* loadMod(() => import("./packs/shorts"));
     yield* runShorts(view, template);
+    return;
+  }
+  if (template.startsWith("money-")) {
+    const { runDocMoney } = yield* loadMod(() => import("./packs/docMoney"));
+    yield* runDocMoney(view, template);
+    return;
+  }
+  if (template.startsWith("cmp-")) {
+    const { runDocCompare } = yield* loadMod(() => import("./packs/docCompare"));
+    yield* runDocCompare(view, template);
+    return;
+  }
+  if (template.startsWith("rise-")) {
+    const { runDocRise } = yield* loadMod(() => import("./packs/docRise"));
+    yield* runDocRise(view, template);
     return;
   }
   if (

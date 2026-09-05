@@ -462,6 +462,7 @@ export function BoardApp({ onHome }: Props) {
               controls
               muted
               instanceKey={`mb-${duration}`}
+              estimatedDuration={duration / 1000}
             />
           </div>
         </div>

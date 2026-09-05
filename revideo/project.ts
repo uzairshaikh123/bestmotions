@@ -16,7 +16,7 @@ export default makeProject({
   },
   settings: {
     shared: {
-      background: "#07090e",
+      background: "rgba(0,0,0,0)",
       size: { x: 1280, y: 720 },
     },
     preview: {

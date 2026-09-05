@@ -8,7 +8,11 @@ import {
   str,
   waitFor,
 } from "../../lib/helpers";
-import { blendPhrase, paintBlend } from "../../lib/highlight";
+import {
+  blendPhrase,
+  paintBlend,
+  paintUnderline,
+} from "../../lib/highlight";
 import { pause, timing } from "../../lib/timing";
 
 const SERIF = "Libre Baskerville, Georgia, serif";
@@ -20,35 +24,44 @@ function* emphasize(view: any, mode: "underline" | "marker" | "both") {
   const marker = str("markerColor", "#FAFF00");
   const textColor = str("textColor", "#e8f0ea");
   const bg = str("bg", "#07080c");
+  const modeVar = str("mode", mode);
+  const resolved =
+    modeVar === "underline" || modeVar === "marker" || modeVar === "both"
+      ? modeVar
+      : mode;
+  const phrase = highlight.trim() || text;
   const t = timing();
   view.fill(bg);
 
   const mark = createRef<Rect>();
   const rule = createRef<Rect>();
   const row = createRef<Layout>();
+  const size = 40;
 
   yield view.add(
-    <Layout ref={row} layout direction={"column"} gap={18} alignItems={"center"} y={0} opacity={0}>
-      {blendPhrase(text, highlight, mark, {
+    <Layout ref={row} layout direction={"column"} gap={8} alignItems={"center"} y={0} opacity={0}>
+      {blendPhrase(text, phrase, mark, {
         font: SERIF,
-        size: 40,
+        size,
         fill: textColor,
         marker,
         align: "center",
+        underline: rule,
+        underlineColor: accent,
+        weight: 700,
       })}
-      <Rect ref={rule} width={0} height={6} fill={accent} radius={3} />
     </Layout>,
   );
 
   yield* pause(t.startDelay);
   yield* row().opacity(1, t.revealDuration, easeOutCubic);
   yield* pause(t.connectDelay);
-  if (mode === "marker" || mode === "both") {
-    yield* paintBlend(mark, highlight || text, 40, t.lineDuration);
+  if (resolved === "marker" || resolved === "both") {
+    yield* paintBlend(mark, phrase, size, t.lineDuration, SERIF, 700);
   }
-  if (mode === "underline" || mode === "both") {
-    yield* pause(t.stepDelay);
-    yield* rule().width(Math.max(100, (highlight || text).length * 16), t.lineDuration, easeOutCubic);
+  if (resolved === "underline" || resolved === "both") {
+    if (resolved === "both") yield* pause(t.stepDelay);
+    yield* paintUnderline(rule, phrase, size, t.lineDuration, SERIF, 700);
   }
   yield* waitFor(1.2);
 }
@@ -78,18 +91,19 @@ function* headlineSlam(view: any) {
         marker: str("markerColor", "#FAFF00"),
         weight: 700,
         align: "center",
+        underline: rule,
+        underlineColor: accent,
       })}
     </Layout>,
   );
-  yield view.add(<Rect ref={rule} width={0} height={8} fill={accent} y={80} />);
 
   yield* pause(t.startDelay);
   yield* eye().opacity(1, t.revealDuration, easeOutCubic);
   yield* pause(t.stepDelay);
   yield* all(block().opacity(1, t.revealDuration, easeOutCubic), block().scale(1, t.revealDuration, easeOutBack));
   yield* pause(t.connectDelay);
-  yield* paintBlend(mark, highlight, 48, t.lineDuration);
-  yield* rule().width(420, t.lineDuration, easeOutCubic);
+  yield* paintBlend(mark, highlight, 48, t.lineDuration, SERIF, 700);
+  yield* paintUnderline(rule, highlight, 48, t.lineDuration, SERIF, 700);
   yield* waitFor(1.2);
 }
 
@@ -133,7 +147,7 @@ function* quoteCallout(view: any) {
   yield* pause(t.stepDelay);
   yield* body().opacity(1, t.revealDuration, easeOutCubic);
   yield* pause(t.connectDelay);
-  yield* paintBlend(paint, highlight, 40, t.lineDuration);
+  yield* paintBlend(paint, highlight, 40, t.lineDuration, SERIF, 700);
   yield* rule().width(280, t.lineDuration, easeOutCubic);
   yield* attr().opacity(1, t.revealDuration, easeOutCubic);
   yield* waitFor(1.2);

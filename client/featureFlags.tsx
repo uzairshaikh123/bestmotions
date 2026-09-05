@@ -17,6 +17,11 @@ function envBool(raw: unknown): boolean | null {
   return /^(1|true|yes|on)$/i.test(String(raw).trim());
 }
 
+/** Magic Board editor. Set VITE_FEATURE_BOARD=true to unlock; false/unset = Coming soon. */
+export function isBoardEnabled(): boolean {
+  return envBool(import.meta.env.VITE_FEATURE_BOARD) === true;
+}
+
 /** Frontend toggle: set VITE_FEATURE_VIDEO_SOUND=true in repo-root .env */
 function readViteVideoSound(): boolean | null {
   return envBool(import.meta.env.VITE_FEATURE_VIDEO_SOUND);

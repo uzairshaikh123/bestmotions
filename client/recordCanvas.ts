@@ -13,14 +13,20 @@ export function findCanvas(root: ParentNode | null): HTMLCanvasElement | null {
   return null;
 }
 
-function pickMime(): string {
-  const candidates = [
-    "video/mp4;codecs=avc1.42E01E,mp4a.40.2",
-    "video/mp4",
-    "video/webm;codecs=vp9,opus",
-    "video/webm;codecs=vp8",
-    "video/webm",
-  ];
+function pickMime(alpha = false): string {
+  const candidates = alpha
+    ? [
+        "video/webm;codecs=vp9",
+        "video/webm;codecs=vp8",
+        "video/webm",
+      ]
+    : [
+        "video/mp4;codecs=avc1.42E01E,mp4a.40.2",
+        "video/mp4",
+        "video/webm;codecs=vp9,opus",
+        "video/webm;codecs=vp8",
+        "video/webm",
+      ];
   for (const mime of candidates) {
     if (typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported(mime)) {
       return mime;
@@ -59,11 +65,16 @@ export async function recordCanvas(
   canvas: HTMLCanvasElement,
   durationMs: number,
   fps = 30,
+  opts?: { alpha?: boolean },
 ): Promise<{ blob: Blob; mime: string; ext: "mp4" | "webm" }> {
   if (typeof canvas.captureStream !== "function") {
     throw new Error("This browser cannot record the canvas. Try Chrome or Edge.");
   }
-  const mime = pickMime();
+  const alpha = Boolean(opts?.alpha);
+  if (alpha) {
+    canvas.style.background = "transparent";
+  }
+  const mime = pickMime(alpha);
   const stream = canvas.captureStream(fps);
   const recorder = mime
     ? new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 6_000_000 })

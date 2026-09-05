@@ -110,6 +110,7 @@ export function PlayExport({ doc, playing, onPlaying }: Props) {
             controls
             muted
             instanceKey={`board-${doc.scenes.length}-${duration}`}
+            estimatedDuration={duration / 1000}
           />
         </div>
       ) : null}

@@ -6,6 +6,11 @@ export type FieldType =
   | "image"
   | "number";
 
+export type AssetFieldColumn = {
+  label: string;
+  kind?: "text" | "number" | "color";
+};
+
 export type AssetField = {
   key: string;
   label: string;
@@ -16,6 +21,8 @@ export type AssetField = {
   step?: number;
   min?: number;
   max?: number;
+  /** Structured row editor — serialized back to `a|b|c` lines for scenes. */
+  columns?: AssetFieldColumn[];
 };
 
 export type AssetCategory =
@@ -28,6 +35,10 @@ export type AssetCategory =
   | "shorts"
   | "india"
   | "timeline"
+  | "money"
+  | "comparison"
+  | "rise"
+  | "time"
   | "newspaper"
   | "yt"
   | "fire"

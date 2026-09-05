@@ -118,6 +118,21 @@ function scoreFor(template: string): Score {
   if (template.startsWith("timeline-") || template === "timeline") {
     return { intro: "slide", hit: "tick", ticks: 5 };
   }
+  if (template.startsWith("hist-")) {
+    return { intro: "slide", hit: "tick", ticks: 4, accent: "drop" };
+  }
+  if (template.startsWith("time-")) {
+    return { intro: "tick", hit: "bong", ticks: 3, accent: "confirm" };
+  }
+  if (template.startsWith("money-")) {
+    return { intro: "pop", hit: "bong", accent: "confirm", ticks: 3 };
+  }
+  if (template.startsWith("cmp-")) {
+    return { intro: "slide", hit: "switch", accent: "bong" };
+  }
+  if (template.startsWith("rise-")) {
+    return { intro: "slide", hit: "slam", accent: "drop" };
+  }
   if (template.startsWith("india-")) {
     return { intro: "slide", hit: "confirm", accent: "glass" };
   }

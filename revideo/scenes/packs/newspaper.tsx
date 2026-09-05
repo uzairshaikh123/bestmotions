@@ -11,6 +11,14 @@ import {
   waitFor,
 } from "../../lib/helpers";
 import { blendPhrase, paintBlend, HIGHLIGHTER } from "../../lib/highlight";
+import {
+  ColumnRules,
+  DeskVignette,
+  PaperCrease,
+  PaperGrain,
+  PaperSheet,
+  TornPeel,
+} from "../../lib/paper";
 import { itemDelays, pause, timing } from "../../lib/timing";
 
 const SERIF = "Libre Baskerville, Georgia, serif";
@@ -64,45 +72,33 @@ function* slideHighlight(view: any) {
   const rotation = num("rotation", -4);
 
   desk(view);
-  const paper = createRef<Rect>();
+  yield view.add(<DeskVignette />);
+  const paper = createRef<Node>();
   const mark = createRef<Rect>();
   yield view.add(
-    <Rect
-      ref={paper}
-      width={760}
-      height={480}
-      fill={PAPER}
-      radius={3}
-      shadowColor={"#00000088"}
-      shadowBlur={36}
-      shadowOffsetY={18}
-      x={920}
-      rotation={rotation}
-      layout
-      direction={"column"}
-      gap={16}
-      padding={44}
-      alignItems={"start"}
-    >
-      <Txt text={masthead} fill={"#8b1e1e"} fontFamily={SERIF} fontSize={18} letterSpacing={6} fontWeight={700} />
-      <Txt text={date} fill={"#6a5f52"} fontFamily={SERIF} fontSize={13} />
-      <Rect width={672} height={2} fill={"#c9b89a"} />
+    <Node ref={paper} x={920} y={10} rotation={rotation}>
+      <PaperSheet width={780} height={500} fill={PAPER} roughness={14} seed={5} />
+      <PaperGrain width={720} height={440} seed={5} />
+      <Txt text={masthead} fill={"#8b1e1e"} fontFamily={SERIF} fontSize={16} letterSpacing={6} fontWeight={700} y={-188} />
+      <Txt text={date} fill={"#6a5f52"} fontFamily={SERIF} fontSize={13} y={-162} />
+      <PaperCrease width={680} y={-138} />
       {blendPhrase(headline, highlight, mark, {
         font: SERIF,
-        size: 36,
+        size: 34,
         fill: ink,
         marker: accent,
         weight: 700,
-        width: 672,
+        width: 640,
+        align: "center",
       })}
-      <Txt text={body} fill={"#3d342c"} fontFamily={SERIF} fontSize={18} width={672} textWrap />
-    </Rect>,
+      <Txt text={body} fill={"#3d342c"} fontFamily={SERIF} fontSize={17} width={640} textWrap textAlign={"center"} y={120} />
+    </Node>,
   );
   const t = timing();
   yield* pause(t.startDelay);
-  yield* paper().x(20, t.revealDuration, easeOutCubic);
+  yield* paper().x(16, t.revealDuration, easeOutCubic);
   yield* pause(t.connectDelay);
-  yield* paintBlend(mark, highlight, 36, t.lineDuration);
+  yield* paintBlend(mark, highlight, 34, t.lineDuration);
   yield* waitFor(1.5);
 }
 
@@ -118,18 +114,18 @@ function* redCircle(view: any) {
   const ink = str("ink", INK);
 
   desk(view);
+  yield view.add(<DeskVignette />);
   yield view.add(
-    <Rect width={820} height={500} fill={PAPER} radius={2} y={10} shadowBlur={30} shadowColor={"#00000077"} />
-  );
-  yield view.add(
-    <Txt text={masthead} fill={"#111"} fontFamily={SERIF} fontSize={22} fontWeight={700} y={-200} letterSpacing={8} />,
-  );
-  yield view.add(<Rect width={680} height={3} fill={"#111"} y={-168} />);
-  yield view.add(
-    <Txt text={headline} fill={ink} fontFamily={SERIF} fontSize={34} fontWeight={700} y={-90} width={640} textWrap textAlign={"center"} />,
-  );
-  yield view.add(
-    <Txt text={body} fill={"#4a4038"} fontFamily={SERIF} fontSize={18} y={70} width={620} textWrap textAlign={"center"} />,
+    <Node rotation={-2.5} y={12}>
+      <PaperSheet width={840} height={520} fill={PAPER} roughness={13} seed={4} />
+      <PaperGrain width={760} height={460} seed={4} />
+      <PaperCrease width={700} y={-176} />
+      <Txt text={masthead} fill={"#111"} fontFamily={SERIF} fontSize={22} fontWeight={700} y={-200} letterSpacing={8} />
+      <Rect width={680} height={3} fill={"#111"} y={-168} />
+      <Txt text={headline} fill={ink} fontFamily={SERIF} fontSize={34} fontWeight={700} y={-90} width={640} textWrap textAlign={"center"} />
+      <ColumnRules width={600} height={70} rows={4} />
+      <Txt text={body} fill={"#4a4038"} fontFamily={SERIF} fontSize={18} y={70} width={620} textWrap textAlign={"center"} />
+    </Node>,
   );
   const ring = createRef<Circle>();
   yield view.add(
@@ -206,11 +202,13 @@ function* clipZoom(view: any) {
   const ink = str("ink", INK);
 
   desk(view, "#14110e");
+  yield view.add(<DeskVignette />);
   const clip = createRef<Layout>();
   const mark = createRef<Rect>();
   yield view.add(
-    <Layout ref={clip} scale={0.78} y={20}>
-      <Rect width={560} height={340} fill={PAPER} rotation={-2} shadowBlur={28} shadowColor={"#00000099"} />
+    <Layout ref={clip} scale={0.78} y={20} rotation={-3}>
+      <PaperSheet width={580} height={360} fill={PAPER} roughness={15} seed={8} />
+      <PaperGrain width={520} height={300} seed={8} />
       <Txt text={masthead} fill={"#8b1e1e"} fontFamily={SERIF} fontSize={14} letterSpacing={5} y={-120} fontWeight={700} />
       <Txt text={byline} fill={"#7a6f62"} fontFamily={SERIF} fontSize={13} y={-92} />
       {paperHeadline(headline, highlight, mark, {
@@ -243,23 +241,20 @@ function* frontPage(view: any) {
   const ink = str("ink", INK);
 
   desk(view);
-  yield view.add(<Rect width={980} height={560} fill={PAPER} y={8} />);
+  yield view.add(<DeskVignette />);
   yield view.add(
-    <Txt text={masthead} fill={"#111"} fontFamily={SERIF} fontSize={42} fontWeight={700} y={-230} letterSpacing={4} />,
-  );
-  yield view.add(<Txt text={date} fill={"#5c5348"} fontFamily={SERIF} fontSize={14} y={-188} />);
-  yield view.add(<Rect width={860} height={4} fill={"#111"} y={-168} />);
-  yield view.add(
-    <Txt text={headline} fill={ink} fontFamily={SERIF} fontSize={38} fontWeight={700} y={-110} width={860} textAlign={"center"} textWrap />,
-  );
-  yield view.add(
-    <Txt text={deck} fill={"#4a433c"} fontFamily={SERIF} fontSize={18} y={-28} width={820} textAlign={"center"} textWrap />,
-  );
-  yield view.add(
-    <Txt text={col1} fill={"#3a342e"} fontFamily={SERIF} fontSize={16} x={-220} y={90} width={360} textWrap />,
-  );
-  yield view.add(
-    <Txt text={col2} fill={"#3a342e"} fontFamily={SERIF} fontSize={16} x={220} y={90} width={360} textWrap />,
+    <Node rotation={-1.4} y={10}>
+      <PaperSheet width={1000} height={580} fill={PAPER} roughness={12} seed={6} />
+      <PaperGrain width={920} height={520} seed={6} />
+      <PaperCrease width={860} y={-176} />
+      <Txt text={masthead} fill={"#111"} fontFamily={SERIF} fontSize={42} fontWeight={700} y={-230} letterSpacing={4} />
+      <Txt text={date} fill={"#5c5348"} fontFamily={SERIF} fontSize={14} y={-188} />
+      <Rect width={860} height={4} fill={"#111"} y={-168} />
+      <Txt text={headline} fill={ink} fontFamily={SERIF} fontSize={38} fontWeight={700} y={-110} width={860} textAlign={"center"} textWrap />
+      <Txt text={deck} fill={"#4a433c"} fontFamily={SERIF} fontSize={18} y={-28} width={820} textAlign={"center"} textWrap />
+      <Txt text={col1} fill={"#3a342e"} fontFamily={SERIF} fontSize={16} x={-220} y={90} width={360} textWrap />
+      <Txt text={col2} fill={"#3a342e"} fontFamily={SERIF} fontSize={16} x={220} y={90} width={360} textWrap />
+    </Node>,
   );
   const st = createRef<Txt>();
   yield view.add(
@@ -292,10 +287,13 @@ function* photoCaption(view: any) {
   const ink = str("ink", "#f4efe6");
 
   desk(view, "#121418");
-  const photo = createRef<Rect>();
+  yield view.add(<DeskVignette />);
+  const photo = createRef<Node>();
   const mark = createRef<Rect>();
   yield view.add(
-    <Rect ref={photo} width={520} height={340} fill={"#2a2420"} x={-260} y={-20} opacity={0} />,
+    <Node ref={photo} x={-260} y={-20} rotation={-3} opacity={0}>
+      <PaperSheet width={540} height={360} fill={"#2a2420"} roughness={14} seed={12} />
+    </Node>,
   );
   yield view.add(
     <Txt text={credit.toUpperCase()} fill={"#8d867c"} fontFamily={SERIF} fontSize={12} letterSpacing={2} x={-260} y={170} />,
@@ -348,8 +346,9 @@ function* headlineStack(view: any) {
     const rule = createRef<Rect>();
     const y = -120 + i * 130;
     yield view.add(
-      <Layout ref={row} y={y} x={-1100}>
-        <Rect width={880} height={100} fill={PAPER} shadowBlur={18} shadowColor={"#00000066"} />
+      <Layout ref={row} y={y} x={-1100} rotation={i === 1 ? 1.8 : i === 2 ? -1.4 : -2.2}>
+        <PaperSheet width={900} height={112} fill={PAPER} roughness={11} seed={10 + i} />
+        <PaperGrain width={820} height={80} seed={10 + i} />
         <Txt text={lines[i]} fill={ink} fontFamily={SERIF} fontSize={26} fontWeight={700} />
       </Layout>,
     );
@@ -372,8 +371,15 @@ function* magnifier(view: any) {
   const ink = str("ink", INK);
 
   desk(view);
+  yield view.add(<DeskVignette />);
   const mark = createRef<Rect>();
-  yield view.add(<Rect width={900} height={480} fill={PAPER} />);
+  yield view.add(
+    <Node rotation={-1.6} y={8}>
+      <PaperSheet width={920} height={500} fill={PAPER} roughness={13} seed={16} />
+      <PaperGrain width={840} height={440} seed={16} />
+      <ColumnRules width={760} height={160} rows={6} />
+    </Node>,
+  );
   yield view.add(
     <Txt text={body} fill={ink} fontFamily={SERIF} fontSize={22} width={760} textWrap y={-40} />,
   );
@@ -454,9 +460,15 @@ function* ultraFront(view: any) {
   const paper = str("paperTint", PAPER);
 
   desk(view);
-  const page = createRef<Rect>();
+  yield view.add(<DeskVignette />);
+  const page = createRef<Node>();
   const mark = createRef<Rect>();
-  yield view.add(<Rect ref={page} width={1040} height={600} fill={paper} y={40} opacity={0} />);
+  yield view.add(
+    <Node ref={page} y={20} rotation={-1.1} opacity={0}>
+      <PaperSheet width={1040} height={600} fill={paper} roughness={12} seed={18} />
+      <PaperGrain width={960} height={540} seed={18} />
+    </Node>,
+  );
   const t = timing();
   yield* pause(t.startDelay);
   yield* page().opacity(1, t.revealDuration, easeOutCubic);
@@ -508,21 +520,18 @@ function* ultraFold(view: any) {
   const paper = str("paperTint", "#efe4cc");
 
   desk(view, "#161208");
-  const sheet = createRef<Rect>();
+  yield view.add(<DeskVignette />);
+  const sheet = createRef<Node>();
   const mark = createRef<Rect>();
   yield view.add(
-    <Rect
-      ref={sheet}
-      width={48}
-      height={460}
-      fill={paper}
-      shadowBlur={40}
-      shadowColor={"#000000aa"}
-    />,
+    <Node ref={sheet} scaleX={0.07}>
+      <PaperSheet width={780} height={460} fill={paper} roughness={14} seed={22} />
+      <PaperGrain width={720} height={400} seed={22} />
+    </Node>,
   );
   const t = timing();
   yield* pause(t.startDelay);
-  yield* sheet().width(780, t.revealDuration, easeOutCubic);
+  yield* sheet().scale.x(1, t.revealDuration, easeOutCubic);
   yield view.add(
     <Txt text={masthead} fill={"#8b1e1e"} fontFamily={SERIF} fontSize={16} letterSpacing={6} y={-170} fontWeight={700} />,
   );
@@ -553,11 +562,14 @@ function* ultraPush(view: any) {
   const paper = str("paperTint", "#f4ead8");
 
   desk(view, "#0c0a08");
+  yield view.add(<DeskVignette />);
   const cam = createRef<Layout>();
   const mark = createRef<Rect>();
   yield view.add(
-    <Layout ref={cam} scale={0.92} y={16}>
-      <Rect width={820} height={500} fill={paper} rotation={1.5} />
+    <Layout ref={cam} scale={0.92} y={16} rotation={2.2}>
+      <PaperSheet width={840} height={520} fill={paper} roughness={15} seed={24} />
+      <PaperGrain width={760} height={460} seed={24} />
+      <PaperCrease width={700} y={-168} />
       <Txt text={`${masthead}  ·  ${date}`} fill={"#7a1c1c"} fontFamily={SERIF} fontSize={14} letterSpacing={3} y={-200} />
       {paperHeadline(headline, highlight, mark, {
         y: -80,
@@ -588,8 +600,14 @@ function* ultraExtra(view: any) {
   const paper = str("paperTint", "#f1e6d0");
 
   desk(view);
+  yield view.add(<DeskVignette />);
   const mark = createRef<Rect>();
-  yield view.add(<Rect width={960} height={540} fill={paper} y={20} />);
+  yield view.add(
+    <Node rotation={-1.8} y={16}>
+      <PaperSheet width={980} height={560} fill={paper} roughness={13} seed={26} />
+      <PaperGrain width={900} height={500} seed={26} />
+    </Node>,
+  );
   yield view.add(
     <Txt text={masthead} fill={"#111"} fontFamily={SERIF} fontSize={28} fontWeight={700} y={-200} letterSpacing={4} />,
   );
@@ -630,12 +648,24 @@ function* ultraStack(view: any) {
   const paper = str("paperTint", "#f0e5cf");
 
   desk(view, "#12100c");
+  yield view.add(<DeskVignette />);
   const mark = createRef<Rect>();
-  yield view.add(<Rect width={760} height={430} fill={"#cfc0a4"} rotation={-7} y={36} x={-18} />);
-  yield view.add(<Rect width={760} height={430} fill={"#e2d3b6"} rotation={4} y={16} x={22} />);
-  const top = createRef<Rect>();
   yield view.add(
-    <Rect ref={top} width={760} height={430} fill={paper} y={-420} shadowBlur={24} shadowColor={"#00000066"} />,
+    <Node rotation={-9} y={40} x={-28}>
+      <PaperSheet width={760} height={430} fill={"#cfc0a4"} roughness={16} seed={2} />
+    </Node>,
+  );
+  yield view.add(
+    <Node rotation={6} y={18} x={30}>
+      <PaperSheet width={760} height={430} fill={"#e2d3b6"} roughness={14} seed={5} />
+    </Node>,
+  );
+  const top = createRef<Node>();
+  yield view.add(
+    <Node ref={top} y={-420} rotation={-1}>
+      <PaperSheet width={760} height={430} fill={paper} roughness={15} seed={28} />
+      <PaperGrain width={700} height={380} seed={28} />
+    </Node>,
   );
   const t = timing();
   yield* pause(t.startDelay);
@@ -671,7 +701,13 @@ function* letterpress(view: any) {
   const paper = str("paperTint", "#efe6d2");
 
   desk(view, "#1a1712");
-  yield view.add(<Rect width={880} height={200} fill={paper} y={-40} />);
+  yield view.add(<DeskVignette />);
+  yield view.add(
+    <Node rotation={-2.4} y={-36}>
+      <PaperSheet width={900} height={220} fill={paper} roughness={14} seed={30} />
+      <PaperGrain width={820} height={180} seed={30} />
+    </Node>,
+  );
   yield view.add(
     <Txt text={kicker} fill={accent} fontFamily={SERIF} fontSize={14} letterSpacing={8} y={-200} />,
   );
@@ -698,10 +734,21 @@ function* spread(view: any) {
   const paper = str("paperTint", PAPER);
 
   desk(view, "#0d0c0a");
-  const left = createRef<Rect>();
-  const right = createRef<Rect>();
-  yield view.add(<Rect ref={left} width={470} height={520} fill={paper} x={0} />);
-  yield view.add(<Rect ref={right} width={470} height={520} fill={"#ece1cb"} x={0} />);
+  yield view.add(<DeskVignette />);
+  const left = createRef<Node>();
+  const right = createRef<Node>();
+  yield view.add(
+    <Node ref={left} x={0} rotation={-1.2}>
+      <PaperSheet width={470} height={520} fill={paper} roughness={13} seed={32} />
+      <PaperGrain width={420} height={460} seed={32} />
+    </Node>,
+  );
+  yield view.add(
+    <Node ref={right} x={0} rotation={1.4}>
+      <PaperSheet width={470} height={520} fill={"#ece1cb"} roughness={13} seed={33} />
+      <PaperGrain width={420} height={460} seed={33} />
+    </Node>,
+  );
   const t = timing();
   yield* pause(t.startDelay);
   yield* all(left().x(-250, t.revealDuration, easeOutCubic), right().x(250, t.revealDuration, easeOutCubic));
@@ -736,7 +783,14 @@ function* ultraCircle(view: any) {
   const paper = str("paperTint", "#f3ead6");
 
   desk(view);
-  yield view.add(<Rect width={840} height={500} fill={paper} rotation={-1} />);
+  yield view.add(<DeskVignette />);
+  yield view.add(
+    <Node rotation={-3.2} y={8}>
+      <PaperSheet width={860} height={520} fill={paper} roughness={15} seed={34} />
+      <PaperGrain width={780} height={460} seed={34} />
+      <PaperCrease width={720} y={-158} />
+    </Node>,
+  );
   yield view.add(
     <Txt text={masthead} fill={"#3a2f26"} fontFamily={SERIF} fontSize={18} letterSpacing={7} y={-190} />,
   );
@@ -762,7 +816,7 @@ function* ultraCircle(view: any) {
   yield* waitFor(1.4);
 }
 
-/** Rotated torn clipping with jagged tabs around the edge. */
+/** Rotated torn clipping with a real jagged deckle edge. */
 function* torn(view: any) {
   const masthead = str("masthead", "DAILY NEWS");
   const date = str("date", "Saturday, August 1, 2026");
@@ -771,75 +825,294 @@ function* torn(view: any) {
   const body = str("body", "A clipped story with ragged edges, sitting above a dark grid.");
   const accent = str("markerColor", HIGHLIGHTER);
   const paper = str("paperTint", "#f4ead8");
-  const rotation = num("rotation", -6);
+  const rotation = num("rotation", -7);
+  const roughness = num("tornRoughness", 18);
+  const seed = num("tornSeed", 7);
 
-  desk(view, "#15181e");
-  const clip = createRef<Layout>();
+  desk(view, "#0b0a08");
+  yield view.add(<DeskVignette />);
+  const clip = createRef<Node>();
   const mark = createRef<Rect>();
   yield view.add(
-    <Layout ref={clip} rotation={rotation} y={24} scale={0.9} opacity={0}>
-      <Rect width={640} height={400} fill={paper} />
-      <Rect width={48} height={70} fill={paper} x={-320} y={-90} rotation={18} />
-      <Rect width={56} height={54} fill={paper} x={318} y={40} rotation={-12} />
-      <Rect width={70} height={40} fill={paper} x={-40} y={-210} rotation={8} />
-      <Txt text={`${masthead}  ·  ${date}`} fill={"#7a1c1c"} fontFamily={SERIF} fontSize={13} y={-150} />
+    <Node ref={clip} rotation={rotation} y={30} x={-40} scale={0.84} opacity={0}>
+      <PaperSheet width={680} height={430} fill={paper} roughness={roughness} seed={seed} />
+      <PaperGrain width={620} height={380} seed={seed} />
+      <PaperCrease width={620} y={-118} />
+      <Txt text={masthead} fill={"#8b1e1e"} fontFamily={SERIF} fontSize={13} letterSpacing={5} y={-168} fontWeight={700} />
+      <Txt text={date} fill={"#6a5f52"} fontFamily={SERIF} fontSize={12} y={-146} />
       {paperHeadline(headline, highlight, mark, {
-        y: -40,
-        size: 26,
-        width: 540,
+        y: -36,
+        size: 28,
+        width: 560,
         marker: accent,
       })}
-      <Txt text={body} fill={"#4a4038"} fontFamily={SERIF} fontSize={16} y={80} width={520} textWrap textAlign={"center"} />
-    </Layout>,
+      <ColumnRules width={520} height={90} rows={5} />
+      <Txt text={body} fill={"#4a4038"} fontFamily={SERIF} fontSize={15} y={118} width={540} textWrap textAlign={"center"} />
+    </Node>,
   );
   const t = timing();
   yield* pause(t.startDelay);
-  yield* all(clip().opacity(1, t.revealDuration, easeOutCubic), clip().scale(1, t.revealDuration, easeOutBack));
+  yield* all(
+    clip().opacity(1, t.revealDuration, easeOutCubic),
+    clip().scale(1.02, t.revealDuration, easeOutBack),
+    clip().rotation(rotation + 1.5, t.revealDuration, easeOutCubic),
+  );
   yield* pause(t.connectDelay);
-  yield* paintBlend(mark, highlight, 26, t.lineDuration);
-  yield* waitFor(1.3);
+  yield* paintBlend(mark, highlight, 28, t.lineDuration);
+  yield* waitFor(1.25);
 }
 
-/** Clipping tears open left-to-right: a cover sheet peels away. */
+/** Clipping tears open left-to-right along a jagged rip, not a hard wipe. */
 function* tornReveal(view: any) {
   const masthead = str("masthead", "THE EVENING CLIP");
   const headline = str("headline", "Ripped from today's front page");
   const highlight = str("highlight", "Ripped from");
-  const body = str("body", "A slow tear reveals the clipping — an uneven edge, not a hard wipe.");
+  const body = str(
+    "body",
+    "A slow tear reveals the clipping — not a hard rectangular wipe, but an uneven edge the way fingers would pull newsprint apart.",
+  );
   const accent = str("markerColor", HIGHLIGHTER);
   const paper = str("paperTint", "#f2e8d4");
+  const roughness = num("tornRoughness", 22);
+  const seed = num("tornSeed", 11);
 
-  desk(view, "#101318");
+  desk(view, "#080706");
+  yield view.add(<DeskVignette />);
   const mark = createRef<Rect>();
-  yield view.add(<Rect width={720} height={420} fill={paper} />);
   yield view.add(
-    <Txt text={masthead} fill={"#8b1e1e"} fontFamily={SERIF} fontSize={14} letterSpacing={5} y={-160} />,
+    <Node rotation={-2} y={8}>
+      <PaperSheet width={760} height={460} fill={paper} roughness={14} seed={seed} />
+      <PaperGrain width={700} height={400} seed={seed + 2} />
+      <Txt text={masthead} fill={"#8b1e1e"} fontFamily={SERIF} fontSize={14} letterSpacing={6} y={-168} fontWeight={700} />
+      {paperHeadline(headline, highlight, mark, {
+        y: -42,
+        size: 32,
+        width: 640,
+        marker: accent,
+      })}
+      <ColumnRules width={600} height={70} rows={4} />
+      <Txt text={body} fill={"#4a4038"} fontFamily={SERIF} fontSize={16} y={118} width={620} textWrap textAlign={"center"} />
+    </Node>,
+  );
+
+  const cover = createRef<Node>();
+  yield view.add(
+    <Node ref={cover} x={-40}>
+      <TornPeel height={560} extend={1100} roughness={roughness} seed={seed} fill={"#e6d4ae"} />
+    </Node>,
+  );
+
+  const t = timing();
+  yield* pause(t.startDelay);
+  yield* cover().x(980, t.lineDuration * 1.55, easeOutCubic);
+  yield* pause(t.connectDelay);
+  yield* paintBlend(mark, highlight, 32, t.lineDuration);
+  yield* waitFor(1.15);
+}
+
+/** Vox desk: three torn clippings slam in at different angles, then the marker. */
+function* voxDesk(view: any) {
+  const masthead = str("masthead", "THE NATIONAL");
+  const date = str("date", "Vol. 214  ·  August 2026");
+  const headline = str("headline", "The story they tried to bury is now on every front page");
+  const highlight = str("highlight", "every front page");
+  const body = str(
+    "body",
+    "A week of leaks, late-night edits, and one photograph that would not stay in the archive.",
+  );
+  const kicker = str("kicker", "SPECIAL REPORT");
+  const accent = str("markerColor", HIGHLIGHTER);
+  const paper = str("paperTint", "#efe3c8");
+  const back = str("backTint", "#e4d3b0");
+
+  desk(view, "#070706");
+  yield view.add(<DeskVignette />);
+  const a = createRef<Node>();
+  const b = createRef<Node>();
+  const front = createRef<Node>();
+  const mark = createRef<Rect>();
+
+  yield view.add(
+    <Node ref={a} x={-420} y={-40} rotation={-16} scale={0.72} opacity={0}>
+      <PaperSheet width={520} height={340} fill={back} roughness={15} seed={3} />
+      <ColumnRules width={400} height={200} rows={9} />
+    </Node>,
   );
   yield view.add(
-    paperHeadline(headline, highlight, mark, {
-      y: -50,
-      size: 30,
-      width: 620,
-      marker: accent,
-    }),
+    <Node ref={b} x={430} y={50} rotation={11} scale={0.7} opacity={0}>
+      <PaperSheet width={500} height={320} fill={"#f6ecda"} roughness={13} seed={9} />
+      <ColumnRules width={380} height={180} rows={8} />
+    </Node>,
   );
   yield view.add(
-    <Txt text={body} fill={"#4a4038"} fontFamily={SERIF} fontSize={17} y={80} width={600} textWrap textAlign={"center"} />,
+    <Node ref={front} y={80} rotation={-5} scale={0.78} opacity={0}>
+      <PaperSheet width={720} height={430} fill={paper} roughness={17} seed={14} />
+      <PaperGrain width={660} height={380} seed={14} />
+      <PaperCrease width={640} y={-132} />
+      <Txt text={kicker} fill={"#8b1e1e"} fontFamily={SERIF} fontSize={12} letterSpacing={5} y={-168} />
+      <Txt text={`${masthead}   ${date}`} fill={"#5c5348"} fontFamily={SERIF} fontSize={12} y={-146} />
+      {paperHeadline(headline, highlight, mark, {
+        y: -40,
+        size: 28,
+        width: 600,
+        marker: accent,
+      })}
+      <Txt text={body} fill={"#3d342c"} fontFamily={SERIF} fontSize={15} y={118} width={600} textWrap textAlign={"center"} />
+    </Node>,
   );
-  const cover = createRef<Rect>();
-  const tear = createRef<Rect>();
-  yield view.add(<Rect ref={cover} width={720} height={420} fill={"#2a3038"} x={0} />);
-  yield view.add(<Rect ref={tear} width={18} height={420} fill={"#f2e8d4"} x={-351} />);
+
+  const t = timing();
+  yield* pause(t.startDelay);
+  yield* all(a().opacity(1, t.revealDuration, easeOutCubic), a().x(-260, t.revealDuration, easeOutBack));
+  yield* pause(t.stepDelay);
+  yield* all(b().opacity(1, t.revealDuration, easeOutCubic), b().x(250, t.revealDuration, easeOutBack));
+  yield* pause(t.stepDelay);
+  yield* all(
+    front().opacity(1, t.revealDuration, easeOutCubic),
+    front().y(6, t.revealDuration, easeOutBack),
+    front().scale(1, t.revealDuration, easeOutBack),
+  );
+  yield* pause(t.connectDelay);
+  yield* paintBlend(mark, highlight, 28, t.lineDuration);
+  yield* waitFor(1.2);
+}
+
+/** Hand-rip: the sheet yanks at an angle while a jagged edge travels across. */
+function* paperRip(view: any) {
+  const masthead = str("masthead", "MORNING POST");
+  const headline = str("headline", "Torn from the morning edition");
+  const highlight = str("highlight", "Torn from");
+  const body = str("body", "The page does not wipe. It rips — fibers, torque, and a crooked leftover strip.");
+  const accent = str("markerColor", HIGHLIGHTER);
+  const paper = str("paperTint", "#f3e7cf");
+  const roughness = num("tornRoughness", 26);
+  const seed = num("tornSeed", 21);
+  const rotation = num("rotation", -9);
+
+  desk(view, "#090807");
+  yield view.add(<DeskVignette />);
+  const sheet = createRef<Node>();
+  const peel = createRef<Node>();
+  const mark = createRef<Rect>();
+
+  yield view.add(
+    <Node ref={sheet} rotation={rotation} y={18} x={-20}>
+      <PaperSheet width={740} height={450} fill={paper} roughness={15} seed={seed} />
+      <PaperGrain width={680} height={400} seed={seed} />
+      <Txt text={masthead} fill={"#8b1e1e"} fontFamily={SERIF} fontSize={14} letterSpacing={6} y={-168} fontWeight={700} />
+      {paperHeadline(headline, highlight, mark, {
+        y: -38,
+        size: 32,
+        width: 620,
+        marker: accent,
+      })}
+      <Txt text={body} fill={"#4a4038"} fontFamily={SERIF} fontSize={16} y={120} width={600} textWrap textAlign={"center"} />
+    </Node>,
+  );
+  yield view.add(
+    <Node ref={peel} x={-20} y={18} rotation={rotation}>
+      <TornPeel height={540} extend={1100} roughness={roughness} seed={seed} fill={"#deccaa"} />
+    </Node>,
+  );
+
   const t = timing();
   yield* pause(t.startDelay);
   yield* all(
-    cover().width(0, t.lineDuration, easeOutCubic),
-    cover().x(360, t.lineDuration, easeOutCubic),
-    tear().x(360, t.lineDuration, easeOutCubic),
+    peel().x(920, t.lineDuration * 1.4, easeOutCubic),
+    peel().rotation(rotation + 6, t.lineDuration * 1.4, easeOutCubic),
+    sheet().rotation(rotation + 3, t.lineDuration * 1.4, easeOutCubic),
+    sheet().y(4, t.lineDuration, easeOutCubic),
   );
   yield* pause(t.connectDelay);
+  yield* paintBlend(mark, highlight, 32, t.lineDuration);
+  yield* waitFor(1.1);
+}
+
+/** Clipping drops from above, lands crooked, camera eases in, then highlight. */
+function* clipDrop(view: any) {
+  const masthead = str("masthead", "CITY TIMES");
+  const date = str("date", "Sunday edition");
+  const headline = str("headline", "A photograph no one was meant to print");
+  const highlight = str("highlight", "no one was meant");
+  const body = str("body", "The desk went quiet. Then the presses started again.");
+  const accent = str("markerColor", HIGHLIGHTER);
+  const paper = str("paperTint", "#f7edd8");
+  const rotation = num("rotation", 5);
+
+  desk(view, "#0a0908");
+  yield view.add(<DeskVignette />);
+  const cam = createRef<Node>();
+  const clip = createRef<Node>();
+  const mark = createRef<Rect>();
+  yield view.add(
+    <Node ref={cam} scale={0.9}>
+      <Node ref={clip} y={-520} rotation={rotation + 18} opacity={0}>
+        <PaperSheet width={700} height={420} fill={paper} roughness={16} seed={19} />
+        <PaperGrain width={640} height={370} seed={19} />
+        <PaperCrease width={600} y={-120} />
+        <Txt text={`${masthead}  ·  ${date}`} fill={"#7a1c1c"} fontFamily={SERIF} fontSize={13} letterSpacing={3} y={-158} />
+        {paperHeadline(headline, highlight, mark, {
+          y: -36,
+          size: 30,
+          width: 580,
+          marker: accent,
+        })}
+        <Txt text={body} fill={"#3d342c"} fontFamily={SERIF} fontSize={16} y={112} width={560} textWrap textAlign={"center"} />
+      </Node>
+    </Node>,
+  );
+  const t = timing();
+  yield* pause(t.startDelay);
+  yield* all(
+    clip().y(12, t.revealDuration * 1.4, easeOutBack),
+    clip().rotation(rotation, t.revealDuration * 1.4, easeOutCubic),
+    clip().opacity(1, t.revealDuration * 0.5, easeOutCubic),
+  );
+  yield* all(cam().scale(1.12, t.lineDuration * 2.2, easeOutCubic), cam().y(-16, t.lineDuration * 2.2, easeOutCubic));
+  yield* pause(t.connectDelay);
   yield* paintBlend(mark, highlight, 30, t.lineDuration);
-  yield* waitFor(1.2);
+  yield* waitFor(1.05);
+}
+
+/** Press cutout: a tight torn scrap slams toward camera like a Vox lower-third. */
+function* pressCut(view: any) {
+  const kicker = str("kicker", "BREAKING");
+  const headline = str("headline", "They printed it anyway");
+  const highlight = str("highlight", "printed it");
+  const source = str("source", "Evening dispatch  ·  page 3");
+  const accent = str("markerColor", HIGHLIGHTER);
+  const paper = str("paperTint", "#f4e6c8");
+  const rotation = num("rotation", -8);
+
+  desk(view, "#060504");
+  yield view.add(<DeskVignette />);
+  const scrap = createRef<Node>();
+  const mark = createRef<Rect>();
+  yield view.add(
+    <Node ref={scrap} rotation={rotation} scale={0.4} opacity={0} y={40}>
+      <PaperSheet width={780} height={280} fill={paper} roughness={20} seed={31} />
+      <PaperGrain width={720} height={240} seed={31} />
+      <Txt text={kicker} fill={"#c1121f"} fontFamily={SERIF} fontSize={14} letterSpacing={7} y={-86} fontWeight={700} />
+      {paperHeadline(headline, highlight, mark, {
+        y: -6,
+        size: 40,
+        width: 680,
+        marker: accent,
+      })}
+      <Txt text={source} fill={"#6a5f52"} fontFamily={SERIF} fontSize={14} y={78} />
+    </Node>,
+  );
+  const t = timing();
+  yield* pause(t.startDelay);
+  yield* all(
+    scrap().scale(1.06, t.revealDuration * 1.15, easeOutBack),
+    scrap().opacity(1, t.revealDuration * 0.4, easeOutCubic),
+    scrap().y(0, t.revealDuration, easeOutCubic),
+  );
+  yield* scrap().scale(1, 0.18, easeOutCubic);
+  yield* pause(t.connectDelay);
+  yield* paintBlend(mark, highlight, 40, t.lineDuration);
+  yield* waitFor(1.25);
 }
 
 export function* runNewspaper(view: any, template: string) {
@@ -900,6 +1173,18 @@ export function* runNewspaper(view: any, template: string) {
       break;
     case "news-ultra-torn-reveal":
       yield* tornReveal(view);
+      break;
+    case "news-vox-desk":
+      yield* voxDesk(view);
+      break;
+    case "news-paper-rip":
+      yield* paperRip(view);
+      break;
+    case "news-clip-drop":
+      yield* clipDrop(view);
+      break;
+    case "news-press-cut":
+      yield* pressCut(view);
       break;
     default:
       yield* titleSlam(view, {

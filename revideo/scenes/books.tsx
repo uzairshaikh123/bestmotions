@@ -8,8 +8,17 @@ import {
   useScene,
   waitFor,
 } from "@revideo/core";
-import { blendPhrase, paintBlend } from "../lib/highlight";
+import {
+  blendPhrase,
+  measureGlyphs,
+  paintBlend,
+  paintRing,
+  paintUnderline,
+  splitPhrase,
+} from "../lib/highlight";
 import { itemDelays, pause, timing } from "../lib/timing";
+
+const SERIF = "Libre Baskerville, Georgia, serif";
 
 function v<T>(name: string, initial: T): T {
   return useScene().variables.get(name, initial)();
@@ -318,11 +327,12 @@ function* markerHighlight(view: any) {
       />
       <Layout layout direction={"row"} alignItems={"center"} marginTop={10}>
         {blendPhrase(`${highlightText}`, highlightText, marker, {
-          font: "Libre Baskerville, Georgia, serif",
+          font: SERIF,
           size: 22,
           fill: "#1a1510",
           marker: String(markerColor),
           weight: 700,
+          align: "start",
         })}
       </Layout>
       <Txt
@@ -344,81 +354,97 @@ function* markerHighlight(view: any) {
     page().scale(1, t.revealDuration, easeOutCubic),
   );
   yield* pause(t.connectDelay);
-  yield* paintBlend(marker, String(highlightText), 22, t.lineDuration);
+  yield* paintBlend(marker, String(highlightText), 22, t.lineDuration, SERIF, 700);
   yield* waitFor(2);
 }
 
 function* areaHighlight(view: any) {
   const chapter = v("chapter", "Annex B");
-  const pageText = v(
-    "pageText",
-    "Budget line 17 was never explained in the public hearing. The amount appears once — then vanishes.",
+  const pageText = String(
+    v(
+      "pageText",
+      "Budget line 17 was never explained in the public hearing. The amount appears once — then vanishes.",
+    ),
   );
-  const callout = v("callout", "Budget line 17");
+  const callout = String(v("callout", "Budget line 17"));
   const shape = String(v("shape", "circle"));
   const accent = v("accent", "#e63946");
   const bg = v("bg", "#0a0806");
+  const parts = splitPhrase(pageText, callout);
+  const phrase = parts.mid || callout;
+  const size = 20;
 
   view.fill(bg);
   const page = createRef<Rect>();
   const ring = createRef<Rect>();
-  const label = createRef<Txt>();
+  const mark = createRef<Rect>();
 
   yield view.add(
-    <Layout layout={false}>
-      <Rect
-        ref={page}
-        width={420}
-        height={500}
-        fill={"#f7f1e4"}
-        radius={3}
-        shadowColor={"#000000aa"}
-        shadowBlur={40}
-        shadowOffsetY={20}
-        layout
-        direction={"column"}
-        padding={44}
-        scale={0.88}
-        opacity={0}
-      >
+    <Rect
+      ref={page}
+      width={460}
+      height={520}
+      fill={"#f7f1e4"}
+      radius={3}
+      shadowColor={"#000000aa"}
+      shadowBlur={40}
+      shadowOffsetY={20}
+      layout
+      direction={"column"}
+      padding={44}
+      scale={0.88}
+      opacity={0}
+    >
+      <Txt
+        text={chapter}
+        fill={accent}
+        fontFamily={SERIF}
+        fontSize={13}
+        letterSpacing={3}
+      />
+      {parts.before.trim() ? (
         <Txt
-          text={chapter}
-          fill={accent}
-          fontFamily={"Libre Baskerville, Georgia, serif"}
-          fontSize={13}
-          letterSpacing={3}
-        />
-        <Txt
-          text={pageText}
+          text={parts.before.trim()}
           fill={"#1a1510"}
-          fontFamily={"Libre Baskerville, Georgia, serif"}
-          fontSize={20}
+          fontFamily={SERIF}
+          fontSize={size}
           marginTop={28}
           textWrap
-          width={330}
+          width={360}
         />
-      </Rect>
-      <Rect
-        ref={ring}
-        width={shape === "box" ? 220 : 200}
-        height={shape === "box" ? 70 : 90}
-        stroke={accent}
-        lineWidth={0}
-        radius={shape === "box" ? 4 : 100}
-        y={20}
-        opacity={0}
-      />
-      <Txt
-        ref={label}
-        text={callout}
-        fill={accent}
-        fontFamily={"Libre Baskerville, Georgia, serif"}
-        fontSize={14}
-        fontWeight={700}
-        y={110}
-        opacity={0}
-      />
-    </Layout>,
+      ) : (
+        <Rect width={1} height={28} fill={null} />
+      )}
+      <Layout
+        layout
+        direction={"row"}
+        alignItems={"center"}
+        marginTop={parts.before.trim() ? 10 : 0}
+        height={Math.round(size * 1.7)}
+      >
+        {blendPhrase(phrase, phrase, mark, {
+          font: SERIF,
+          size,
+          fill: "#1a1510",
+          weight: 700,
+          align: "start",
+          ring,
+          ringShape: shape === "box" ? "box" : "circle",
+          ringColor: String(accent),
+        })}
+      </Layout>
+      {parts.after.trim() ? (
+        <Txt
+          text={parts.after.trim()}
+          fill={"#1a1510"}
+          fontFamily={SERIF}
+          fontSize={size}
+          marginTop={10}
+          textWrap
+          width={360}
+        />
+      ) : null}
+    </Rect>,
   );
 
   const t = timing();
@@ -428,13 +454,7 @@ function* areaHighlight(view: any) {
     page().scale(1, t.revealDuration, easeOutCubic),
   );
   yield* pause(t.connectDelay);
-  yield* all(
-    ring().opacity(1, t.revealDuration * 0.5),
-    ring().lineWidth(4, t.lineDuration, easeOutCubic),
-    ring().scale(1.05, t.revealDuration, easeOutCubic),
-  );
-  yield* pause(t.stepDelay);
-  yield* label().opacity(1, t.revealDuration);
+  yield* paintRing(ring, t.lineDuration);
   yield* waitFor(2);
 }
 
@@ -664,24 +684,29 @@ function* quotePage(view: any) {
 
 function* textUnderline(view: any) {
   const chapter = v("chapter", "Conclusion");
-  const beforeText = v(
-    "beforeText",
-    "In the end, the archive did not hide the truth —",
+  const beforeText = String(
+    v("beforeText", "In the end, the archive did not hide the truth —"),
   );
-  const underlineText = v("underlineText", "it waited for someone to look");
-  const afterText = v("afterText", ".");
+  const underlineText = String(
+    v("underlineText", "it waited for someone to look"),
+  );
+  const afterText = String(v("afterText", "."));
   const accent = v("accent", "#e63946");
   const bg = v("bg", "#0c0a08");
+  const full = `${beforeText} ${underlineText}${afterText}`.replace(/\s+/g, " ").trim();
+  const size = 24;
+  const fits = measureGlyphs(full, size, SERIF, 400) < 520;
 
   view.fill(bg);
   const page = createRef<Rect>();
   const rule = createRef<Rect>();
+  const mark = createRef<Rect>();
 
   yield view.add(
     <Rect
       ref={page}
-      width={600}
-      height={320}
+      width={640}
+      height={340}
       fill={"#f7f1e4"}
       radius={3}
       shadowColor={"#00000099"}
@@ -695,21 +720,50 @@ function* textUnderline(view: any) {
       <Txt
         text={chapter}
         fill={accent}
-        fontFamily={"Libre Baskerville, Georgia, serif"}
+        fontFamily={SERIF}
         fontSize={13}
         letterSpacing={3}
       />
-      <Layout layout direction={"column"} marginTop={32} gap={6}>
-        <Txt
-          text={`${beforeText} ${underlineText}${afterText}`}
-          fill={"#1a1510"}
-          fontFamily={"Libre Baskerville, Georgia, serif"}
-          fontSize={24}
-          textWrap
-          width={500}
-        />
-        <Rect ref={rule} width={0} height={3} fill={accent} radius={2} />
-      </Layout>
+      {fits ? (
+        <Layout layout direction={"row"} alignItems={"center"} marginTop={32} height={42}>
+          {blendPhrase(full, underlineText, mark, {
+            font: SERIF,
+            size,
+            fill: "#1a1510",
+            weight: 400,
+            align: "start",
+            underline: rule,
+            underlineColor: String(accent),
+          })}
+        </Layout>
+      ) : (
+        <Layout layout direction={"column"} marginTop={28} gap={10} alignItems={"start"}>
+          {beforeText.trim() ? (
+            <Txt
+              text={beforeText.trim()}
+              fill={"#1a1510"}
+              fontFamily={SERIF}
+              fontSize={size}
+              textWrap
+              width={520}
+            />
+          ) : null}
+          <Layout layout direction={"row"} alignItems={"center"} height={42}>
+            {blendPhrase(underlineText, underlineText, mark, {
+              font: SERIF,
+              size,
+              fill: "#1a1510",
+              weight: 400,
+              align: "start",
+              underline: rule,
+              underlineColor: String(accent),
+            })}
+          </Layout>
+          {afterText.trim() ? (
+            <Txt text={afterText.trim()} fill={"#1a1510"} fontFamily={SERIF} fontSize={size} />
+          ) : null}
+        </Layout>
+      )}
     </Rect>,
   );
 
@@ -717,7 +771,7 @@ function* textUnderline(view: any) {
   yield* pause(t.startDelay);
   yield* page().opacity(1, t.revealDuration, easeOutCubic);
   yield* pause(t.connectDelay);
-  yield* rule().width(Math.max(220, underlineText.length * 11), t.lineDuration, easeOutCubic);
+  yield* paintUnderline(rule, underlineText, size, t.lineDuration, SERIF, 400);
   yield* waitFor(2);
 }
 

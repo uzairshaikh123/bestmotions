@@ -11,6 +11,9 @@ public/videos
 .DS_Store
 Thumbs.db
 
+# Local architecture notes (not committed)
+ARCHITECTURE.md
+
 data/
 *.sqlite
 

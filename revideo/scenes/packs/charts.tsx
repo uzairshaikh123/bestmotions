@@ -1,6 +1,11 @@
 /** @jsxImportSource @revideo/2d/lib */
 import { Circle, Layout, Line, Rect, Txt } from "@revideo/2d";
 import {
+  parseDual,
+  parsePairs,
+  palette,
+} from "../../lib/chartData";
+import {
   all,
   createRef,
   easeOutBack,
@@ -13,35 +18,6 @@ import { blendPhrase, paintBlend } from "../../lib/highlight";
 import { itemDelays, pause, timing } from "../../lib/timing";
 
 const SERIF = "Libre Baskerville, Georgia, serif";
-
-type Pair = { label: string; value: number };
-type Dual = { label: string; a: number; b: number };
-
-function parsePairs(raw: string, fallback: string): Pair[] {
-  const text = (raw || fallback).trim();
-  return text
-    .split(/\n/)
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => {
-      const [label = "", value = "0"] = line.split("|").map((s) => s.trim());
-      return { label, value: Number(value) || 0 };
-    })
-    .slice(0, 8);
-}
-
-function parseDual(raw: string, fallback: string): Dual[] {
-  const text = (raw || fallback).trim();
-  return text
-    .split(/\n/)
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => {
-      const [label = "", a = "0", b = "0"] = line.split("|").map((s) => s.trim());
-      return { label, a: Number(a) || 0, b: Number(b) || 0 };
-    })
-    .slice(0, 6);
-}
 
 function fallbackBars() {
   return `2019|42
@@ -63,10 +39,6 @@ function fallbackSeries() {
 2020|48|30
 2021|55|33
 2022|52|36`;
-}
-
-function palette(accent: string) {
-  return [accent, "#5ce1ff", "#7ddea2", "#ff8b7a", "#c089ff", "#f0d35a"];
 }
 
 function* titleTop(view: any, title: string, accent: string) {
@@ -100,7 +72,7 @@ function* verticalBars(view: any) {
     const h = 28 + (rows[i].value / max) * 240;
     const x = startX + i * gap;
     const bar = createRef<Rect>();
-    yield view.add(<Rect ref={bar} width={48} height={0} fill={i % 2 ? accent : "#5ce1ff"} x={x} y={170} radius={4} />);
+    yield view.add(<Rect ref={bar} width={48} height={0} fill={rows[i].color} x={x} y={170} radius={4} />);
     yield view.add(
       <Txt text={rows[i].label} fill={"#9aa8b8"} fontFamily={SERIF} fontSize={13} x={x} y={198} />,
     );
@@ -130,7 +102,7 @@ function* horizontalBars(view: any) {
     yield view.add(
       <Txt text={rows[i].label} fill={"#c5d4de"} fontFamily={SERIF} fontSize={16} x={-420} y={y} />,
     );
-    yield view.add(<Rect ref={bar} width={0} height={28} fill={accent} x={-240} y={y} radius={4} />);
+    yield view.add(<Rect ref={bar} width={0} height={28} fill={rows[i].color} x={-240} y={y} radius={4} />);
     yield* all(bar().width(w, t.lineDuration, easeOutCubic), bar().x(-240 + w / 2, t.lineDuration, easeOutCubic));
     yield* pause(t.connectDelay);
   }
@@ -191,10 +163,15 @@ function* pieChart(view: any, donut: boolean) {
   yield* titleTop(view, title, accent);
 
   const total = rows.reduce((s, r) => s + r.value, 0) || 1;
-  const colors = palette(accent);
+  const colors = palette(accent, rows);
   let angle = -90;
   const extra = itemDelays(rows.length);
-  yield view.add(<Circle size={donut ? 210 : 0} fill={"#07080c"} />);
+  yield view.add(
+    <Circle
+      size={donut ? 210 : 0}
+      fill={str("bgTransparent", "off") === "on" ? null : bg}
+    />,
+  );
   for (let i = 0; i < rows.length; i++) {
     yield* pause(t.stepDelay);
     yield* pause(extra[i]);
@@ -285,8 +262,8 @@ function* groupedBars(view: any) {
     const hb = 24 + (rows[i].b / max) * 220;
     const a = createRef<Rect>();
     const b = createRef<Rect>();
-    yield view.add(<Rect ref={a} width={36} height={0} fill={accent} x={x - 22} y={150} />);
-    yield view.add(<Rect ref={b} width={36} height={0} fill={"#5ce1ff"} x={x + 22} y={150} />);
+    yield view.add(<Rect ref={a} width={36} height={0} fill={rows[i].colorA} x={x - 22} y={150} />);
+    yield view.add(<Rect ref={b} width={36} height={0} fill={rows[i].colorB} x={x + 22} y={150} />);
     yield view.add(
       <Txt text={rows[i].label} fill={"#9aa8b8"} fontFamily={SERIF} fontSize={14} x={x} y={180} />,
     );
@@ -327,8 +304,8 @@ function* stackedBars(view: any) {
     const hb = (rows[i].b / max) * 280;
     const a = createRef<Rect>();
     const b = createRef<Rect>();
-    yield view.add(<Rect ref={a} width={52} height={0} fill={accent} x={x} y={160} />);
-    yield view.add(<Rect ref={b} width={52} height={0} fill={"#5ce1ff"} x={x} y={160} />);
+    yield view.add(<Rect ref={a} width={52} height={0} fill={rows[i].colorA} x={x} y={160} />);
+    yield view.add(<Rect ref={b} width={52} height={0} fill={rows[i].colorB} x={x} y={160} />);
     yield view.add(
       <Txt text={rows[i].label} fill={"#9aa8b8"} fontFamily={SERIF} fontSize={14} x={x} y={190} />,
     );
@@ -423,9 +400,9 @@ function* miniTimeline(view: any) {
   const accent = str("accent", "#d8a11a");
   const bg = str("bg", "#07080c");
   const beats = [
-    { year: str("year1", "2019"), event: str("event1", "Policy draft") },
-    { year: str("year2", "2022"), event: str("event2", "Public backlash") },
-    { year: str("year3", "2025"), event: str("event3", "Reform passed") },
+    { year: str("year1", "2019"), event: str("event1", "Policy draft"), color: str("color1", accent) },
+    { year: str("year2", "2022"), event: str("event2", "Public backlash"), color: str("color2", "#5ce1ff") },
+    { year: str("year3", "2025"), event: str("event3", "Reform passed"), color: str("color3", "#7ddea2") },
   ];
   const t = timing();
   view.fill(bg);
@@ -437,9 +414,9 @@ function* miniTimeline(view: any) {
     yield* pause(t.stepDelay);
     yield* pause(extra[i]);
     const node = createRef<Rect>();
-    yield view.add(<Rect ref={node} width={18} height={18} fill={accent} rotation={45} x={xs[i]} y={20} scale={0} />);
+    yield view.add(<Rect ref={node} width={18} height={18} fill={beats[i].color} rotation={45} x={xs[i]} y={20} scale={0} />);
     yield view.add(
-      <Txt text={beats[i].year} fill={accent} fontFamily={SERIF} fontSize={16} x={xs[i]} y={-40} />,
+      <Txt text={beats[i].year} fill={beats[i].color} fontFamily={SERIF} fontSize={16} x={xs[i]} y={-40} />,
     );
     yield view.add(
       <Txt text={beats[i].event} fill={"#ffffff"} fontFamily={SERIF} fontSize={18} fontWeight={700} x={xs[i]} y={90} width={200} textAlign={"center"} textWrap />,
@@ -448,7 +425,7 @@ function* miniTimeline(view: any) {
     if (i < 2) {
       yield* pause(t.connectDelay);
       const seg = createRef<Rect>();
-      yield view.add(<Rect ref={seg} width={0} height={4} fill={accent} x={xs[i]} y={20} />);
+      yield view.add(<Rect ref={seg} width={0} height={4} fill={beats[i].color} x={xs[i]} y={20} />);
       yield* all(seg().width(300, t.lineDuration, easeOutCubic), seg().x(xs[i] + 150, t.lineDuration, easeOutCubic));
     }
   }

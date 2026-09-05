@@ -21,6 +21,9 @@ export default defineConfig(({ mode }) => {
       "import.meta.env.VITE_FEATURE_VIDEO_SOUND": JSON.stringify(
         env.VITE_FEATURE_VIDEO_SOUND || "false",
       ),
+      "import.meta.env.VITE_FEATURE_BOARD": JSON.stringify(
+        env.VITE_FEATURE_BOARD ?? "",
+      ),
     },
     resolve: {
       alias: {

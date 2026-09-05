@@ -27,10 +27,6 @@ const timingDefaults = {
   sound: "on",
 };
 
-const pairHint = "One per line: Label|Value";
-const dualHint = "One per line: Label|SeriesA|SeriesB";
-const ohlcHint = "One per line: Label|Open|High|Low|Close";
-
 export const CHART_SUBCATEGORIES: { id: string; label: string }[] = [
   { id: "all", label: "All charts" },
   { id: "pie", label: "Pie" },
@@ -38,6 +34,7 @@ export const CHART_SUBCATEGORIES: { id: string; label: string }[] = [
   { id: "dotted", label: "Dotted" },
   { id: "stock", label: "Stock" },
   { id: "revenue", label: "Revenue" },
+  { id: "motion", label: "Motion" },
 ];
 
 function chart(
@@ -75,14 +72,49 @@ function chart(
   };
 }
 
-const pairField: AssetField = { key: "data", label: "Data", type: "textarea", hint: pairHint };
-const dualField: AssetField = { key: "data", label: "Data", type: "textarea", hint: dualHint };
-const ohlcField: AssetField = { key: "data", label: "Data", type: "textarea", hint: ohlcHint };
+const pairField: AssetField = {
+  key: "data",
+  label: "Data",
+  type: "textarea",
+  hint: "Each row is a category, a number, and a color",
+  columns: [
+    { label: "Label" },
+    { label: "Value", kind: "number" },
+    { label: "Color", kind: "color" },
+  ],
+};
+const dualField: AssetField = {
+  key: "data",
+  label: "Data",
+  type: "textarea",
+  hint: "Each row is a period with two series and their colors",
+  columns: [
+    { label: "Label" },
+    { label: "Series A", kind: "number" },
+    { label: "Series B", kind: "number" },
+    { label: "Color A", kind: "color" },
+    { label: "Color B", kind: "color" },
+  ],
+};
+const ohlcField: AssetField = {
+  key: "data",
+  label: "Data",
+  type: "textarea",
+  hint: "Each row is a session plus a candle color",
+  columns: [
+    { label: "Label" },
+    { label: "Open", kind: "number" },
+    { label: "High", kind: "number" },
+    { label: "Low", kind: "number" },
+    { label: "Close", kind: "number" },
+    { label: "Color", kind: "color" },
+  ],
+};
 
-const pairData = "Health|32\nEducation|24\nDefense|18\nOther|26";
-const barData = "2019|42\n2020|55\n2021|61\n2022|48\n2023|70";
-const dualData = "Q1|40|28\nQ2|48|30\nQ3|55|33\nQ4|52|36";
-const ohlcData = "Mon|100|112|96|108\nTue|108|118|104|110\nWed|110|122|101|116\nThu|116|124|108|109\nFri|109|119|102|118";
+const pairData = "Health|32|#d8a11a\nEducation|24|#5ce1ff\nDefense|18|#7ddea2\nOther|26|#ff8b7a";
+const barData = "2019|42|#d8a11a\n2020|55|#5ce1ff\n2021|61|#7ddea2\n2022|48|#ff8b7a\n2023|70|#c089ff";
+const dualData = "Q1|40|28|#d8a11a|#5ce1ff\nQ2|48|30|#d8a11a|#5ce1ff\nQ3|55|33|#d8a11a|#5ce1ff\nQ4|52|36|#d8a11a|#5ce1ff";
+const ohlcData = "Mon|100|112|96|108|#7ddea2\nTue|108|118|104|110|#7ddea2\nWed|110|122|101|116|#7ddea2\nThu|116|124|108|109|#ff8b7a\nFri|109|119|102|118|#7ddea2";
 
 export const CHART_ASSETS: AssetDefinition[] = [
   chart("pie", "d3-pie", "Pie slices", "Classic pie — each slice draws in sequence.", "#d8a11a", [pairField], { data: pairData }),
@@ -135,10 +167,19 @@ export const CHART_ASSETS: AssetDefinition[] = [
   chart("revenue", "chart-rev-funnel", "Revenue funnel", "Stages narrow as they convert.", "#ff9f43", [pairField], { data: "Leads|100\nQualified|62\nWon|28", title: "Pipeline" }),
   chart("revenue", "chart-rev-yoy", "YoY columns", "This year vs last, grouped.", "#5ce1ff", [dualField], { data: dualData, title: "Year on year" }),
   chart("revenue", "chart-rev-mix", "Mix bars", "100% stacked mix by period.", "#c089ff", [dualField], { data: dualData, title: "Revenue mix" }),
-  chart("revenue", "chart-rev-cards", "KPI cards", "Three metric tiles pop in.", "#d8a11a", [{ key: "kpi1", label: "Card 1 label", type: "text" }, { key: "val1", label: "Card 1 value", type: "text" }, { key: "kpi2", label: "Card 2 label", type: "text" }, { key: "val2", label: "Card 2 value", type: "text" }, { key: "kpi3", label: "Card 3 label", type: "text" }, { key: "val3", label: "Card 3 value", type: "text" }], { kpi1: "Revenue", val1: "$128M", kpi2: "Margin", val2: "34%", kpi3: "Growth", val3: "+18%", title: "Scorecard" }),
+  chart("revenue", "chart-rev-cards", "KPI cards", "Three metric tiles pop in.", "#d8a11a", [{ key: "kpi1", label: "Card 1 label", type: "text" }, { key: "val1", label: "Card 1 value", type: "text" }, { key: "color1", label: "Card 1 color", type: "color" }, { key: "kpi2", label: "Card 2 label", type: "text" }, { key: "val2", label: "Card 2 value", type: "text" }, { key: "color2", label: "Card 2 color", type: "color" }, { key: "kpi3", label: "Card 3 label", type: "text" }, { key: "val3", label: "Card 3 value", type: "text" }, { key: "color3", label: "Card 3 color", type: "color" }], { kpi1: "Revenue", val1: "$128M", color1: "#d8a11a", kpi2: "Margin", val2: "34%", color2: "#5ce1ff", kpi3: "Growth", val3: "+18%", color3: "#7ddea2", title: "Scorecard" }),
   chart("revenue", "chart-rev-bullet", "Bullet target", "Actual fill vs a target tick.", "#7ddea2", [{ key: "value", label: "Actual", type: "number" }, { key: "target", label: "Target", type: "number" }], { value: 72, target: 90, title: "Vs target" }),
   chart("revenue", "chart-rev-runrate", "Run-rate", "Columns plus a run-rate line.", "#54a0ff", [pairField], { data: barData, title: "Run rate" }),
   chart("revenue", "chart-rev-treemap", "Treemap blocks", "Blocks sized by share.", "#ff8b7a", [pairField], { data: pairData, title: "Share blocks" }),
+
+  chart("motion", "chart-pie-spin", "Spinning pie", "Slices assemble while the ring eases into place.", "#ff9f43", [pairField], { data: pairData, title: "Spin mix" }),
+  chart("motion", "chart-ring-stack", "Stacked rings", "Concentric arcs fill to each category share.", "#5ce1ff", [pairField], { data: pairData, title: "Layered share" }),
+  chart("motion", "chart-bar-ripple", "Ripple bars", "A wave of glowing columns rises across the frame.", "#c089ff", [pairField], { data: barData, title: "Pulse" }),
+  chart("motion", "chart-bar-mirror", "Mirror bars", "Columns grow with a glass reflection underneath.", "#7ddea2", [pairField], { data: barData, title: "Reflected volume" }),
+  chart("motion", "chart-line-glow", "Glow trail", "A comet draws the trend, then the mountain fills.", "#54a0ff", [pairField], { data: barData, title: "Signal" }),
+  chart("motion", "chart-heat-grid", "Heat grid", "A board of cells lights up by intensity.", "#ff8b7a", [pairField], { data: pairData, title: "Intensity" }),
+  chart("motion", "chart-orbit", "Orbit dots", "Values swing in on arcs and lock to a ring.", "#f0d35a", [pairField], { data: pairData, title: "Orbit" }),
+  chart("motion", "chart-rev-arcs", "Radial bars", "Semicircle tracks fill like a stadium chart.", "#d8a11a", [pairField], { data: pairData, title: "Radial mix" }),
 
   {
     ...base,
@@ -157,6 +198,9 @@ export const CHART_ASSETS: AssetDefinition[] = [
       { key: "event2", label: "Event 2", type: "text" },
       { key: "year3", label: "Year 3", type: "text" },
       { key: "event3", label: "Event 3", type: "text" },
+      { key: "color1", label: "Beat 1 color", type: "color" },
+      { key: "color2", label: "Beat 2 color", type: "color" },
+      { key: "color3", label: "Beat 3 color", type: "color" },
       { key: "accent", label: "Accent", type: "color" },
       { key: "bg", label: "Background", type: "color" },
       ...timingFields,
@@ -168,6 +212,9 @@ export const CHART_ASSETS: AssetDefinition[] = [
       event2: "Public backlash",
       year3: "2025",
       event3: "Reform passed",
+      color1: "#d8a11a",
+      color2: "#5ce1ff",
+      color3: "#7ddea2",
       accent: "#d8a11a",
       bg: "#07080c",
       ...timingDefaults,

@@ -1,6 +1,12 @@
 /** @jsxImportSource @revideo/2d/lib */
 import { Circle, Layout, Line, Rect, Txt } from "@revideo/2d";
 import {
+  parseCandles,
+  parseDual,
+  parsePairs,
+  palette,
+} from "../../lib/chartData";
+import {
   all,
   createRef,
   easeOutBack,
@@ -13,57 +19,6 @@ import { itemDelays, pause, timing } from "../../lib/timing";
 
 const SERIF = "Libre Baskerville, Georgia, serif";
 
-type Pair = { label: string; value: number };
-type Dual = { label: string; a: number; b: number };
-type Candle = { label: string; o: number; h: number; l: number; c: number };
-
-function parsePairs(raw: string, fallback: string): Pair[] {
-  return (raw || fallback)
-    .trim()
-    .split(/\n/)
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => {
-      const [label = "", value = "0"] = line.split("|").map((s) => s.trim());
-      return { label, value: Number(value) || 0 };
-    })
-    .slice(0, 8);
-}
-
-function parseDual(raw: string, fallback: string): Dual[] {
-  return (raw || fallback)
-    .trim()
-    .split(/\n/)
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => {
-      const [label = "", a = "0", b = "0"] = line.split("|").map((s) => s.trim());
-      return { label, a: Number(a) || 0, b: Number(b) || 0 };
-    })
-    .slice(0, 6);
-}
-
-function parseCandles(raw: string, fallback: string): Candle[] {
-  return (raw || fallback)
-    .trim()
-    .split(/\n/)
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => {
-      const [label = "", o = "10", h = "14", l = "8", c = "12"] = line
-        .split("|")
-        .map((s) => s.trim());
-      return {
-        label,
-        o: Number(o) || 0,
-        h: Number(h) || 0,
-        l: Number(l) || 0,
-        c: Number(c) || 0,
-      };
-    })
-    .slice(0, 8);
-}
-
 function bars() {
   return `2019|42\n2020|55\n2021|61\n2022|48\n2023|70`;
 }
@@ -75,9 +30,6 @@ function dual() {
 }
 function ohlc() {
   return `Mon|100|112|96|108\nTue|108|118|104|110\nWed|110|122|101|116\nThu|116|124|108|109\nFri|109|119|102|118`;
-}
-function palette(accent: string) {
-  return [accent, "#5ce1ff", "#7ddea2", "#ff8b7a", "#c089ff", "#f0d35a", "#ff9f43", "#54a0ff"];
 }
 
 function* head(view: any, title: string) {
@@ -103,7 +55,7 @@ function* pieExplode(view: any) {
   yield* pause(t.startDelay);
   yield* head(view, title);
   const total = rows.reduce((s, r) => s + r.value, 0) || 1;
-  const colors = palette(accent);
+  const colors = palette(accent, rows);
   let angle = -90;
   const extra = itemDelays(rows.length);
   for (let i = 0; i < rows.length; i++) {
@@ -142,7 +94,7 @@ function* pieLegend(view: any) {
   yield* pause(t.startDelay);
   yield* head(view, title);
   const total = rows.reduce((s, r) => s + r.value, 0) || 1;
-  const colors = palette(accent);
+  const colors = palette(accent, rows);
   let angle = -90;
   yield view.add(<Layout x={-180} />);
   for (let i = 0; i < rows.length; i++) {
@@ -172,7 +124,7 @@ function* pieHalf(view: any) {
   yield* pause(t.startDelay);
   yield* head(view, title);
   const total = rows.reduce((s, r) => s + r.value, 0) || 1;
-  const colors = palette(accent);
+  const colors = palette(accent, rows);
   let angle = -180;
   for (let i = 0; i < rows.length; i++) {
     const sweep = (rows[i].value / total) * 180;
@@ -195,7 +147,6 @@ function* pieNested(view: any) {
   yield* head(view, title);
   const totA = rows.reduce((s, r) => s + r.a, 0) || 1;
   const totB = rows.reduce((s, r) => s + r.b, 0) || 1;
-  const colors = palette(accent);
   let a = -90;
   let b = -90;
   for (let i = 0; i < rows.length; i++) {
@@ -203,8 +154,8 @@ function* pieNested(view: any) {
     const inner = createRef<Circle>();
     const swA = (rows[i].a / totA) * 360;
     const swB = (rows[i].b / totB) * 360;
-    yield view.add(<Circle ref={outer} size={320} stroke={colors[i % colors.length]} lineWidth={36} fill={null} startAngle={a} endAngle={a} lineCap={"butt"} />);
-    yield view.add(<Circle ref={inner} size={200} stroke={colors[i % colors.length]} lineWidth={28} opacity={0.55} fill={null} startAngle={b} endAngle={b} lineCap={"butt"} />);
+    yield view.add(<Circle ref={outer} size={320} stroke={rows[i].colorA} lineWidth={36} fill={null} startAngle={a} endAngle={a} lineCap={"butt"} />);
+    yield view.add(<Circle ref={inner} size={200} stroke={rows[i].colorB} lineWidth={28} opacity={0.55} fill={null} startAngle={b} endAngle={b} lineCap={"butt"} />);
     yield* all(
       outer().endAngle(a + swA, t.lineDuration, easeOutCubic),
       inner().endAngle(b + swB, t.lineDuration, easeOutCubic),
@@ -242,7 +193,7 @@ function* piePop(view: any) {
   yield* pause(t.startDelay);
   yield* head(view, title);
   const total = rows.reduce((s, r) => s + r.value, 0) || 1;
-  const colors = palette(accent);
+  const colors = palette(accent, rows);
   let angle = -90;
   const extra = itemDelays(rows.length);
   for (let i = 0; i < rows.length; i++) {
@@ -265,7 +216,7 @@ function* pieLabels(view: any) {
   yield* pause(t.startDelay);
   yield* head(view, title);
   const total = rows.reduce((s, r) => s + r.value, 0) || 1;
-  const colors = palette(accent);
+  const colors = palette(accent, rows);
   let angle = -90;
   for (let i = 0; i < rows.length; i++) {
     const sweep = (rows[i].value / total) * 360;
@@ -305,7 +256,7 @@ function* barRace(view: any) {
     const rank = createRef<Txt>();
     yield view.add(<Txt ref={rank} text={`${i + 1}`} fill={accent} fontFamily={SERIF} fontSize={22} fontWeight={700} x={-480} y={y} opacity={0} />);
     yield view.add(<Txt text={rows[i].label} fill={"#c5d4de"} fontFamily={SERIF} fontSize={16} x={-420} y={y} />);
-    yield view.add(<Rect ref={bar} width={0} height={26} fill={accent} x={-240} y={y} radius={13} />);
+    yield view.add(<Rect ref={bar} width={0} height={26} fill={rows[i].color} x={-240} y={y} radius={13} />);
     yield* all(
       rank().opacity(1, t.revealDuration, easeOutCubic),
       bar().width(w, t.lineDuration, easeOutCubic),
@@ -329,8 +280,8 @@ function* barLollipop(view: any) {
     const x = startX + i * gap;
     const stem = createRef<Rect>();
     const headDot = createRef<Circle>();
-    yield view.add(<Rect ref={stem} width={4} height={0} fill={accent} x={x} y={170} />);
-    yield view.add(<Circle ref={headDot} size={0} fill={accent} x={x} y={170} />);
+    yield view.add(<Rect ref={stem} width={4} height={0} fill={rows[i].color} x={x} y={170} />);
+    yield view.add(<Circle ref={headDot} size={0} fill={rows[i].color} x={x} y={170} />);
     yield view.add(<Txt text={rows[i].label} fill={"#9aa8b8"} fontFamily={SERIF} fontSize={13} x={x} y={198} />);
     yield* all(
       stem().height(h, t.lineDuration, easeOutCubic),
@@ -360,7 +311,7 @@ function* barWaterfall(view: any) {
     const up = signed >= 0;
     const yBase = 170 - running * 3.2;
     const bar = createRef<Rect>();
-    yield view.add(<Rect ref={bar} width={42} height={0} fill={up ? accent : "#ff8b7a"} x={x} y={yBase} radius={3} />);
+    yield view.add(<Rect ref={bar} width={42} height={0} fill={rows[i].color} x={x} y={yBase} radius={3} />);
     yield view.add(<Txt text={rows[i].label} fill={"#9aa8b8"} fontFamily={SERIF} fontSize={12} x={x} y={198} />);
     yield* all(bar().height(h, t.lineDuration, easeOutCubic), bar().y(yBase - (up ? h : 0) / (up ? 1 : 1) + (up ? -h / 2 : h / 2), t.lineDuration, easeOutCubic));
     running += signed;
@@ -384,7 +335,7 @@ function* barRounded(view: any) {
     const bar = createRef<Rect>();
     yield view.add(<Txt text={rows[i].label} fill={"#e8f0ea"} fontFamily={SERIF} fontSize={16} x={-460} y={y} />);
     yield view.add(<Rect width={640} height={36} fill={"#141a22"} x={20} y={y} radius={18} />);
-    yield view.add(<Rect ref={bar} width={0} height={36} fill={accent} x={-300} y={y} radius={18} />);
+    yield view.add(<Rect ref={bar} width={0} height={36} fill={rows[i].color} x={-300} y={y} radius={18} />);
     yield* all(bar().width(w, t.lineDuration, easeOutCubic), bar().x(-300 + w / 2, t.lineDuration, easeOutCubic));
   }
   yield* waitFor(1);
@@ -404,8 +355,8 @@ function* barDiverge(view: any) {
     const a = createRef<Rect>();
     const b = createRef<Rect>();
     yield view.add(<Txt text={rows[i].label} fill={"#9aa8b8"} fontFamily={SERIF} fontSize={14} y={y - 28} />);
-    yield view.add(<Rect ref={a} width={0} height={22} fill={accent} x={0} y={y} radius={4} />);
-    yield view.add(<Rect ref={b} width={0} height={22} fill={"#5ce1ff"} x={0} y={y} radius={4} />);
+    yield view.add(<Rect ref={a} width={0} height={22} fill={rows[i].colorA} x={0} y={y} radius={4} />);
+    yield view.add(<Rect ref={b} width={0} height={22} fill={rows[i].colorB} x={0} y={y} radius={4} />);
     yield* all(
       a().width(wA, t.lineDuration, easeOutCubic),
       a().x(-wA / 2, t.lineDuration, easeOutCubic),
@@ -431,7 +382,7 @@ function* barCylinder(view: any) {
     const x = startX + i * gap;
     const body = createRef<Rect>();
     const cap = createRef<Circle>();
-    yield view.add(<Rect ref={body} width={48} height={0} fill={accent} x={x} y={170} />);
+    yield view.add(<Rect ref={body} width={48} height={0} fill={rows[i].color} x={x} y={170} />);
     yield view.add(<Circle ref={cap} width={48} height={16} fill={"#f0d35a"} x={x} y={170} opacity={0} />);
     yield view.add(<Txt text={rows[i].label} fill={"#9aa8b8"} fontFamily={SERIF} fontSize={13} x={x} y={198} />);
     yield* all(
@@ -457,7 +408,7 @@ function* dotScatter(view: any) {
     const x = -300 + i * 140;
     const y = 140 - (rows[i].value / max) * 240;
     const d = createRef<Circle>();
-    yield view.add(<Circle ref={d} size={0} fill={accent} x={x} y={y} />);
+    yield view.add(<Circle ref={d} size={0} fill={rows[i].color} x={x} y={y} />);
     yield view.add(<Txt text={rows[i].label} fill={"#9aa8b8"} fontFamily={SERIF} fontSize={13} x={x} y={188} />);
     yield* d().size(18, t.revealDuration, easeOutBack);
     yield* pause(t.stepDelay);
@@ -471,7 +422,7 @@ function* dotBubble(view: any) {
   yield* pause(t.startDelay);
   yield* head(view, title);
   const max = Math.max(...rows.map((r) => r.value), 1);
-  const colors = palette(accent);
+  const colors = palette(accent, rows);
   const extra = itemDelays(rows.length);
   for (let i = 0; i < rows.length; i++) {
     yield* pause(t.stepDelay);
@@ -500,7 +451,7 @@ function* dotPlot(view: any) {
     yield view.add(<Rect width={560} height={2} fill={"#243044"} x={40} y={y} />);
     const d = createRef<Circle>();
     const x = -240 + (rows[i].value / max) * 520;
-    yield view.add(<Circle ref={d} size={0} fill={accent} x={-240} y={y} />);
+    yield view.add(<Circle ref={d} size={0} fill={rows[i].color} x={-240} y={y} />);
     yield* all(d().size(20, t.revealDuration, easeOutBack), d().x(x, t.lineDuration, easeOutCubic));
     yield* pause(t.stepDelay);
   }
@@ -525,7 +476,7 @@ function* dotConnect(view: any) {
   yield* line().end(1, t.lineDuration, easeOutCubic);
   for (let i = 0; i < pts.length; i++) {
     const d = createRef<Circle>();
-    yield view.add(<Circle ref={d} size={0} fill={accent} x={pts[i][0]} y={pts[i][1]} />);
+    yield view.add(<Circle ref={d} size={0} fill={rows[i].color} x={pts[i][0]} y={pts[i][1]} />);
     yield* d().size(14, t.revealDuration, easeOutBack);
     yield* pause(t.stepDelay);
   }
@@ -577,9 +528,12 @@ function* dotRadar(view: any) {
   const poly = createRef<Line>();
   yield view.add(<Line ref={poly} points={[...pts, pts[0]]} closed fill={accent} opacity={0.22} stroke={accent} lineWidth={3} end={0} />);
   yield* poly().end(1, t.lineDuration, easeOutCubic);
-  for (const p of pts) {
+  for (let i = 0; i < pts.length; i++) {
+    const p = pts[i];
     const d = createRef<Circle>();
-    yield view.add(<Circle ref={d} size={0} fill={accent} x={p[0]} y={p[1]} />);
+    yield view.add(
+      <Circle ref={d} size={0} fill={rows[i]?.color || accent} x={p[0]} y={p[1]} />,
+    );
     yield* d().size(12, t.revealDuration, easeOutBack);
   }
   yield* waitFor(1);
@@ -718,7 +672,7 @@ function* stockVolume(view: any) {
     const x = pts[i][0];
     const h = 16 + (Math.abs(rows[i].c - rows[i].o) / vmax) * 70;
     const bar = createRef<Rect>();
-    yield view.add(<Rect ref={bar} width={28} height={0} fill={rows[i].c >= rows[i].o ? "#7ddea2" : "#ff8b7a"} x={x} y={170} opacity={0.85} />);
+    yield view.add(<Rect ref={bar} width={28} height={0} fill={rows[i].color} x={x} y={170} opacity={0.85} />);
     yield* all(bar().height(h, t.revealDuration, easeOutCubic), bar().y(170 - h / 2, t.revealDuration, easeOutCubic));
   }
   yield* waitFor(1);
@@ -735,10 +689,10 @@ function* stockCompare(view: any) {
   const bPts = rows.map((r, i) => [-w / 2 + (i / Math.max(rows.length - 1, 1)) * w, 140 - (r.b / max) * 240] as [number, number]);
   const a = createRef<Line>();
   const b = createRef<Line>();
-  yield view.add(<Line ref={a} points={aPts} stroke={accent} lineWidth={4} end={0} />);
-  yield view.add(<Line ref={b} points={bPts} stroke={"#5ce1ff"} lineWidth={4} end={0} />);
-  yield view.add(<Txt text={str("seriesA", "AAPL")} fill={accent} fontFamily={SERIF} fontSize={14} x={-340} y={-230} />);
-  yield view.add(<Txt text={str("seriesB", "MSFT")} fill={"#5ce1ff"} fontFamily={SERIF} fontSize={14} x={-240} y={-230} />);
+  yield view.add(<Line ref={a} points={aPts} stroke={rows[0]?.colorA || accent} lineWidth={4} end={0} />);
+  yield view.add(<Line ref={b} points={bPts} stroke={rows[0]?.colorB || "#5ce1ff"} lineWidth={4} end={0} />);
+  yield view.add(<Txt text={str("seriesA", "AAPL")} fill={rows[0]?.colorA || accent} fontFamily={SERIF} fontSize={14} x={-340} y={-230} />);
+  yield view.add(<Txt text={str("seriesB", "MSFT")} fill={rows[0]?.colorB || "#5ce1ff"} fontFamily={SERIF} fontSize={14} x={-240} y={-230} />);
   yield* a().end(1, t.lineDuration, easeOutCubic);
   yield* pause(t.stepDelay);
   yield* b().end(1, t.lineDuration, easeOutCubic);
@@ -874,7 +828,7 @@ function* revFunnel(view: any) {
   const rows = parsePairs(str("data", `Leads|100\nQualified|62\nWon|28`), `Leads|100\nQualified|62\nWon|28`);
   yield* pause(t.startDelay);
   yield* head(view, title);
-  const colors = palette(accent);
+  const colors = palette(accent, rows);
   for (let i = 0; i < rows.length; i++) {
     const w = 640 - i * 120;
     const y = -100 + i * 100;
@@ -902,8 +856,8 @@ function* revYoy(view: any) {
     const hB = 24 + (rows[i].b / max) * 220;
     const a = createRef<Rect>();
     const b = createRef<Rect>();
-    yield view.add(<Rect ref={a} width={28} height={0} fill={accent} x={x - 20} y={170} radius={3} />);
-    yield view.add(<Rect ref={b} width={28} height={0} fill={"#5ce1ff"} x={x + 20} y={170} radius={3} />);
+    yield view.add(<Rect ref={a} width={28} height={0} fill={rows[i].colorA} x={x - 20} y={170} radius={3} />);
+    yield view.add(<Rect ref={b} width={28} height={0} fill={rows[i].colorB} x={x + 20} y={170} radius={3} />);
     yield view.add(<Txt text={rows[i].label} fill={"#9aa8b8"} fontFamily={SERIF} fontSize={14} x={x} y={198} />);
     yield* all(
       a().height(hA, t.lineDuration, easeOutCubic),
@@ -929,8 +883,8 @@ function* revMix(view: any) {
     const a = createRef<Rect>();
     const b = createRef<Rect>();
     yield view.add(<Txt text={rows[i].label} fill={"#9aa8b8"} fontFamily={SERIF} fontSize={14} x={-420} y={y} />);
-    yield view.add(<Rect ref={a} width={0} height={28} fill={accent} x={-240} y={y} />);
-    yield view.add(<Rect ref={b} width={0} height={28} fill={"#5ce1ff"} x={-240} y={y} />);
+    yield view.add(<Rect ref={a} width={0} height={28} fill={rows[i].colorA} x={-240} y={y} />);
+    yield view.add(<Rect ref={b} width={0} height={28} fill={rows[i].colorB} x={-240} y={y} />);
     yield* a().width(wA, t.lineDuration, easeOutCubic);
     yield* all(a().x(-240 + wA / 2, 0.01), b().width(wB, t.lineDuration, easeOutCubic), b().x(-240 + wA + wB / 2, t.lineDuration, easeOutCubic));
     yield* pause(t.stepDelay);
@@ -941,9 +895,9 @@ function* revMix(view: any) {
 function* revCards(view: any) {
   const { title, accent, t } = setup(view);
   const cards = [
-    { k: str("kpi1", "Revenue"), v: str("val1", "$128M") },
-    { k: str("kpi2", "Margin"), v: str("val2", "34%") },
-    { k: str("kpi3", "Growth"), v: str("val3", "+18%") },
+    { k: str("kpi1", "Revenue"), v: str("val1", "$128M"), color: str("color1", accent) },
+    { k: str("kpi2", "Margin"), v: str("val2", "34%"), color: str("color2", "#5ce1ff") },
+    { k: str("kpi3", "Growth"), v: str("val3", "+18%"), color: str("color3", "#7ddea2") },
   ];
   yield* pause(t.startDelay);
   yield* head(view, title);
@@ -951,7 +905,7 @@ function* revCards(view: any) {
     const card = createRef<Rect>();
     yield view.add(
       <Rect ref={card} width={280} height={200} fill={"#121820"} radius={12} x={-300 + i * 300} y={20} scale={0} layout direction={"column"} alignItems={"center"} justifyContent={"center"} gap={12} padding={24}>
-        <Txt text={cards[i].k} fill={accent} fontFamily={SERIF} fontSize={16} letterSpacing={3} />
+        <Txt text={cards[i].k} fill={cards[i].color} fontFamily={SERIF} fontSize={16} letterSpacing={3} />
         <Txt text={cards[i].v} fill={"#ffffff"} fontFamily={SERIF} fontSize={40} fontWeight={700} />
       </Rect>,
     );
@@ -1012,7 +966,7 @@ function* revTreemap(view: any) {
   const rows = parsePairs(str("data", budget()), budget());
   yield* pause(t.startDelay);
   yield* head(view, title);
-  const colors = palette(accent);
+  const colors = palette(accent, rows);
   const total = rows.reduce((s, r) => s + r.value, 0) || 1;
   let x = -360;
   for (let i = 0; i < rows.length; i++) {
@@ -1026,6 +980,340 @@ function* revTreemap(view: any) {
       <Txt text={rows[i].label} fill={"#07080c"} fontFamily={SERIF} fontSize={16} fontWeight={700} x={x + (w - 8) / 2} y={20} />,
     );
     x += w;
+    yield* pause(t.stepDelay);
+  }
+  yield* waitFor(1);
+}
+
+function* pieSpin(view: any) {
+  const { title, accent, t } = setup(view);
+  const rows = parsePairs(str("data", budget()), budget());
+  yield* pause(t.startDelay);
+  yield* head(view, title);
+  const total = rows.reduce((s, r) => s + r.value, 0) || 1;
+  const colors = palette(accent, rows);
+  const wrap = createRef<Layout>();
+  yield view.add(<Layout ref={wrap} layout={false} y={24} rotation={-28} />);
+  let angle = -90;
+  const extra = itemDelays(rows.length);
+  for (let i = 0; i < rows.length; i++) {
+    yield* pause(extra[i]);
+    const sweep = (rows[i].value / total) * 360;
+    const mid = ((angle + sweep / 2) * Math.PI) / 180;
+    const slice = createRef<Circle>();
+    yield wrap().add(
+      <Circle
+        ref={slice}
+        size={40}
+        stroke={colors[i % colors.length]}
+        lineWidth={18}
+        fill={null}
+        startAngle={angle}
+        endAngle={angle}
+        lineCap={"butt"}
+      />,
+    );
+    yield* all(
+      slice().endAngle(angle + sweep, t.lineDuration, easeOutCubic),
+      slice().size(280, t.lineDuration, easeOutCubic),
+      slice().lineWidth(128, t.lineDuration, easeOutCubic),
+    );
+    yield wrap().add(
+      <Txt
+        text={rows[i].label}
+        fill={"#e8f0ea"}
+        fontFamily={SERIF}
+        fontSize={14}
+        x={Math.cos(mid) * 210}
+        y={Math.sin(mid) * 210}
+      />,
+    );
+    angle += sweep;
+    yield* pause(t.stepDelay);
+  }
+  yield* wrap().rotation(0, t.revealDuration * 1.4, easeOutCubic);
+  yield* waitFor(1);
+}
+
+function* ringStack(view: any) {
+  const { title, accent, t } = setup(view);
+  const rows = parsePairs(str("data", budget()), budget());
+  yield* pause(t.startDelay);
+  yield* head(view, title);
+  const max = Math.max(...rows.map((r) => r.value), 1);
+  const colors = palette(accent, rows);
+  for (let i = 0; i < rows.length; i++) {
+    const size = 320 - i * 48;
+    const track = createRef<Circle>();
+    const fill = createRef<Circle>();
+    const label = createRef<Txt>();
+    yield view.add(<Circle ref={track} size={size} stroke={"#243044"} lineWidth={14} fill={null} y={20} />);
+    yield view.add(
+      <Circle
+        ref={fill}
+        size={size}
+        stroke={colors[i % colors.length]}
+        lineWidth={14}
+        fill={null}
+        startAngle={-90}
+        endAngle={-90}
+        lineCap={"round"}
+        y={20}
+      />,
+    );
+    yield view.add(
+      <Txt
+        ref={label}
+        text={`${rows[i].label}  ${rows[i].value}`}
+        fill={"#e8f0ea"}
+        fontFamily={SERIF}
+        fontSize={15}
+        x={210}
+        y={-90 + i * 42}
+        opacity={0}
+      />,
+    );
+    yield* all(
+      fill().endAngle(-90 + (rows[i].value / max) * 360, t.lineDuration, easeOutCubic),
+      label().opacity(1, t.revealDuration, easeOutCubic),
+    );
+    yield* pause(t.stepDelay);
+  }
+  yield* waitFor(1);
+}
+
+function* barRipple(view: any) {
+  const { title, accent, t } = setup(view);
+  const rows = parsePairs(str("data", bars()), bars());
+  yield* pause(t.startDelay);
+  yield* head(view, title);
+  const max = Math.max(...rows.map((r) => r.value), 1);
+  const gap = 92;
+  const startX = -((rows.length - 1) * gap) / 2;
+  const colors = palette(accent, rows);
+  yield view.add(<Rect width={720} height={2} fill={"#243044"} y={170} />);
+  const extra = itemDelays(rows.length);
+  for (let i = 0; i < rows.length; i++) {
+    yield* pause(extra[i]);
+    const h = 36 + (rows[i].value / max) * 220;
+    const x = startX + i * gap;
+    const glow = createRef<Rect>();
+    const bar = createRef<Rect>();
+    yield view.add(
+      <Rect ref={glow} width={28} height={0} fill={colors[i % colors.length]} x={x} y={170} radius={8} opacity={0.22} />,
+    );
+    yield view.add(
+      <Rect ref={bar} width={22} height={0} fill={colors[i % colors.length]} x={x} y={170} radius={7} />,
+    );
+    yield* all(
+      bar().height(h, t.lineDuration, easeOutBack),
+      bar().y(170 - h / 2, t.lineDuration, easeOutBack),
+      glow().height(h + 28, t.lineDuration, easeOutCubic),
+      glow().y(170 - (h + 28) / 2, t.lineDuration, easeOutCubic),
+    );
+    yield view.add(
+      <Txt text={rows[i].label} fill={"#9aa8b8"} fontFamily={SERIF} fontSize={13} x={x} y={198} />,
+    );
+    yield* pause(t.stepDelay);
+  }
+  yield* waitFor(1);
+}
+
+function* barMirror(view: any) {
+  const { title, accent, t } = setup(view);
+  const rows = parsePairs(str("data", bars()), bars());
+  yield* pause(t.startDelay);
+  yield* head(view, title);
+  const max = Math.max(...rows.map((r) => r.value), 1);
+  const gap = 96;
+  const startX = -((rows.length - 1) * gap) / 2;
+  const colors = palette(accent, rows);
+  yield view.add(<Rect width={740} height={2} fill={"#2a3a48"} y={40} />);
+  for (let i = 0; i < rows.length; i++) {
+    const h = 28 + (rows[i].value / max) * 170;
+    const x = startX + i * gap;
+    const up = createRef<Rect>();
+    const down = createRef<Rect>();
+    yield view.add(<Rect ref={up} width={38} height={0} fill={colors[i % colors.length]} x={x} y={40} radius={[8, 8, 2, 2]} />);
+    yield view.add(
+      <Rect ref={down} width={38} height={0} fill={colors[i % colors.length]} x={x} y={40} radius={[2, 2, 8, 8]} opacity={0.28} />,
+    );
+    yield* all(
+      up().height(h, t.lineDuration, easeOutCubic),
+      up().y(40 - h / 2, t.lineDuration, easeOutCubic),
+      down().height(h * 0.55, t.lineDuration, easeOutCubic),
+      down().y(40 + (h * 0.55) / 2, t.lineDuration, easeOutCubic),
+    );
+    yield view.add(
+      <Txt text={rows[i].label} fill={"#c5d4de"} fontFamily={SERIF} fontSize={13} x={x} y={-160} />,
+    );
+    yield* pause(t.stepDelay);
+  }
+  yield* waitFor(1);
+}
+
+function* lineGlow(view: any) {
+  const { title, accent, t } = setup(view);
+  const rows = parsePairs(str("data", bars()), bars());
+  yield* pause(t.startDelay);
+  yield* head(view, title);
+  const max = Math.max(...rows.map((r) => r.value), 1);
+  const gap = 140;
+  const startX = -((rows.length - 1) * gap) / 2;
+  const pts: [number, number][] = rows.map((row, i) => [
+    startX + i * gap,
+    150 - (row.value / max) * 220,
+  ]);
+  const areaPts: [number, number][] = [...pts, [pts[pts.length - 1][0], 170], [pts[0][0], 170]];
+  yield view.add(<Rect width={760} height={2} fill={"#243044"} y={170} />);
+  const fill = createRef<Line>();
+  const line = createRef<Line>();
+  const comet = createRef<Circle>();
+  yield view.add(
+    <Line ref={fill} points={areaPts} fill={accent} opacity={0} closed />,
+  );
+  yield view.add(<Line ref={line} points={pts} stroke={accent} lineWidth={5} end={0} />);
+  yield view.add(<Circle ref={comet} size={18} fill={"#ffffff"} x={pts[0][0]} y={pts[0][1]} opacity={0} />);
+  comet().opacity(1);
+  yield* line().end(1, t.lineDuration * 1.6, easeOutCubic);
+  for (let i = 1; i < pts.length; i++) {
+    yield* all(comet().x(pts[i][0], t.stepDelay + 0.08), comet().y(pts[i][1], t.stepDelay + 0.08));
+  }
+  yield* fill().opacity(0.22, t.revealDuration, easeOutCubic);
+  for (let i = 0; i < rows.length; i++) {
+    yield view.add(
+      <Txt text={rows[i].label} fill={"#9aa8b8"} fontFamily={SERIF} fontSize={14} x={pts[i][0]} y={198} />,
+    );
+  }
+  yield* waitFor(1);
+}
+
+function* heatGrid(view: any) {
+  const { title, accent, t } = setup(view);
+  const rows = parsePairs(str("data", budget()), budget());
+  yield* pause(t.startDelay);
+  yield* head(view, title);
+  const max = Math.max(...rows.map((r) => r.value), 1);
+  const cols = Math.min(4, rows.length);
+  const cell = 118;
+  const startX = -((cols - 1) * (cell + 16)) / 2;
+  const extra = itemDelays(rows.length);
+  for (let i = 0; i < rows.length; i++) {
+    yield* pause(extra[i]);
+    const c = i % cols;
+    const r = Math.floor(i / cols);
+    const strength = rows[i].value / max;
+    const box = createRef<Rect>();
+    yield view.add(
+      <Rect
+        ref={box}
+        width={cell}
+        height={cell}
+        fill={rows[i].color}
+        x={startX + c * (cell + 16)}
+        y={-40 + r * (cell + 16)}
+        radius={14}
+        opacity={0}
+        scale={0.7}
+      />,
+    );
+    yield* all(
+      box().opacity(0.22 + strength * 0.78, t.revealDuration, easeOutCubic),
+      box().scale(1, t.revealDuration, easeOutBack),
+    );
+    yield view.add(
+      <Txt
+        text={rows[i].label}
+        fill={"#07080c"}
+        fontFamily={SERIF}
+        fontSize={16}
+        fontWeight={700}
+        x={startX + c * (cell + 16)}
+        y={-40 + r * (cell + 16)}
+      />,
+    );
+    yield* pause(t.stepDelay);
+  }
+  yield* waitFor(1);
+}
+
+function* orbitDots(view: any) {
+  const { title, accent, t } = setup(view);
+  const rows = parsePairs(str("data", budget()), budget());
+  yield* pause(t.startDelay);
+  yield* head(view, title);
+  const colors = palette(accent, rows);
+  yield view.add(<Circle size={280} stroke={"#243044"} lineWidth={2} fill={null} y={20} />);
+  const extra = itemDelays(rows.length);
+  for (let i = 0; i < rows.length; i++) {
+    yield* pause(extra[i]);
+    const ang = (-90 + (i / rows.length) * 360) * (Math.PI / 180);
+    const x = Math.cos(ang) * 140;
+    const y = 20 + Math.sin(ang) * 140;
+    const dot = createRef<Circle>();
+    const label = createRef<Txt>();
+    yield view.add(<Circle ref={dot} size={18} fill={colors[i % colors.length]} x={0} y={20} scale={0} />);
+    yield view.add(
+      <Txt
+        ref={label}
+        text={`${rows[i].label} ${rows[i].value}`}
+        fill={"#e8f0ea"}
+        fontFamily={SERIF}
+        fontSize={15}
+        x={Math.cos(ang) * 210}
+        y={20 + Math.sin(ang) * 210}
+        opacity={0}
+      />,
+    );
+    yield* all(
+      dot().scale(1, t.revealDuration, easeOutBack),
+      dot().x(x, t.lineDuration, easeOutCubic),
+      dot().y(y, t.lineDuration, easeOutCubic),
+      label().opacity(1, t.revealDuration, easeOutCubic),
+    );
+    yield* pause(t.stepDelay);
+  }
+  yield* waitFor(1);
+}
+
+function* revArcs(view: any) {
+  const { title, accent, t } = setup(view);
+  const rows = parsePairs(str("data", budget()), budget());
+  yield* pause(t.startDelay);
+  yield* head(view, title);
+  const max = Math.max(...rows.map((r) => r.value), 1);
+  const colors = palette(accent, rows);
+  for (let i = 0; i < rows.length; i++) {
+    const size = 420 - i * 52;
+    const track = createRef<Circle>();
+    const fill = createRef<Circle>();
+    yield view.add(
+      <Circle ref={track} size={size} stroke={"#243044"} lineWidth={18} fill={null} startAngle={-180} endAngle={0} y={90} lineCap={"round"} />,
+    );
+    yield view.add(
+      <Circle
+        ref={fill}
+        size={size}
+        stroke={colors[i % colors.length]}
+        lineWidth={18}
+        fill={null}
+        startAngle={-180}
+        endAngle={-180}
+        y={90}
+        lineCap={"round"}
+      />,
+    );
+    yield* fill().endAngle(-180 + (rows[i].value / max) * 180, t.lineDuration, easeOutCubic);
+    yield view.add(
+      <Txt
+        text={rows[i].label}
+        fill={"#e8f0ea"}
+        fontFamily={SERIF}
+        fontSize={14}
+        x={-240}
+        y={90 - size / 2 + 8}
+      />,
+    );
     yield* pause(t.stepDelay);
   }
   yield* waitFor(1);
@@ -1071,6 +1359,14 @@ const MAP: Record<string, (view: any) => any> = {
   "chart-rev-bullet": revBullet,
   "chart-rev-runrate": revRunrate,
   "chart-rev-treemap": revTreemap,
+  "chart-pie-spin": pieSpin,
+  "chart-ring-stack": ringStack,
+  "chart-bar-ripple": barRipple,
+  "chart-bar-mirror": barMirror,
+  "chart-line-glow": lineGlow,
+  "chart-heat-grid": heatGrid,
+  "chart-orbit": orbitDots,
+  "chart-rev-arcs": revArcs,
 };
 
 export function* runChartVariant(view: any, template: string) {
