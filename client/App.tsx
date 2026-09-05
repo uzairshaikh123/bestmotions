@@ -80,8 +80,17 @@ export function App() {
     function onKey(event: KeyboardEvent) {
       if (event.key === "Escape") setMenuOpen(false);
     }
+    function onResize() {
+      if (window.matchMedia("(min-width: 961px)").matches) {
+        setMenuOpen(false);
+      }
+    }
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("resize", onResize);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("resize", onResize);
+    };
   }, [menuOpen]);
 
   function showToast(message: string) {
@@ -212,6 +221,42 @@ export function App() {
             <strong>BestMotions</strong>
           </span>
         </button>
+
+        <nav className="studio-nav-links" aria-label="Main">
+          <button
+            type="button"
+            className={assetsOn ? "nav-link on" : "nav-link"}
+            onClick={goAssets}
+          >
+            Assets
+          </button>
+          <button
+            type="button"
+            className={savedOn ? "nav-link on" : "nav-link"}
+            onClick={goSaved}
+          >
+            Saved
+            {savedIds.length > 0 ? <em className="nav-count">{savedIds.length}</em> : null}
+          </button>
+          <button
+            type="button"
+            className={tab === "board" ? "nav-link on" : "nav-link"}
+            onClick={() => (boardEnabled ? goBoard() : goSoon("board"))}
+          >
+            Magic Board
+            {boardEnabled ? null : (
+              <span className="nav-soon">Coming soon</span>
+            )}
+          </button>
+          <button
+            type="button"
+            className={tab === "prompt" ? "nav-link on" : "nav-link"}
+            onClick={() => goSoon("prompt")}
+          >
+            AI
+            <span className="nav-soon">Coming soon</span>
+          </button>
+        </nav>
 
         <div className="studio-nav-actions">
           {(assetsOn || savedOn) && selectedAsset ? (
