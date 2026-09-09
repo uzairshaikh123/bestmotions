@@ -23,10 +23,17 @@ import {
   formatById,
   formatOrientation,
 } from "./videoFormats";
+import {
+  AI_COMPOSE_ASSET_ID,
+  estimateComposeSeconds,
+  parseComposeJson,
+} from "../../shared/ai/compose";
 
 type Props = {
   asset: AssetDefinition;
   onBack: () => void;
+  /** Seed field values (e.g. from AI MotionPlan). Merged over defaults. */
+  initialProps?: Record<string, string | number> | null;
 };
 
 type ExportPhase = "idle" | "rendering" | "downloading" | "done";
@@ -77,12 +84,13 @@ function waitForPreview(
   });
 }
 
-export function AssetEditor({ asset, onBack }: Props) {
+export function AssetEditor({ asset, onBack, initialProps = null }: Props) {
   const flags = useFeatureFlags();
   const [props, setProps] = useState<Record<string, string | number>>(() => ({
     bgTransparent: "off",
     frameFormat: defaultFormatId(asset.category),
     ...asset.defaults,
+    ...(initialProps ?? {}),
   }));
   const previewRef = useRef<RevideoPreviewHandle>(null);
   const [phase, setPhase] = useState<ExportPhase>("idle");
@@ -147,20 +155,20 @@ export function AssetEditor({ asset, onBack }: Props) {
 
   useEffect(() => {
     const frameFormat = defaultFormatId(asset.category);
+    const merged = {
+      bgTransparent: "off" as const,
+      frameFormat,
+      ...asset.defaults,
+      ...(initialProps ?? {}),
+    };
     const next = withFeatureFlagVariables(
       {
         template: asset.template,
-        bgTransparent: "off",
-        frameFormat,
-        ...asset.defaults,
+        ...merged,
       },
       flags,
     );
-    setProps({
-      bgTransparent: "off",
-      frameFormat,
-      ...asset.defaults,
-    });
+    setProps(merged);
     setPreviewVariables(next);
     if (videoUrlRef.current) URL.revokeObjectURL(videoUrlRef.current);
     videoUrlRef.current = null;
@@ -168,7 +176,7 @@ export function AssetEditor({ asset, onBack }: Props) {
     setExportedKey(null);
     setExportError(null);
     setPhase("idle");
-  }, [asset.id, flags.videoSound]);
+  }, [asset.id, flags.videoSound, initialProps]);
 
   useEffect(() => {
     const t = window.setTimeout(() => setPreviewVariables(variables), 180);
@@ -179,6 +187,22 @@ export function AssetEditor({ asset, onBack }: Props) {
     () => settingsKey(asset.id, props),
     [asset.id, props],
   );
+
+  const estimatedDuration = useMemo(() => {
+    if (asset.id === AI_COMPOSE_ASSET_ID || asset.template === "ai-compose") {
+      return estimateComposeSeconds(parseComposeJson(props.composeJson));
+    }
+    return asset.durationInFrames / Math.max(asset.fps, 1);
+  }, [asset, props.composeJson]);
+
+  const previewInstanceKey = useMemo(() => {
+    const json = String(props.composeJson || "");
+    let hash = 0;
+    for (let i = 0; i < json.length; i++) {
+      hash = (hash * 31 + json.charCodeAt(i)) | 0;
+    }
+    return `editor-${asset.id}-${formatById(props.frameFormat ?? defaultFormatId(asset.category)).id}-${hash}`;
+  }, [asset.id, asset.category, props.composeJson, props.frameFormat]);
 
   const [exportedExt, setExportedExt] = useState<"mp4" | "webm">("mp4");
   const transparentBg = String(props.bgTransparent ?? "off") === "on";
@@ -452,14 +476,14 @@ export function AssetEditor({ asset, onBack }: Props) {
           >
             <RevideoPreview
               ref={previewRef}
-              instanceKey={`editor-${asset.id}-${format.id}`}
+              instanceKey={previewInstanceKey}
               variables={previewVariables}
               playing={false}
               controls
               quality={1}
               width={format.width}
               height={format.height}
-              estimatedDuration={asset.durationInFrames / Math.max(asset.fps, 1)}
+              estimatedDuration={estimatedDuration}
             />
           </div>
         </div>

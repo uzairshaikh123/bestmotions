@@ -9,6 +9,8 @@ import {
   setFlagEnabled,
 } from "./featureFlags.js";
 import { registerBoardRoutes } from "./boards.js";
+import { registerMapImageRoute } from "./mapImage.js";
+import { registerAiRoutes } from "./ai/routes.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -25,6 +27,8 @@ app.use(express.json({ limit: "20mb" }));
 app.use("/videos", express.static(path.join(rootDir, "public", "videos")));
 
 registerBoardRoutes(app, rootDir);
+registerMapImageRoute(app);
+registerAiRoutes(app);
 
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true });

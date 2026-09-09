@@ -10,7 +10,7 @@ import {
 import type { AssetDefinition } from "./types";
 
 const MAX_THUMBS = 64;
-const STORAGE_KEY = "bm-asset-thumbs-v3";
+const STORAGE_KEY = "bm-asset-thumbs-v4";
 const thumbCache = new Map<string, string>();
 /** Prefer later frames so entrance animations and clock hands are visible. */
 const CAPTURE_RATIOS = [0.72, 0.88, 0.55, 0.4, 0.25];
@@ -79,14 +79,29 @@ function sleep(ms: number) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
+function isHeavyMap(asset: AssetDefinition) {
+  return (
+    asset.category === "maps" ||
+    asset.category === "3d" ||
+    asset.template.startsWith("real-") ||
+    asset.template.includes("globe") ||
+    asset.template.includes("map") ||
+    asset.template.includes("airplane") ||
+    asset.template.includes("country") ||
+    asset.template.includes("zoom-location")
+  );
+}
+
 function variablesFor(
   asset: AssetDefinition,
   flags: ReturnType<typeof useFeatureFlags>,
+  opts?: { lite?: boolean },
 ) {
   return withFeatureFlagVariables(
     {
       template: asset.template,
       ...asset.defaults,
+      ...(opts?.lite ? { litePreview: "on", sound: "off" } : {}),
     },
     flags,
   );
@@ -124,7 +139,7 @@ function captureFrame(handle: RevideoPreviewHandle) {
   if (!canvas || canvas.width < 8 || canvas.height < 8) return null;
   if (!isUsefulFrame(canvas)) return null;
   try {
-    return canvas.toDataURL("image/jpeg", 0.78);
+    return canvas.toDataURL("image/jpeg", 0.72);
   } catch {
     return null;
   }
@@ -143,11 +158,16 @@ export function AssetThumb({ asset, playing, instanceKey }: Props) {
   const [inView, setInView] = useState(false);
   const [still, setStill] = useState(() => thumbCache.get(asset.id) || "");
   const [capturing, setCapturing] = useState(false);
+  const [hoverLoading, setHoverLoading] = useState(false);
+  const heavy = isHeavyMap(asset);
   const estimatedDuration = Math.max(
     0.8,
     asset.durationInFrames / Math.max(asset.fps, 1),
   );
   const title = String(asset.defaults.title || asset.name);
+  const previewW = heavy ? 480 : 640;
+  const previewH = heavy ? 270 : 360;
+  const previewQ = heavy ? 0.4 : 0.55;
 
   useEffect(() => {
     const el = rootRef.current;
@@ -181,10 +201,10 @@ export function AssetThumb({ asset, playing, instanceKey }: Props) {
       if (cancelled) return;
       setCapturing(true);
 
-      // Let the capture player mount, then wait for Revideo readiness.
-      await sleep(40);
+      await sleep(heavy ? 20 : 40);
       const started = Date.now();
-      while (!cancelled && Date.now() - started < 14_000) {
+      const budget = heavy ? 10_000 : 14_000;
+      while (!cancelled && Date.now() - started < budget) {
         const handle = previewRef.current;
         if (handle?.isReady()) {
           const duration = Math.max(handle.getDuration(), estimatedDuration);
@@ -192,7 +212,7 @@ export function AssetThumb({ asset, playing, instanceKey }: Props) {
             if (cancelled) return;
             handle.pause();
             handle.seek(duration * ratio);
-            await sleep(220);
+            await sleep(heavy ? 140 : 220);
             const data = captureFrame(handle);
             if (data && data.length > 900) {
               rememberThumb(asset.id, data);
@@ -200,13 +220,12 @@ export function AssetThumb({ asset, playing, instanceKey }: Props) {
               return;
             }
           }
-          // Last resort: accept whatever frame is there so the card isn't empty forever.
           handle.seek(duration * 0.45);
-          await sleep(160);
+          await sleep(120);
           const canvas = handle.getCanvas();
           if (canvas && canvas.width > 8) {
             try {
-              const fallback = canvas.toDataURL("image/jpeg", 0.78);
+              const fallback = canvas.toDataURL("image/jpeg", 0.72);
               if (fallback.length > 900) {
                 rememberThumb(asset.id, fallback);
                 if (!cancelled) setStill(fallback);
@@ -217,7 +236,7 @@ export function AssetThumb({ asset, playing, instanceKey }: Props) {
             }
           }
         }
-        await sleep(120);
+        await sleep(100);
       }
     })().finally(() => {
       if (!cancelled) setCapturing(false);
@@ -227,9 +246,34 @@ export function AssetThumb({ asset, playing, instanceKey }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [asset.id, estimatedDuration, inView, still]);
+  }, [asset.id, estimatedDuration, heavy, inView, still]);
+
+  useEffect(() => {
+    if (!playing) {
+      setHoverLoading(false);
+      return;
+    }
+    setHoverLoading(true);
+    let cancelled = false;
+    let tries = 0;
+    const tick = () => {
+      if (cancelled) return;
+      tries += 1;
+      if (previewRef.current?.isReady() || tries > 80) {
+        setHoverLoading(false);
+        return;
+      }
+      window.setTimeout(tick, 120);
+    };
+    window.setTimeout(tick, 80);
+    return () => {
+      cancelled = true;
+    };
+  }, [playing, instanceKey, asset.id]);
 
   const showPlayer = playing || (capturing && !still);
+  const showLoading =
+    (playing && hoverLoading) || (capturing && !still) || (playing && heavy && hoverLoading);
 
   return (
     <div
@@ -253,16 +297,24 @@ export function AssetThumb({ asset, playing, instanceKey }: Props) {
         >
           <RevideoPreview
             ref={previewRef}
-            instanceKey={instanceKey}
-            variables={variablesFor(asset, flags)}
+            instanceKey={`${instanceKey}-${heavy ? "lite" : "std"}`}
+            variables={variablesFor(asset, flags, {
+              lite: heavy && (playing || capturing),
+            })}
             playing={playing}
             muted
             controls={false}
-            quality={0.55}
-            width={640}
-            height={360}
+            quality={previewQ}
+            width={previewW}
+            height={previewH}
             estimatedDuration={estimatedDuration}
           />
+        </div>
+      ) : null}
+      {showLoading ? (
+        <div className="asset-thumb-loading" role="status" aria-live="polite">
+          <span className="asset-thumb-spinner" aria-hidden />
+          <span>{playing ? "Loading preview…" : "Preparing thumbnail…"}</span>
         </div>
       ) : null}
     </div>

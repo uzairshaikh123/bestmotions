@@ -1,5 +1,8 @@
 import { CHART_ASSETS, CHART_SUBCATEGORIES } from "./chartCatalog";
 import { DOCUMENTARY_ASSETS } from "./documentaryCatalog";
+import { NEWS_3D_ASSETS } from "./news3dCatalog";
+import { REAL_MAP_ASSETS } from "./realMapCatalog";
+import { AI_COMPOSE_ASSET } from "./aiComposeAsset";
 import type { AssetDefinition, AssetField } from "./types";
 
 const PLACE_OPTIONS = [
@@ -791,6 +794,7 @@ const ALL_ASSETS: AssetDefinition[] = [
       { key: "body", label: "Body copy", type: "textarea" },
       { key: "accent", label: "Marker color", type: "color" },
       { key: "ink", label: "Ink color", type: "color" },
+      { key: "paperColor", label: "Newspaper color", type: "color" },
       { key: "rotation", label: "Tilt (degrees)", type: "number" },
       ...timingFields,
     ],
@@ -802,6 +806,7 @@ const ALL_ASSETS: AssetDefinition[] = [
       "body": "In a landmark development, leaders gathered as history turned a new page. Analysts say the decision will reshape the decade ahead.",
       "accent": "#f5d76e",
       "ink": "#1a1510",
+      "paperColor": "#f2e8d4",
       "rotation": -4,
       ...timingDefaults,
     },
@@ -3393,6 +3398,9 @@ const ALL_ASSETS: AssetDefinition[] = [
     },
   },
   ...DOCUMENTARY_ASSETS,
+  ...REAL_MAP_ASSETS,
+  ...NEWS_3D_ASSETS,
+  AI_COMPOSE_ASSET,
 ];
 
 export const ASSETS: AssetDefinition[] = ALL_ASSETS.filter(

@@ -10,6 +10,11 @@ import { apiUrl } from "./backend";
 export type FeatureFlags = {
   /** When false, Sound field is hidden and playback/export force sound off. */
   videoSound: boolean;
+  /**
+   * Prompt-to-video AI. Comes from server FEATURE_AI via /api/feature-flags.
+   * false/unset = Coming soon for everyone; true = real AI tab.
+   */
+  ai: boolean;
 };
 
 function envBool(raw: unknown): boolean | null {
@@ -27,11 +32,13 @@ function readViteVideoSound(): boolean | null {
   return envBool(import.meta.env.VITE_FEATURE_VIDEO_SOUND);
 }
 
-const viteOverride = readViteVideoSound();
+const viteSoundOverride = readViteVideoSound();
 
 const DEFAULT_FLAGS: FeatureFlags = {
   // Off until VITE_FEATURE_VIDEO_SOUND (or the API) turns it on.
-  videoSound: viteOverride ?? false,
+  videoSound: viteSoundOverride ?? false,
+  // Off until FEATURE_AI=true on the server (fetched below).
+  ai: false,
 };
 
 const FeatureFlagsContext = createContext<FeatureFlags>(DEFAULT_FLAGS);
@@ -40,12 +47,6 @@ export function FeatureFlagsProvider({ children }: { children: ReactNode }) {
   const [flags, setFlags] = useState<FeatureFlags>(DEFAULT_FLAGS);
 
   useEffect(() => {
-    // Explicit frontend env wins over the API so local VITE_ toggles are reliable.
-    if (viteOverride !== null) {
-      setFlags({ videoSound: viteOverride });
-      return;
-    }
-
     let cancelled = false;
     async function load() {
       try {
@@ -54,10 +55,14 @@ export function FeatureFlagsProvider({ children }: { children: ReactNode }) {
         const data = (await res.json()) as Partial<FeatureFlags>;
         if (cancelled) return;
         setFlags({
-          videoSound: Boolean(data.videoSound),
+          videoSound:
+            viteSoundOverride !== null
+              ? viteSoundOverride
+              : Boolean(data.videoSound),
+          ai: Boolean(data.ai),
         });
       } catch {
-        /* keep defaults (sound off) if backend is down */
+        /* keep defaults if backend is down */
       }
     }
     void load();

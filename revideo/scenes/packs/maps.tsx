@@ -139,7 +139,10 @@ function* tweenGlobe(
   accent: string,
   highlightIso?: string,
 ) {
-  const steps = Math.max(12, Math.round(duration * 28));
+  const lite =
+    String(str("litePreview", "off")).toLowerCase() === "on" ||
+    String(str("litePreview", "off")).toLowerCase() === "true";
+  const steps = Math.max(lite ? 5 : 12, Math.round(duration * (lite ? 10 : 28)));
   const dt = duration / steps;
   for (let i = 1; i <= steps; i++) {
     const cam = mixCam(from, to, easeOut3(i / steps));

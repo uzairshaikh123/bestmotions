@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { PromptStudio } from "./ai/PromptStudio";
 import { AssetEditor } from "./assets/AssetEditor";
 import { AssetGallery } from "./assets/AssetGallery";
 import { getAssetById } from "./assets/catalog";
@@ -10,13 +11,14 @@ import {
 import type { AssetDefinition } from "./assets/types";
 import { BoardApp } from "./board/BoardApp";
 import { BrandLogo } from "./BrandLogo";
-import { isBoardEnabled } from "./featureFlags";
+import { isBoardEnabled, useFeatureFlags } from "./featureFlags";
 import { readAppUrl, writeAppUrl, type AppTab, type AssetSort } from "./urlState";
 
 type ToastState = { message: string; id: number } | null;
 
 export function App() {
   const boardEnabled = isBoardEnabled();
+  const { ai: aiEnabled } = useFeatureFlags();
   const initial = readAppUrl();
   const [tab, setTab] = useState<AppTab>(() => {
     if (initial.tab === "prompt") return "prompt";
@@ -32,6 +34,11 @@ export function App() {
     () => (initial.assetId ? getAssetById(initial.assetId) || null : null),
   );
   const [lastAssetId, setLastAssetId] = useState<string | null>(initial.assetId);
+  const [editorInitialProps, setEditorInitialProps] = useState<Record<
+    string,
+    string | number
+  > | null>(null);
+  const [editorPropsSeed, setEditorPropsSeed] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [savedIds, setSavedIds] = useState<string[]>(() => listSavedAssetIds());
   const [toast, setToast] = useState<ToastState>(null);
@@ -145,8 +152,21 @@ export function App() {
   function goSoon(next: Extract<AppTab, "board" | "prompt">) {
     setTab(next);
     setSelectedAsset(null);
+    setEditorInitialProps(null);
     setMenuOpen(false);
     persist({ tab: next, assetId: null });
+  }
+
+  function goPrompt() {
+    if (!aiEnabled) {
+      goSoon("prompt");
+      return;
+    }
+    setTab("prompt");
+    setSelectedAsset(null);
+    setEditorInitialProps(null);
+    setMenuOpen(false);
+    persist({ tab: "prompt", assetId: null });
   }
 
   function changeAssetCategory(category: string) {
@@ -157,12 +177,27 @@ export function App() {
   }
 
   function openAsset(asset: AssetDefinition) {
+    setEditorInitialProps(null);
+    setEditorPropsSeed((n) => n + 1);
     setSelectedAsset(asset);
     setLastAssetId(asset.id);
     setMenuOpen(false);
     const nextTab = tab === "saved" ? "saved" : "assets";
     setTab(nextTab);
     persist({ tab: nextTab, assetId: asset.id });
+  }
+
+  function openAssetFromPlan(
+    asset: AssetDefinition,
+    props: Record<string, string | number>,
+  ) {
+    setEditorInitialProps(props);
+    setEditorPropsSeed((n) => n + 1);
+    setSelectedAsset(asset);
+    setLastAssetId(asset.id);
+    setMenuOpen(false);
+    setTab("assets");
+    persist({ tab: "assets", assetId: asset.id });
   }
 
   function backToGallery() {
@@ -191,8 +226,9 @@ export function App() {
   const assetsOn = tab === "assets";
   const savedOn = tab === "saved";
   const showBoardApp = tab === "board" && boardEnabled;
+  const showPromptApp = tab === "prompt" && aiEnabled;
   const showSoon =
-    tab === "prompt" || (tab === "board" && !boardEnabled);
+    (tab === "prompt" && !aiEnabled) || (tab === "board" && !boardEnabled);
   const soonLabel = tab === "board" ? "Magic Board" : "AI generation";
 
   const savedAssets = savedIds
@@ -251,10 +287,12 @@ export function App() {
           <button
             type="button"
             className={tab === "prompt" ? "nav-link on" : "nav-link"}
-            onClick={() => goSoon("prompt")}
+            onClick={goPrompt}
           >
             AI
-            <span className="nav-soon">Coming soon</span>
+            {aiEnabled ? null : (
+              <span className="nav-soon">Coming soon</span>
+            )}
           </button>
         </nav>
 
@@ -326,10 +364,10 @@ export function App() {
             <button
               type="button"
               className={tab === "prompt" ? "nav-drawer-link on" : "nav-drawer-link"}
-              onClick={() => goSoon("prompt")}
+              onClick={goPrompt}
             >
               AI
-              <span className="nav-soon">Coming soon</span>
+              {aiEnabled ? null : <span className="nav-soon">Coming soon</span>}
             </button>
           </nav>
         </div>
@@ -356,6 +394,10 @@ export function App() {
           </section>
         ) : null}
 
+        {showPromptApp ? (
+          <PromptStudio onOpenEditor={openAssetFromPlan} />
+        ) : null}
+
         {assetsOn ? (
           <>
             <div className={selectedAsset ? "studio-gallery is-parked" : "studio-gallery"}>
@@ -377,9 +419,12 @@ export function App() {
             </div>
             {selectedAsset ? (
               <AssetEditor
+                key={`editor-${selectedAsset.id}-${editorPropsSeed}`}
                 asset={selectedAsset}
+                initialProps={editorInitialProps}
                 onBack={() => {
                   setSelectedAsset(null);
+                  setEditorInitialProps(null);
                   persist({ tab: "assets", assetId: null });
                 }}
               />
@@ -400,9 +445,12 @@ export function App() {
             </div>
             {selectedAsset ? (
               <AssetEditor
+                key={`saved-editor-${selectedAsset.id}-${editorPropsSeed}`}
                 asset={selectedAsset}
+                initialProps={editorInitialProps}
                 onBack={() => {
                   setSelectedAsset(null);
+                  setEditorInitialProps(null);
                   persist({ tab: "saved", assetId: null });
                 }}
               />

@@ -86,6 +86,12 @@ export default makeScene2D("main", function* (view) {
     yield* runMagicBoard(view);
     return;
   }
+  if (template === "ai-compose") {
+    const { runAiCompose } = yield* loadMod(() => import("./packs/aiCompose"));
+    yield* fitDesignStage(view);
+    yield* all(runAiCompose(view), playScore(view, template));
+    return;
+  }
   yield* fitDesignStage(view);
   yield* all(runTemplate(view, template), playScore(view, template));
 });
@@ -102,9 +108,19 @@ function* runTemplate(view: any, template: string) {
     yield* runYt(view, template);
     return;
   }
+  if (template.startsWith("news-3d-")) {
+    const { runNews3d } = yield* loadMod(() => import("./packs/news3d"));
+    yield* runNews3d(view, template);
+    return;
+  }
   if (template.startsWith("news-")) {
     const { runNewspaper } = yield* loadMod(() => import("./packs/newspaper"));
     yield* runNewspaper(view, template);
+    return;
+  }
+  if (template.startsWith("real-")) {
+    const { runRealMaps } = yield* loadMod(() => import("./packs/realMaps"));
+    yield* runRealMaps(view, template);
     return;
   }
   if (template.startsWith("timeline-")) {

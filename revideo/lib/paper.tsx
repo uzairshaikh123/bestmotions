@@ -1,7 +1,7 @@
 /** @jsxImportSource @revideo/2d/lib */
 /**
- * Production paper craft: jagged tears, fiber hairs, grain, creases, stacked clippings.
- * Edges must look ripped — never a clean rectangle.
+ * Paper craft: torn sheets for classic newspaper moves, plus CleanPaper for
+ * sharp rectangular / 3D newspaper templates.
  */
 import { Line, Rect } from "@revideo/2d";
 
@@ -102,6 +102,52 @@ function fiberHairs(
     });
   }
   return hairs;
+}
+
+/** Clean rectangular sheet — no tears, for 3D / modern newspaper moves. */
+export function CleanPaper(opts: {
+  width: number;
+  height: number;
+  fill: string;
+  radius?: number;
+  shadow?: boolean;
+  edge?: string;
+}) {
+  const r = opts.radius ?? 6;
+  return (
+    <>
+      {opts.shadow !== false ? (
+        <Rect
+          width={opts.width}
+          height={opts.height}
+          fill={"#00000066"}
+          x={12}
+          y={16}
+          radius={r}
+          opacity={0.55}
+        />
+      ) : null}
+      <Rect width={opts.width} height={opts.height} fill={opts.fill} radius={r} />
+      <Rect
+        width={opts.width - 14}
+        height={opts.height - 14}
+        fill={"#ffffff"}
+        opacity={0.07}
+        radius={Math.max(2, r - 2)}
+      />
+      {opts.edge ? (
+        <Rect
+          width={opts.width}
+          height={opts.height}
+          fill={null}
+          stroke={opts.edge}
+          lineWidth={1.2}
+          opacity={0.35}
+          radius={r}
+        />
+      ) : null}
+    </>
+  );
 }
 
 export function PaperSheet(opts: {

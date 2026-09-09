@@ -1,8 +1,11 @@
 /** Public flag keys the client may read. */
 export const FLAG_VIDEO_SOUND = "video_sound";
+export const FLAG_AI = "ai";
 
 export type FeatureFlagsPublic = {
   videoSound: boolean;
+  /** Prompt-to-video AI. Driven by FEATURE_AI — false = Coming soon for all clients. */
+  ai: boolean;
 };
 
 function envBool(raw: string | undefined, fallback = false): boolean {
@@ -10,10 +13,17 @@ function envBool(raw: string | undefined, fallback = false): boolean {
   return /^(1|true|yes|on)$/i.test(raw.trim());
 }
 
+export function isAiFeatureEnabled(): boolean {
+  return envBool(process.env.FEATURE_AI, false);
+}
+
 function envOverride(key: string): boolean {
   if (key === FLAG_VIDEO_SOUND) {
     // Default off — enable with FEATURE_VIDEO_SOUND=true in the environment.
     return envBool(process.env.FEATURE_VIDEO_SOUND, false);
+  }
+  if (key === FLAG_AI) {
+    return isAiFeatureEnabled();
   }
   return false;
 }
@@ -25,6 +35,7 @@ export function isFlagEnabled(key: string): boolean {
 export function getPublicFlags(): FeatureFlagsPublic {
   return {
     videoSound: isFlagEnabled(FLAG_VIDEO_SOUND),
+    ai: isAiFeatureEnabled(),
   };
 }
 
@@ -36,12 +47,17 @@ export function listFlags(): { key: string; enabled: boolean; updatedAt: string 
       enabled: isFlagEnabled(FLAG_VIDEO_SOUND),
       updatedAt: now,
     },
+    {
+      key: FLAG_AI,
+      enabled: isAiFeatureEnabled(),
+      updatedAt: now,
+    },
   ];
 }
 
 /**
  * Env-backed flags are read-only at runtime.
- * Toggle via FEATURE_VIDEO_SOUND / VITE_FEATURE_VIDEO_SOUND in the host env.
+ * Toggle via FEATURE_* vars in the host env, then restart.
  */
 export function setFlagEnabled(key: string, enabled: boolean): {
   key: string;
@@ -56,7 +72,7 @@ export function setFlagEnabled(key: string, enabled: boolean): {
     updatedAt: new Date().toISOString(),
     readOnly: true,
     hint:
-      "Feature flags are env-only. Set FEATURE_VIDEO_SOUND=true (and VITE_FEATURE_VIDEO_SOUND=true for the UI) then redeploy/restart.",
+      "Feature flags are env-only. Set FEATURE_VIDEO_SOUND / FEATURE_AI (and matching VITE_ toggles where needed) then redeploy/restart.",
   };
 }
 

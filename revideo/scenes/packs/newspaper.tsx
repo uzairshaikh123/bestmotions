@@ -69,6 +69,7 @@ function* slideHighlight(view: any) {
   );
   const accent = str("accent", "#FAFF00");
   const ink = str("ink", INK);
+  const paperFill = str("paperColor", PAPER);
   const rotation = num("rotation", -4);
 
   desk(view);
@@ -77,7 +78,7 @@ function* slideHighlight(view: any) {
   const mark = createRef<Rect>();
   yield view.add(
     <Node ref={paper} x={920} y={10} rotation={rotation}>
-      <PaperSheet width={780} height={500} fill={PAPER} roughness={14} seed={5} />
+      <PaperSheet width={780} height={500} fill={paperFill} roughness={14} seed={5} />
       <PaperGrain width={720} height={440} seed={5} />
       <Txt text={masthead} fill={"#8b1e1e"} fontFamily={SERIF} fontSize={16} letterSpacing={6} fontWeight={700} y={-188} />
       <Txt text={date} fill={"#6a5f52"} fontFamily={SERIF} fontSize={13} y={-162} />
