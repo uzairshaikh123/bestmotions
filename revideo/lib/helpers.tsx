@@ -23,6 +23,29 @@ export function num(name: string, initial: number): number {
   return Number.isFinite(n) ? n : initial;
 }
 
+/** True when the editor's Transparent overlay switch is on. */
+export function isTransparentOverlay(): boolean {
+  const raw = String(v("bgTransparent", "off")).trim().toLowerCase();
+  return raw === "on" || raw === "true" || raw === "1" || raw === "yes";
+}
+
+const CLEAR = "rgba(0,0,0,0)";
+
+/**
+ * Clear the stage and force every later `view.fill(...)` to stay clear so
+ * packs / desks cannot re-paint an opaque full-frame background.
+ * Content nodes (text, paper, charts) are unchanged.
+ */
+export function lockTransparentStage(view: any) {
+  const original = view.fill.bind(view);
+  original(CLEAR);
+  view.fill = (...args: unknown[]) => {
+    if (args.length === 0) return original();
+    // Preserve optional tween duration / timing args; always force clear color.
+    return original(CLEAR, ...args.slice(1));
+  };
+}
+
 /** Shared documentary title-card slam used across packs. */
 export function* titleSlam(
   view: any,

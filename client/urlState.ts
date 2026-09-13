@@ -13,7 +13,7 @@ export type AppUrlState = {
 
 const TABS: AppTab[] = ["prompt", "assets", "board", "saved"];
 const SORTS: AssetSort[] = ["featured", "name", "duration", "category"];
-const DEFAULT_CATEGORY = "time";
+const DEFAULT_CATEGORY = "all";
 
 /** Map old Revideo-tab ids (`rv-*`) and Remotion code/saved tabs onto Assets. */
 const LEGACY_REVIDEO_IDS: Record<string, string> = {

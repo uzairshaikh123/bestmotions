@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { downloadBlob, recordCanvas } from "../recordCanvas";
+import { downloadBlob, downloadHref, recordCanvas, supportsTransparentExport } from "../recordCanvas";
 import { videoFilename } from "../downloadVideo";
 import {
   useFeatureFlags,
@@ -9,6 +9,7 @@ import {
   RevideoPreview,
   type RevideoPreviewHandle,
 } from "./RevideoPreview";
+import { ImageCropModal } from "./ImageCropModal";
 import type { AssetDefinition, AssetField, AssetFieldColumn } from "./types";
 import {
   columnsForField,
@@ -57,8 +58,11 @@ function readFileAsDataUrl(file: File): Promise<string> {
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 
 function friendlyExportError(raw: string): string {
-  if (/captureStream|MediaRecorder|cannot record/i.test(raw)) {
-    return "This browser cannot record the preview. Use Chrome or Edge.";
+  if (/Transparent WebM|transparent WebM|alpha/i.test(raw)) {
+    return raw;
+  }
+  if (/captureStream|MediaRecorder|cannot record|could not start/i.test(raw)) {
+    return "This browser could not record the preview. Try updating Safari, or use Chrome / Edge / Firefox.";
   }
   return raw;
 }
@@ -102,6 +106,9 @@ export function AssetEditor({ asset, onBack, initialProps = null }: Props) {
   const busy = phase === "rendering" || phase === "downloading";
 
   const [timingOpen, setTimingOpen] = useState(false);
+  const [cropJob, setCropJob] = useState<{ key: string; src: string } | null>(
+    null,
+  );
 
   const visibleFields = useMemo(
     () =>
@@ -133,7 +140,7 @@ export function AssetEditor({ asset, onBack, initialProps = null }: Props) {
     }
     setExportError(null);
     const url = await readFileAsDataUrl(file);
-    setField(key, url);
+    setCropJob({ key, src: url });
   }
 
   const variables = useMemo(
@@ -223,6 +230,22 @@ export function AssetEditor({ asset, onBack, initialProps = null }: Props) {
     const keyAtStart = currentKeyRef.current;
     const handle = previewRef.current;
     if (!handle) throw new Error("Preview is not mounted.");
+
+    const wantAlpha = String(props.bgTransparent ?? "off") === "on";
+    if (wantAlpha && !supportsTransparentExport()) {
+      throw new Error(
+        "Transparent WebM export needs a browser that can record WebM with alpha (Chrome or Edge). Turn off Transparent overlay to export MP4 in Safari.",
+      );
+    }
+
+    // Flush debounced preview vars so export matches the live toggle state.
+    setPreviewVariables(variables);
+    await new Promise<void>((resolve) => {
+      window.requestAnimationFrame(() =>
+        window.requestAnimationFrame(() => resolve()),
+      );
+    });
+
     await waitForPreview(handle);
     const canvas = handle.getCanvas();
     if (!canvas) throw new Error("Could not find the preview canvas.");
@@ -230,7 +253,7 @@ export function AssetEditor({ asset, onBack, initialProps = null }: Props) {
     handle.play();
     const seconds = Math.max(handle.getDuration(), 1);
     const { blob, ext } = await recordCanvas(canvas, seconds * 1000, 30, {
-      alpha: String(props.bgTransparent ?? "off") === "on",
+      alpha: wantAlpha,
     });
     handle.pause();
     handle.seek(0);
@@ -254,12 +277,10 @@ export function AssetEditor({ asset, onBack, initialProps = null }: Props) {
     try {
       if (exportMatchesCurrent && videoUrl) {
         setPhase("downloading");
-        const a = document.createElement("a");
-        a.href = videoUrl;
-        a.download = videoFilename(asset.name, asset.id)
+        const name = videoFilename(asset.name, asset.id)
           .replace(/\.mp4$/i, "")
           .concat(`-${format.width}x${format.height}.${exportedExt}`);
-        a.click();
+        downloadHref(videoUrl, name);
         setPhase("done");
         return;
       }
@@ -305,6 +326,16 @@ export function AssetEditor({ asset, onBack, initialProps = null }: Props) {
 
   return (
     <section className="asset-editor">
+      {cropJob ? (
+        <ImageCropModal
+          src={cropJob.src}
+          onCancel={() => setCropJob(null)}
+          onApply={(dataUrl) => {
+            setField(cropJob.key, dataUrl);
+            setCropJob(null);
+          }}
+        />
+      ) : null}
       <div className="asset-editor-top">
         <div className="asset-editor-actions">
           <button type="button" className="secondary" onClick={onBack}>
@@ -379,7 +410,10 @@ export function AssetEditor({ asset, onBack, initialProps = null }: Props) {
           <div className="switch-field">
             <span>
               Transparent overlay
-              <small>Export as WebM so you can stack this on other footage.</small>
+              <small>
+                Clears the full frame background for stacking. Exports as WebM
+                (Chrome / Edge). Safari can still export normal MP4 with this off.
+              </small>
             </span>
             <button
               type="button"
@@ -579,7 +613,10 @@ function FieldControl({
           <input
             type="file"
             accept="image/png,image/jpeg,image/webp,image/gif"
-            onChange={(e) => onImage(e.target.files?.[0] ?? null)}
+            onChange={(e) => {
+              onImage(e.target.files?.[0] ?? null);
+              e.currentTarget.value = "";
+            }}
           />
           {value ? (
             <img src={String(value)} alt="" className="image-thumb" />

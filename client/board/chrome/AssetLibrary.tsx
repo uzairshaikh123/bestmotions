@@ -133,7 +133,7 @@ function UploadBox({
 export function AssetLibrary({ onAdd, onBackground, onUpload, background = "#ffffff" }: Props) {
   const [tab, setTab] = useState<Tab>("assets");
   const [q, setQ] = useState("");
-  const [templateCat, setTemplateCat] = useState<string>("charts");
+  const [templateCat, setTemplateCat] = useState<string>("all");
   const fileRef = useRef<HTMLInputElement>(null);
   const query = q.trim().toLowerCase();
 

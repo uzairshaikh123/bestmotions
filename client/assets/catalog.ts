@@ -1,4 +1,7 @@
 import { CHART_ASSETS, CHART_SUBCATEGORIES } from "./chartCatalog";
+import { CRIME_DOC_ASSETS } from "./crimeDocCatalog";
+import { HOOK_ASSETS } from "./hookCatalog";
+import { SOCIAL_ASSETS } from "./socialCatalog";
 import { DOCUMENTARY_ASSETS } from "./documentaryCatalog";
 import { NEWS_3D_ASSETS } from "./news3dCatalog";
 import { REAL_MAP_ASSETS } from "./realMapCatalog";
@@ -113,6 +116,9 @@ const fontField: AssetField = {
 };
 
 const ALL_ASSETS: AssetDefinition[] = [
+  ...CRIME_DOC_ASSETS,
+  ...HOOK_ASSETS,
+  ...SOCIAL_ASSETS,
   {
     ...base,
     id: "book-area-highlight",
@@ -3415,6 +3421,10 @@ export { CHART_SUBCATEGORIES };
 
 export const CATEGORIES: { id: AssetDefinition["category"] | "all"; label: string }[] = [
   { id: "all", label: "All" },
+  { id: "crime", label: "Crime scene" },
+  { id: "documentary", label: "Documentary text" },
+  { id: "hooks", label: "Question & Hook" },
+  { id: "social", label: "Social Media" },
   { id: "timeline", label: "Timeline & History" },
   { id: "time", label: "Time & Motion" },
   { id: "money", label: "Money & Business" },

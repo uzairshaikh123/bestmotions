@@ -1,6 +1,6 @@
 /** @jsxImportSource @revideo/2d/lib */
 import { makeScene2D } from "@revideo/2d";
-import { str, titleSlam, v, all, fitDesignStage } from "../lib/helpers";
+import { str, titleSlam, v, all, fitDesignStage, isTransparentOverlay, lockTransparentStage } from "../lib/helpers";
 import { playScore } from "../lib/sfx";
 
 const BOOK_MAP: Record<string, string> = {
@@ -47,6 +47,9 @@ const TEXT_IDS = new Set([
   "text-both",
   "headline-slam",
   "quote-callout",
+  "text-doc-giant",
+  "text-doc-typewriter",
+  "text-doc-stack",
 ]);
 
 const MAP_IDS = new Set([
@@ -75,12 +78,15 @@ function* loadMod<T>(loader: () => Promise<T>): Generator<Promise<T>, T, T> {
 
 export default makeScene2D("main", function* (view) {
   const template = String(v("template", "cover-slam"));
-  const transparent =
-    String(v("bgTransparent", "off")).toLowerCase() === "on" ||
-    String(v("bgTransparent", "off")).toLowerCase() === "true";
-  // Clear stage. Templates still read `bg` from variables; when transparent,
-  // the client forces bg to rgba(0,0,0,0) so scene fills stay clear for WebM alpha.
-  view.fill(transparent ? "rgba(0,0,0,0)" : "#07090e");
+  const transparent = isTransparentOverlay();
+  // Clear stage for WebM alpha. Also lock fills so packs/desks cannot
+  // re-paint an opaque full-frame background (which looked like “only the
+  // letterbox border” was transparent).
+  if (transparent) {
+    lockTransparentStage(view);
+  } else {
+    view.fill("#07090e");
+  }
   if (template === "magic-board") {
     const { runMagicBoard } = yield* loadMod(() => import("./packs/board"));
     yield* runMagicBoard(view);
@@ -103,6 +109,26 @@ function* runTemplate(view: any, template: string) {
     return;
   }
 
+  if (template.startsWith("crime-") || template === "yt-crime-board" || template === "yt-case-stamp") {
+    const { runCrime } = yield* loadMod(() => import("./packs/crime.tsx"));
+    yield* runCrime(view, template);
+    return;
+  }
+  if (template.startsWith("doctext-") || template.startsWith("text-doc-")) {
+    const { runDocText } = yield* loadMod(() => import("./packs/docText.tsx"));
+    yield* runDocText(view, template);
+    return;
+  }
+  if (template.startsWith("hook-")) {
+    const { runHooks } = yield* loadMod(() => import("./packs/hooks.tsx"));
+    yield* runHooks(view, template);
+    return;
+  }
+  if (template.startsWith("social-")) {
+    const { runSocial } = yield* loadMod(() => import("./packs/social.tsx"));
+    yield* runSocial(view, template);
+    return;
+  }
   if (template.startsWith("yt-")) {
     const { runYt } = yield* loadMod(() => import("./packs/yt"));
     yield* runYt(view, template);

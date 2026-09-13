@@ -159,6 +159,169 @@ function* evidenceBoard(view: any) {
   yield* waitFor(1.3);
 }
 
+/** Cork crime board: four pinned notes + red string web. */
+function* crimeBoard(view: any) {
+  const title = str("title", "Crime scene board");
+  const labels = [
+    str("label1", "Suspect"),
+    str("label2", "Witness"),
+    str("label3", "Location"),
+    str("label4", "Evidence"),
+  ];
+  const accent = str("accent", "#e63946");
+  const bg = str("bg", "#1a1410");
+  const t = timing();
+  const extra = itemDelays(4);
+  view.fill(bg);
+
+  yield view.add(
+    <Rect width={1180} height={640} fill={"#2a2218"} radius={8} opacity={0.9} />,
+  );
+  yield view.add(
+    <Txt
+      text={title.toUpperCase()}
+      fill={accent}
+      fontFamily={SERIF}
+      fontSize={16}
+      letterSpacing={7}
+      y={-280}
+    />,
+  );
+
+  const notes = [
+    { x: -360, y: -90, rot: -9 },
+    { x: 120, y: -120, rot: 6 },
+    { x: -180, y: 130, rot: 4 },
+    { x: 340, y: 80, rot: -7 },
+  ];
+
+  yield* pause(t.startDelay);
+  for (let i = 0; i < 4; i++) {
+    if (i > 0) yield* pause(t.stepDelay);
+    yield* pause(extra[i]);
+    const note = createRef<Layout>();
+    const pin = createRef<Circle>();
+    yield view.add(
+      <Layout
+        ref={note}
+        x={notes[i].x}
+        y={notes[i].y}
+        rotation={notes[i].rot}
+        scale={0.35}
+        opacity={0}
+      >
+        <Rect width={200} height={230} fill={"#f4ead7"} shadowBlur={18} />
+        <Rect width={160} height={110} fill={"#2c2620"} y={-35} />
+        <Txt
+          text={labels[i]}
+          fill={"#1a1510"}
+          fontFamily={SERIF}
+          fontSize={15}
+          fontWeight={700}
+          y={85}
+        />
+        <Circle ref={pin} width={16} height={16} fill={accent} y={-108} />
+      </Layout>,
+    );
+    yield* all(
+      note().scale(1, t.revealDuration, easeOutBack),
+      note().opacity(1, t.revealDuration * 0.55, easeOutCubic),
+    );
+  }
+
+  yield* pause(t.connectDelay);
+  const links = [
+    { x: -120, y: -100, rot: -8, w: 300 },
+    { x: -260, y: 30, rot: 42, w: 260 },
+    { x: 80, y: 20, rot: 28, w: 290 },
+    { x: 170, y: -20, rot: -35, w: 250 },
+  ];
+  for (let i = 0; i < links.length; i++) {
+    if (i > 0) yield* pause(t.stepDelay * 0.7);
+    const line = createRef<Rect>();
+    yield view.add(
+      <Rect
+        ref={line}
+        width={0}
+        height={3}
+        fill={accent}
+        x={links[i].x}
+        y={links[i].y}
+        rotation={links[i].rot}
+      />,
+    );
+    yield* line().width(links[i].w, t.lineDuration, easeOutCubic);
+  }
+  yield* waitFor(1.2);
+}
+
+/** Documentary stamp slam over a case title. */
+function* caseStamp(view: any) {
+  const stamp = str("stamp", "CLASSIFIED");
+  const title = str("title", "Case file 47");
+  const subtitle = str("subtitle", "Restricted — internal review only");
+  const accent = str("accent", "#e63946");
+  const bg = str("bg", "#0a0c10");
+  const t = timing();
+  view.fill(bg);
+
+  const titleRef = createRef<Txt>();
+  const stampRef = createRef<Layout>();
+  const box = createRef<Rect>();
+
+  yield view.add(
+    <Txt
+      ref={titleRef}
+      text={title}
+      fill={"#f4efe6"}
+      fontFamily={SERIF}
+      fontSize={48}
+      fontWeight={700}
+      y={-40}
+      opacity={0}
+    />,
+  );
+  yield view.add(
+    <Txt
+      text={subtitle}
+      fill={"#9aa3ad"}
+      fontFamily={SERIF}
+      fontSize={18}
+      y={40}
+      opacity={0.85}
+    />,
+  );
+  yield view.add(
+    <Layout ref={stampRef} rotation={-14} scale={2.2} opacity={0} y={20}>
+      <Rect
+        ref={box}
+        width={320}
+        height={78}
+        lineWidth={5}
+        stroke={accent}
+        radius={4}
+      />
+      <Txt
+        text={stamp.toUpperCase()}
+        fill={accent}
+        fontFamily={SERIF}
+        fontSize={36}
+        fontWeight={700}
+        letterSpacing={6}
+      />
+    </Layout>,
+  );
+
+  yield* pause(t.startDelay);
+  yield* titleRef().opacity(1, t.revealDuration, easeOutCubic);
+  yield* pause(t.connectDelay);
+  yield* all(
+    stampRef().opacity(1, t.revealDuration * 0.45, easeOutCubic),
+    stampRef().scale(1, t.revealDuration, easeOutBack),
+  );
+  yield* waitFor(1.4);
+}
+
 /** Dossier person: portrait plate + name + role. */
 function* personCard(view: any) {
   const name = str("name", "Unknown Subject");
@@ -494,6 +657,12 @@ export function* runYt(view: any, template: string) {
       break;
     case "yt-evidence-board":
       yield* evidenceBoard(view);
+      break;
+    case "yt-crime-board":
+      yield* crimeBoard(view);
+      break;
+    case "yt-case-stamp":
+      yield* caseStamp(view);
       break;
     case "yt-person-card":
       yield* personCard(view);

@@ -11,6 +11,7 @@ import {
 import { registerBoardRoutes } from "./boards.js";
 import { registerMapImageRoute } from "./mapImage.js";
 import { registerAiRoutes } from "./ai/routes.js";
+import { registerFeedbackRoutes } from "./feedback.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -29,6 +30,7 @@ app.use("/videos", express.static(path.join(rootDir, "public", "videos")));
 registerBoardRoutes(app, rootDir);
 registerMapImageRoute(app);
 registerAiRoutes(app);
+registerFeedbackRoutes(app, rootDir);
 
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true });

@@ -42,7 +42,11 @@ export type AssetCategory =
   | "newspaper"
   | "yt"
   | "fire"
-  | "books";
+  | "books"
+  | "crime"
+  | "documentary"
+  | "hooks"
+  | "social";
 
 export type AssetDefinition = {
   id: string;

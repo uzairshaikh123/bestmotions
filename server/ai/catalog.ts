@@ -21,10 +21,10 @@ export type FieldSchema = {
 
 const STYLE_CATEGORIES: Record<Exclude<AiStyle, "any">, string[]> = {
   news: ["newspaper"],
-  doc: ["timeline", "time", "money", "comparison", "rise"],
+  doc: ["timeline", "time", "money", "comparison", "rise", "crime", "documentary", "hooks", "social"],
   chart: ["charts"],
   map: ["maps"],
-  yt: ["yt"],
+  yt: ["yt", "crime", "hooks", "social"],
   shorts: ["shorts"],
   books: ["books"],
   "3d": ["3d"],

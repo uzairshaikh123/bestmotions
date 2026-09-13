@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import Select, { type StylesConfig, type SingleValue } from "react-select";
 import type { AssetSort } from "../urlState";
+import { useTheme } from "../theme";
 import { ASSETS, CATEGORIES, CHART_SUBCATEGORIES } from "./catalog";
 import { AssetThumb } from "./AssetThumb";
 import {
@@ -38,156 +39,200 @@ const SORT_OPTIONS: { id: AssetSort; label: string }[] = [
   { id: "category", label: "Category" },
 ];
 
-const filterSelectStyles: StylesConfig<FilterOption, false> = {
-  container: (base) => ({
-    ...base,
-    width: "100%",
-  }),
-  control: (base, state) => ({
-    ...base,
-    minHeight: 44,
-    height: 44,
-    borderRadius: 12,
-    borderColor: state.isFocused
-      ? "rgba(124, 58, 237, 0.5)"
-      : "rgba(124, 58, 237, 0.16)",
-    backgroundColor: "#ffffff",
-    boxShadow: state.isFocused ? "0 0 0 1px rgba(168, 85, 247, 0.28)" : "none",
-    cursor: "pointer",
-    "&:hover": {
-      borderColor: "rgba(124, 58, 237, 0.35)",
-    },
-  }),
-  valueContainer: (base) => ({
-    ...base,
-    padding: "0 12px",
-    height: 42,
-  }),
-  singleValue: (base) => ({
-    ...base,
-    color: "var(--fog)",
-    fontSize: "0.86rem",
-    fontWeight: 650,
-  }),
-  placeholder: (base) => ({
-    ...base,
-    color: "var(--muted)",
-    fontSize: "0.86rem",
-    fontWeight: 600,
-  }),
-  input: (base) => ({
-    ...base,
-    color: "var(--fog)",
-    margin: 0,
-    padding: 0,
-  }),
-  indicatorSeparator: () => ({
-    display: "none",
-  }),
-  dropdownIndicator: (base, state) => ({
-    ...base,
-    color: state.isFocused ? "#7c3aed" : "rgba(26, 16, 40, 0.4)",
-    padding: "0 10px",
-    transition: "transform 0.15s ease, color 0.15s ease",
-    transform: state.selectProps.menuIsOpen ? "rotate(180deg)" : undefined,
-    "&:hover": {
-      color: "#7c3aed",
-    },
-  }),
-  menu: (base) => ({
-    ...base,
-    marginTop: 6,
-    borderRadius: 12,
-    overflow: "hidden",
-    backgroundColor: "#ffffff",
-    border: "1px solid rgba(124, 58, 237, 0.14)",
-    boxShadow: "0 16px 40px rgba(124, 58, 237, 0.12)",
-    zIndex: 40,
-  }),
-  menuPortal: (base) => ({
-    ...base,
-    zIndex: 40,
-  }),
-  menuList: (base) => ({
-    ...base,
-    padding: 6,
-    maxHeight: 280,
-  }),
-  option: (base, state) => ({
-    ...base,
-    borderRadius: 8,
-    padding: "10px 12px",
-    fontSize: "0.86rem",
-    fontWeight: state.isSelected ? 700 : 600,
-    cursor: "pointer",
-    color: state.isSelected || state.isFocused ? "#5b21b6" : "var(--fog)",
-    backgroundColor: state.isSelected
-      ? "rgba(168, 85, 247, 0.16)"
-      : state.isFocused
-        ? "rgba(124, 58, 237, 0.06)"
-        : "transparent",
-    ":active": {
-      backgroundColor: "rgba(168, 85, 247, 0.22)",
-    },
-  }),
-};
+function buildFilterSelectStyles(isDark: boolean): StylesConfig<FilterOption, false> {
+  const border = isDark
+    ? "rgba(168, 85, 247, 0.28)"
+    : "rgba(124, 58, 237, 0.16)";
+  const borderFocus = isDark
+    ? "rgba(192, 132, 252, 0.55)"
+    : "rgba(124, 58, 237, 0.5)";
+  const surface = isDark ? "#1a1826" : "#ffffff";
+  const menuShadow = isDark
+    ? "0 16px 40px rgba(0, 0, 0, 0.45)"
+    : "0 16px 40px rgba(124, 58, 237, 0.12)";
+  const optionActive = isDark ? "#e9d5ff" : "#5b21b6";
+  const optionSelectedBg = isDark
+    ? "rgba(168, 85, 247, 0.28)"
+    : "rgba(168, 85, 247, 0.16)";
+  const optionFocusBg = isDark
+    ? "rgba(168, 85, 247, 0.14)"
+    : "rgba(124, 58, 237, 0.06)";
+  const indicator = isDark ? "rgba(243, 240, 255, 0.45)" : "rgba(26, 16, 40, 0.4)";
 
-const sortSelectStyles: StylesConfig<FilterOption, false> = {
-  ...filterSelectStyles,
-  control: (base, state) => ({
+  return {
+    container: (base) => ({
+      ...base,
+      width: "100%",
+    }),
+    control: (base, state) => ({
+      ...base,
+      minHeight: 44,
+      height: 44,
+      borderRadius: 12,
+      borderColor: state.isFocused ? borderFocus : border,
+      backgroundColor: surface,
+      boxShadow: state.isFocused
+        ? isDark
+          ? "0 0 0 1px rgba(192, 132, 252, 0.35)"
+          : "0 0 0 1px rgba(168, 85, 247, 0.28)"
+        : "none",
+      cursor: "pointer",
+      "&:hover": {
+        borderColor: borderFocus,
+      },
+    }),
+    valueContainer: (base) => ({
+      ...base,
+      padding: "0 12px",
+      height: 42,
+    }),
+    singleValue: (base) => ({
+      ...base,
+      color: "var(--fog)",
+      fontSize: "0.86rem",
+      fontWeight: 650,
+    }),
+    placeholder: (base) => ({
+      ...base,
+      color: "var(--muted)",
+      fontSize: "0.86rem",
+      fontWeight: 600,
+    }),
+    input: (base) => ({
+      ...base,
+      color: "var(--fog)",
+      margin: 0,
+      padding: 0,
+    }),
+    indicatorSeparator: () => ({
+      display: "none",
+    }),
+    dropdownIndicator: (base, state) => ({
+      ...base,
+      color: state.isFocused ? "#a855f7" : indicator,
+      padding: "0 10px",
+      transition: "transform 0.15s ease, color 0.15s ease",
+      transform: state.selectProps.menuIsOpen ? "rotate(180deg)" : undefined,
+      "&:hover": {
+        color: "#a855f7",
+      },
+    }),
+    menu: (base) => ({
+      ...base,
+      marginTop: 6,
+      borderRadius: 12,
+      overflow: "hidden",
+      backgroundColor: surface,
+      border: `1px solid ${border}`,
+      boxShadow: menuShadow,
+      zIndex: 40,
+    }),
+    menuPortal: (base) => ({
+      ...base,
+      zIndex: 40,
+    }),
+    menuList: (base) => ({
+      ...base,
+      padding: 6,
+      maxHeight: 280,
+    }),
+    option: (base, state) => ({
+      ...base,
+      borderRadius: 8,
+      padding: "10px 12px",
+      fontSize: "0.86rem",
+      fontWeight: state.isSelected ? 700 : 600,
+      cursor: "pointer",
+      color: state.isSelected || state.isFocused ? optionActive : "var(--fog)",
+      backgroundColor: state.isSelected
+        ? optionSelectedBg
+        : state.isFocused
+          ? optionFocusBg
+          : "transparent",
+      ":active": {
+        backgroundColor: optionSelectedBg,
+      },
+    }),
+  };
+}
+
+function buildSortSelectStyles(isDark: boolean): StylesConfig<FilterOption, false> {
+  const base = buildFilterSelectStyles(isDark);
+  const border = isDark
+    ? "rgba(168, 85, 247, 0.28)"
+    : "rgba(124, 58, 237, 0.16)";
+  const borderFocus = isDark
+    ? "rgba(192, 132, 252, 0.55)"
+    : "rgba(124, 58, 237, 0.5)";
+  const surface = isDark ? "#1a1826" : "#ffffff";
+  const indicator = isDark ? "rgba(243, 240, 255, 0.45)" : "rgba(26, 16, 40, 0.4)";
+  const optionActive = isDark ? "#e9d5ff" : "#5b21b6";
+  const optionSelectedBg = isDark
+    ? "rgba(168, 85, 247, 0.28)"
+    : "rgba(168, 85, 247, 0.16)";
+  const optionFocusBg = isDark
+    ? "rgba(168, 85, 247, 0.14)"
+    : "rgba(124, 58, 237, 0.06)";
+
+  return {
     ...base,
-    minHeight: 38,
-    height: 38,
-    borderRadius: 10,
-    borderColor: state.isFocused
-      ? "rgba(124, 58, 237, 0.5)"
-      : "rgba(124, 58, 237, 0.16)",
-    backgroundColor: "#ffffff",
-    boxShadow: state.isFocused ? "0 0 0 1px rgba(168, 85, 247, 0.28)" : "none",
-    cursor: "pointer",
-    "&:hover": {
-      borderColor: "rgba(124, 58, 237, 0.35)",
-    },
-  }),
-  valueContainer: (base) => ({
-    ...base,
-    padding: "0 8px",
-    height: 36,
-  }),
-  singleValue: (base) => ({
-    ...base,
-    color: "var(--fog)",
-    fontSize: "0.78rem",
-    fontWeight: 650,
-  }),
-  option: (base, state) => ({
-    ...base,
-    borderRadius: 8,
-    padding: "8px 10px",
-    fontSize: "0.78rem",
-    fontWeight: state.isSelected ? 700 : 600,
-    cursor: "pointer",
-    color: state.isSelected || state.isFocused ? "#5b21b6" : "var(--fog)",
-    backgroundColor: state.isSelected
-      ? "rgba(168, 85, 247, 0.16)"
-      : state.isFocused
-        ? "rgba(124, 58, 237, 0.06)"
-        : "transparent",
-    ":active": {
-      backgroundColor: "rgba(168, 85, 247, 0.22)",
-    },
-  }),
-  dropdownIndicator: (base, state) => ({
-    ...base,
-    color: state.isFocused ? "#7c3aed" : "rgba(26, 16, 40, 0.4)",
-    padding: "0 8px",
-    transition: "transform 0.15s ease, color 0.15s ease",
-    transform: state.selectProps.menuIsOpen ? "rotate(180deg)" : undefined,
-    "&:hover": {
-      color: "#7c3aed",
-    },
-  }),
-};
+    control: (baseStyle, state) => ({
+      ...baseStyle,
+      minHeight: 38,
+      height: 38,
+      borderRadius: 10,
+      borderColor: state.isFocused ? borderFocus : border,
+      backgroundColor: surface,
+      boxShadow: state.isFocused
+        ? isDark
+          ? "0 0 0 1px rgba(192, 132, 252, 0.35)"
+          : "0 0 0 1px rgba(168, 85, 247, 0.28)"
+        : "none",
+      cursor: "pointer",
+      "&:hover": {
+        borderColor: borderFocus,
+      },
+    }),
+    valueContainer: (baseStyle) => ({
+      ...baseStyle,
+      padding: "0 8px",
+      height: 36,
+    }),
+    singleValue: (baseStyle) => ({
+      ...baseStyle,
+      color: "var(--fog)",
+      fontSize: "0.78rem",
+      fontWeight: 650,
+    }),
+    option: (baseStyle, state) => ({
+      ...baseStyle,
+      borderRadius: 8,
+      padding: "8px 10px",
+      fontSize: "0.78rem",
+      fontWeight: state.isSelected ? 700 : 600,
+      cursor: "pointer",
+      color: state.isSelected || state.isFocused ? optionActive : "var(--fog)",
+      backgroundColor: state.isSelected
+        ? optionSelectedBg
+        : state.isFocused
+          ? optionFocusBg
+          : "transparent",
+      ":active": {
+        backgroundColor: optionSelectedBg,
+      },
+    }),
+    dropdownIndicator: (baseStyle, state) => ({
+      ...baseStyle,
+      color: state.isFocused ? "#a855f7" : indicator,
+      padding: "0 8px",
+      transition: "transform 0.15s ease, color 0.15s ease",
+      transform: state.selectProps.menuIsOpen ? "rotate(180deg)" : undefined,
+      "&:hover": {
+        color: "#a855f7",
+      },
+    }),
+  };
+}
 
 function durationSec(asset: AssetDefinition) {
   return Math.max(1, Math.round(asset.durationInFrames / Math.max(asset.fps, 1)));
@@ -250,6 +295,16 @@ export function AssetGallery({
   onSelect,
   onToggleSave,
 }: Props) {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+  const filterSelectStyles = useMemo(
+    () => buildFilterSelectStyles(isDark),
+    [isDark],
+  );
+  const sortSelectStyles = useMemo(
+    () => buildSortSelectStyles(isDark),
+    [isDark],
+  );
   const filterKey = galleryFilterKey(
     category,
     subcategory,
@@ -427,79 +482,89 @@ export function AssetGallery({
   return (
     <section className="assets-page">
       {hideFilters ? null : (
-      <div className="assets-toolbar">
-        <label className="studio-search toolbar-search">
-          <SearchIcon />
-          <input
-            ref={searchRef}
-            type="search"
-            value={query}
-            onChange={(e) => onQueryChange(e.target.value)}
-            placeholder="Search templates..."
-            aria-label="Search assets"
-          />
-          <kbd>⌘ K</kbd>
-        </label>
-        <div className="asset-filter">
-          <span className="sr-only">Category</span>
-          <Select
-            classNamePrefix="asset-rs"
-            inputId="asset-category-filter"
-            aria-label="Filter by category"
-            options={categoryOptions}
-            value={selectedCategory}
-            onChange={(next: SingleValue<FilterOption>) => {
-              if (next) onCategoryChange(next.value);
-            }}
-            isSearchable={false}
-            styles={filterSelectStyles}
-            menuPortalTarget={
-              typeof document !== "undefined" ? document.body : null
-            }
-            menuPosition="fixed"
-          />
-        </div>
-        {category === "charts" ? (
-          <div className="asset-filter">
-            <span className="sr-only">Chart type</span>
-            <Select
-              classNamePrefix="asset-rs"
-              inputId="asset-chart-filter"
-              aria-label="Filter by chart type"
-              options={subcategoryOptions}
-              value={selectedSubcategory}
-              onChange={(next: SingleValue<FilterOption>) => {
-                if (next) onSubcategoryChange(next.value);
-              }}
-              isSearchable={false}
-              styles={filterSelectStyles}
-              menuPortalTarget={
-                typeof document !== "undefined" ? document.body : null
-              }
-              menuPosition="fixed"
-            />
+        <>
+          <header className="assets-hero">
+            <p className="assets-kicker doc-kicker">Motion library</p>
+            <div className="assets-heading">
+              <h2 className="doc-title">
+                <span className="doc-line">Templates that</span>{" "}
+                <span className="doc-accent">move</span>
+              </h2>
+            </div>
+          </header>
+          <div className="assets-toolbar">
+            <label className="studio-search toolbar-search">
+              <SearchIcon />
+              <input
+                ref={searchRef}
+                type="search"
+                value={query}
+                onChange={(e) => onQueryChange(e.target.value)}
+                placeholder="Search templates..."
+                aria-label="Search assets"
+              />
+            </label>
+            <div className="asset-filter">
+              <span className="sr-only">Category</span>
+              <Select
+                classNamePrefix="asset-rs"
+                inputId="asset-category-filter"
+                aria-label="Filter by category"
+                options={categoryOptions}
+                value={selectedCategory}
+                onChange={(next: SingleValue<FilterOption>) => {
+                  if (next) onCategoryChange(next.value);
+                }}
+                isSearchable={false}
+                styles={filterSelectStyles}
+                menuPortalTarget={
+                  typeof document !== "undefined" ? document.body : null
+                }
+                menuPosition="fixed"
+              />
+            </div>
+            {category === "charts" ? (
+              <div className="asset-filter">
+                <span className="sr-only">Chart type</span>
+                <Select
+                  classNamePrefix="asset-rs"
+                  inputId="asset-chart-filter"
+                  aria-label="Filter by chart type"
+                  options={subcategoryOptions}
+                  value={selectedSubcategory}
+                  onChange={(next: SingleValue<FilterOption>) => {
+                    if (next) onSubcategoryChange(next.value);
+                  }}
+                  isSearchable={false}
+                  styles={filterSelectStyles}
+                  menuPortalTarget={
+                    typeof document !== "undefined" ? document.body : null
+                  }
+                  menuPosition="fixed"
+                />
+              </div>
+            ) : null}
+            <div className="asset-sort">
+              <span className="sr-only">Sort</span>
+              <Select
+                classNamePrefix="asset-rs"
+                inputId="asset-sort-filter"
+                aria-label="Sort assets"
+                options={sortOptions}
+                value={selectedSort}
+                onChange={(next: SingleValue<FilterOption>) => {
+                  if (next) onSortChange(next.value as AssetSort);
+                }}
+                isSearchable={false}
+                styles={sortSelectStyles}
+                menuPortalTarget={
+                  typeof document !== "undefined" ? document.body : null
+                }
+                menuPosition="fixed"
+              />
+            </div>
           </div>
-        ) : null}
-        <div className="asset-sort">
-          <span className="sr-only">Sort</span>
-          <Select
-            classNamePrefix="asset-rs"
-            inputId="asset-sort-filter"
-            aria-label="Sort assets"
-            options={sortOptions}
-            value={selectedSort}
-            onChange={(next: SingleValue<FilterOption>) => {
-              if (next) onSortChange(next.value as AssetSort);
-            }}
-            isSearchable={false}
-            styles={sortSelectStyles}
-            menuPortalTarget={
-              typeof document !== "undefined" ? document.body : null
-            }
-            menuPosition="fixed"
-          />
-        </div>
-      </div>
+        </>
       )}
 
       <div className="asset-board">
@@ -510,10 +575,11 @@ export function AssetGallery({
         ) : (
           <>
             <div className="asset-grid">
-              {visibleItems.map((asset) => (
+              {visibleItems.map((asset, index) => (
                 <AssetCard
                   key={asset.id}
                   asset={asset}
+                  index={index}
                   playing={playingId === asset.id}
                   highlighted={asset.id === highlightAssetId}
                   saved={savedIds.includes(asset.id)}
@@ -574,6 +640,7 @@ export function AssetGallery({
 
 function AssetCard({
   asset,
+  index,
   playing,
   highlighted,
   saved,
@@ -583,6 +650,7 @@ function AssetCard({
   onToggleSave,
 }: {
   asset: AssetDefinition;
+  index: number;
   playing: boolean;
   highlighted: boolean;
   saved: boolean;
@@ -604,7 +672,10 @@ function AssetCard({
   return (
     <article
       className={className}
-      style={{ ["--accent" as string]: asset.accent }}
+      style={{
+        ["--accent" as string]: asset.accent,
+        ["--card-delay" as string]: `${Math.min(index, 11) * 45}ms`,
+      }}
       onMouseEnter={onHoverStart}
       onMouseLeave={onHoverEnd}
       onFocus={onHoverStart}

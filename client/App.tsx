@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { PromptStudio } from "./ai/PromptStudio";
 import { AssetEditor } from "./assets/AssetEditor";
 import { AssetGallery } from "./assets/AssetGallery";
@@ -10,8 +11,8 @@ import {
 } from "./assets/savedAssets";
 import type { AssetDefinition } from "./assets/types";
 import { BoardApp } from "./board/BoardApp";
-import { BrandLogo } from "./BrandLogo";
 import { isBoardEnabled, useFeatureFlags } from "./featureFlags";
+import { AeNav, AeSparkIcon } from "./site/AeNav";
 import { readAppUrl, writeAppUrl, type AppTab, type AssetSort } from "./urlState";
 
 type ToastState = { message: string; id: number } | null;
@@ -39,7 +40,6 @@ export function App() {
     string | number
   > | null>(null);
   const [editorPropsSeed, setEditorPropsSeed] = useState(0);
-  const [menuOpen, setMenuOpen] = useState(false);
   const [savedIds, setSavedIds] = useState<string[]>(() => listSavedAssetIds());
   const [toast, setToast] = useState<ToastState>(null);
 
@@ -70,7 +70,6 @@ export function App() {
       setAssetSort(next.sort);
       setSelectedAsset(next.assetId ? getAssetById(next.assetId) || null : null);
       if (next.assetId) setLastAssetId(next.assetId);
-      setMenuOpen(false);
     }
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
@@ -81,24 +80,6 @@ export function App() {
     const t = window.setTimeout(() => setToast(null), 2600);
     return () => window.clearTimeout(t);
   }, [toast]);
-
-  useEffect(() => {
-    if (!menuOpen) return;
-    function onKey(event: KeyboardEvent) {
-      if (event.key === "Escape") setMenuOpen(false);
-    }
-    function onResize() {
-      if (window.matchMedia("(min-width: 961px)").matches) {
-        setMenuOpen(false);
-      }
-    }
-    window.addEventListener("keydown", onKey);
-    window.addEventListener("resize", onResize);
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      window.removeEventListener("resize", onResize);
-    };
-  }, [menuOpen]);
 
   function showToast(message: string) {
     setToast({ message, id: Date.now() });
@@ -130,22 +111,21 @@ export function App() {
 
   function goAssets() {
     setTab("assets");
+    setAssetCategory("all");
+    setChartSubcategory("all");
     setSelectedAsset(null);
-    setMenuOpen(false);
-    persist({ tab: "assets", assetId: null });
+    persist({ tab: "assets", category: "all", subcategory: "all", assetId: null });
   }
 
   function goSaved() {
     setTab("saved");
     setSelectedAsset(null);
-    setMenuOpen(false);
     persist({ tab: "saved", assetId: null });
   }
 
   function goBoard() {
     setTab("board");
     setSelectedAsset(null);
-    setMenuOpen(false);
     persist({ tab: "board", assetId: null });
   }
 
@@ -153,7 +133,6 @@ export function App() {
     setTab(next);
     setSelectedAsset(null);
     setEditorInitialProps(null);
-    setMenuOpen(false);
     persist({ tab: next, assetId: null });
   }
 
@@ -165,7 +144,6 @@ export function App() {
     setTab("prompt");
     setSelectedAsset(null);
     setEditorInitialProps(null);
-    setMenuOpen(false);
     persist({ tab: "prompt", assetId: null });
   }
 
@@ -181,7 +159,6 @@ export function App() {
     setEditorPropsSeed((n) => n + 1);
     setSelectedAsset(asset);
     setLastAssetId(asset.id);
-    setMenuOpen(false);
     const nextTab = tab === "saved" ? "saved" : "assets";
     setTab(nextTab);
     persist({ tab: nextTab, assetId: asset.id });
@@ -195,7 +172,6 @@ export function App() {
     setEditorPropsSeed((n) => n + 1);
     setSelectedAsset(asset);
     setLastAssetId(asset.id);
-    setMenuOpen(false);
     setTab("assets");
     persist({ tab: "assets", assetId: asset.id });
   }
@@ -245,60 +221,24 @@ export function App() {
 
   return (
     <div className="app studio">
-      <header className="studio-nav">
-        <button
-          type="button"
-          className="studio-brand"
-          onClick={goAssets}
-          aria-label="BestMotions home"
-        >
-          <BrandLogo className="studio-logo" />
-          <span className="studio-brand-copy">
-            <strong>BestMotions</strong>
-          </span>
-        </button>
+      <div className="studio-ambient" aria-hidden>
+        <span className="ambient-orb ambient-orb-a" />
+        <span className="ambient-orb ambient-orb-b" />
+        <span className="ambient-orb ambient-orb-c" />
+        <span className="ambient-sheen" />
+        <span className="ambient-spark spark-a" />
+        <span className="ambient-spark spark-b" />
+        <span className="ambient-spark spark-c" />
+        <span className="ambient-spark spark-d" />
+        <span className="ambient-grain" />
+      </div>
 
-        <nav className="studio-nav-links" aria-label="Main">
-          <button
-            type="button"
-            className={assetsOn ? "nav-link on" : "nav-link"}
-            onClick={goAssets}
-          >
-            Assets
-          </button>
-          <button
-            type="button"
-            className={savedOn ? "nav-link on" : "nav-link"}
-            onClick={goSaved}
-          >
-            Saved
-            {savedIds.length > 0 ? <em className="nav-count">{savedIds.length}</em> : null}
-          </button>
-          <button
-            type="button"
-            className={tab === "board" ? "nav-link on" : "nav-link"}
-            onClick={() => (boardEnabled ? goBoard() : goSoon("board"))}
-          >
-            Magic Board
-            {boardEnabled ? null : (
-              <span className="nav-soon">Coming soon</span>
-            )}
-          </button>
-          <button
-            type="button"
-            className={tab === "prompt" ? "nav-link on" : "nav-link"}
-            onClick={goPrompt}
-          >
-            AI
-            {aiEnabled ? null : (
-              <span className="nav-soon">Coming soon</span>
-            )}
-          </button>
-        </nav>
-
-        <div className="studio-nav-actions">
-          {(assetsOn || savedOn) && selectedAsset ? (
-            <div className="studio-crumb">
+      <AeNav
+        inviteTo="/app"
+        inviteLabel="Browse"
+        right={
+          (assetsOn || savedOn) && selectedAsset ? (
+            <div className="studio-crumb ae-nav-crumb">
               <button
                 type="button"
                 className="studio-link"
@@ -313,65 +253,111 @@ export function App() {
               <span aria-hidden>/</span>
               <strong>{selectedAsset.name}</strong>
             </div>
-          ) : null}
-          <button
-            type="button"
-            className={menuOpen ? "nav-burger on" : "nav-burger"}
-            aria-label={menuOpen ? "Close menu" : "Open menu"}
-            aria-expanded={menuOpen}
-            onClick={() => setMenuOpen((open) => !open)}
-          >
-            <span />
-            <span />
-            <span />
-          </button>
-        </div>
-      </header>
-
-      {menuOpen ? (
-        <div className="nav-drawer-root">
-          <button
-            type="button"
-            className="nav-drawer-scrim"
-            aria-label="Close menu"
-            onClick={() => setMenuOpen(false)}
-          />
-          <nav className="nav-drawer" aria-label="Main">
-            <p className="nav-drawer-label">Navigate</p>
+          ) : null
+        }
+        center={
+          <>
             <button
               type="button"
-              className={assetsOn ? "nav-drawer-link on" : "nav-drawer-link"}
+              className={tab === "prompt" ? "ae-nav-item on" : "ae-nav-item"}
+              onClick={goPrompt}
+            >
+              <AeSparkIcon />
+              <span>AI</span>
+              {aiEnabled ? (
+                <em className="ae-nav-meta">live</em>
+              ) : (
+                <em className="ae-nav-meta">soon</em>
+              )}
+            </button>
+            <button
+              type="button"
+              className={assetsOn ? "ae-nav-item on" : "ae-nav-item"}
               onClick={goAssets}
             >
               Assets
             </button>
             <button
               type="button"
-              className={savedOn ? "nav-drawer-link on" : "nav-drawer-link"}
+              className={savedOn ? "ae-nav-item on" : "ae-nav-item"}
               onClick={goSaved}
             >
-              Save for later
+              Saved
+              {savedIds.length > 0 ? (
+                <em className="ae-nav-meta">{savedIds.length}</em>
+              ) : null}
+            </button>
+            <button
+              type="button"
+              className={tab === "board" ? "ae-nav-item on" : "ae-nav-item"}
+              onClick={() => (boardEnabled ? goBoard() : goSoon("board"))}
+            >
+              Magic Board
+              {boardEnabled ? null : <em className="ae-nav-meta">soon</em>}
+            </button>
+            <Link to="/features" className="ae-nav-item">
+              Features
+            </Link>
+          </>
+        }
+        drawer={(close) => (
+          <>
+            <button
+              type="button"
+              className={tab === "prompt" ? "nav-drawer-link on" : "nav-drawer-link"}
+              onClick={() => {
+                goPrompt();
+                close();
+              }}
+            >
+              AI
+              {aiEnabled ? null : <span className="nav-soon">Coming soon</span>}
+            </button>
+            <button
+              type="button"
+              className={assetsOn ? "nav-drawer-link on" : "nav-drawer-link"}
+              onClick={() => {
+                goAssets();
+                close();
+              }}
+            >
+              Assets
+            </button>
+            <button
+              type="button"
+              className={savedOn ? "nav-drawer-link on" : "nav-drawer-link"}
+              onClick={() => {
+                goSaved();
+                close();
+              }}
+            >
+              Saved
               <em>{savedIds.length}</em>
             </button>
             <button
               type="button"
               className={tab === "board" ? "nav-drawer-link on" : "nav-drawer-link"}
-              onClick={() => (boardEnabled ? goBoard() : goSoon("board"))}
+              onClick={() => {
+                if (boardEnabled) goBoard();
+                else goSoon("board");
+                close();
+              }}
             >
               Magic Board
               {boardEnabled ? null : <span className="nav-soon">Coming soon</span>}
             </button>
-            <button
-              type="button"
-              className={tab === "prompt" ? "nav-drawer-link on" : "nav-drawer-link"}
-              onClick={goPrompt}
-            >
-              AI
-              {aiEnabled ? null : <span className="nav-soon">Coming soon</span>}
-            </button>
-          </nav>
-        </div>
-      ) : null}
+            <Link to="/features" className="nav-drawer-link" onClick={close}>
+              Features
+            </Link>
+            <Link to="/" className="nav-drawer-link" onClick={close}>
+              Home
+            </Link>
+            <Link to="/feedback" className="nav-drawer-link" onClick={close}>
+              Feedback
+            </Link>
+          </>
+        )}
+      />
 
       <div className="studio-body">
         {showSoon ? (

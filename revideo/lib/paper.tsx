@@ -4,6 +4,7 @@
  * sharp rectangular / 3D newspaper templates.
  */
 import { Line, Rect } from "@revideo/2d";
+import { isTransparentOverlay } from "./helpers";
 
 export const NEWS_INK = "#171310";
 export const NEWS_PAPER = "#f2e8d4";
@@ -261,6 +262,9 @@ export function ColumnRules(opts: {
 }
 
 export function DeskVignette() {
+  // Full-bleed desk plates would keep the design area opaque in overlay mode
+  // (only letterbox bands looked transparent). Skip them when overlay is on.
+  if (isTransparentOverlay()) return null;
   return (
     <>
       <Rect width={1600} height={980} fill={"#070706"} />

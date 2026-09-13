@@ -5,6 +5,7 @@ import {
   createRef,
   easeOutBack,
   easeOutCubic,
+  isTransparentOverlay,
   str,
   waitFor,
 } from "../../lib/helpers";
@@ -74,7 +75,9 @@ function* lowerThird(view: any) {
 
   const bar = createRef<Rect>();
   const card = createRef<Layout>();
-  yield view.add(<Rect width={1280} height={720} fill={"#101820"} />);
+  if (!isTransparentOverlay()) {
+    yield view.add(<Rect width={1280} height={720} fill={"#101820"} />);
+  }
   yield view.add(
     <Layout ref={card} y={220} opacity={0}>
       <Rect ref={bar} width={0} height={8} fill={accent} y={-48} />
@@ -160,7 +163,9 @@ function* newsTicker(view: any) {
   const t = timing();
   view.fill(bg);
 
-  yield view.add(<Rect width={1280} height={720} fill={"#121820"} />);
+  if (!isTransparentOverlay()) {
+    yield view.add(<Rect width={1280} height={720} fill={"#121820"} />);
+  }
   const strip = createRef<Layout>();
   const mark = createRef<Rect>();
   yield view.add(
