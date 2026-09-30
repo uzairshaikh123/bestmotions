@@ -29,6 +29,7 @@ import {
   estimateComposeSeconds,
   parseComposeJson,
 } from "../../shared/ai/compose";
+import { geocodeLocation } from "./geocode";
 
 type Props = {
   asset: AssetDefinition;
@@ -38,6 +39,11 @@ type Props = {
 };
 
 type ExportPhase = "idle" | "rendering" | "downloading" | "done";
+
+const DEFAULT_SCENE_BG = "#07090e";
+
+/** Catalog keys that mean “full-frame stage color” — hoisted into one Background control. */
+const STAGE_BG_KEYS = new Set(["bg", "deskColor"]);
 
 function settingsKey(
   assetId: string,
@@ -93,6 +99,7 @@ export function AssetEditor({ asset, onBack, initialProps = null }: Props) {
   const [props, setProps] = useState<Record<string, string | number>>(() => ({
     bgTransparent: "off",
     frameFormat: defaultFormatId(asset.category),
+    bg: DEFAULT_SCENE_BG,
     ...asset.defaults,
     ...(initialProps ?? {}),
   }));
@@ -110,6 +117,11 @@ export function AssetEditor({ asset, onBack, initialProps = null }: Props) {
     null,
   );
 
+  const hasDeskColor = useMemo(
+    () => asset.fields.some((field) => field.key === "deskColor"),
+    [asset.fields],
+  );
+
   const visibleFields = useMemo(
     () =>
       asset.fields.filter(
@@ -118,8 +130,13 @@ export function AssetEditor({ asset, onBack, initialProps = null }: Props) {
     [asset.fields, flags.videoSound],
   );
 
+  // Stage bg is edited by the dedicated Background control below — hide duplicates.
   const contentFields = useMemo(
-    () => visibleFields.filter((field) => !TIMING_FIELD_KEYS.has(field.key)),
+    () =>
+      visibleFields.filter(
+        (field) =>
+          !TIMING_FIELD_KEYS.has(field.key) && !STAGE_BG_KEYS.has(field.key),
+      ),
     [visibleFields],
   );
 
@@ -127,6 +144,15 @@ export function AssetEditor({ asset, onBack, initialProps = null }: Props) {
     () => visibleFields.filter((field) => TIMING_FIELD_KEYS.has(field.key)),
     [visibleFields],
   );
+
+  function setBackground(color: string) {
+    setProps((prev) => {
+      const next: Record<string, string | number> = { ...prev, bg: color };
+      if (hasDeskColor) next.deskColor = color;
+      return next;
+    });
+    setPhase((p) => (p === "done" ? "idle" : p));
+  }
 
   async function onImageChange(key: string, file: File | null) {
     if (!file) return;
@@ -148,14 +174,21 @@ export function AssetEditor({ asset, onBack, initialProps = null }: Props) {
       withFeatureFlagVariables(
         {
           template: asset.template,
+          bg: DEFAULT_SCENE_BG,
           ...props,
+          // Transparent: clear stage fill (lockTransparentStage) AND neutralize
+          // `bg` so full-bleed Rect/Img desks that sample it stay alpha too.
           ...(String(props.bgTransparent ?? "off") === "on"
-            ? { bg: "rgba(0,0,0,0)" }
+            ? {
+                bgTransparent: "on",
+                bg: "rgba(0,0,0,0)",
+                ...(hasDeskColor ? { deskColor: "rgba(0,0,0,0)" } : null),
+              }
             : null),
         },
         flags,
       ),
-    [asset.template, props, flags],
+    [asset.template, props, flags, hasDeskColor],
   );
 
   const [previewVariables, setPreviewVariables] = useState(variables);
@@ -165,6 +198,7 @@ export function AssetEditor({ asset, onBack, initialProps = null }: Props) {
     const merged = {
       bgTransparent: "off" as const,
       frameFormat,
+      bg: DEFAULT_SCENE_BG,
       ...asset.defaults,
       ...(initialProps ?? {}),
     };
@@ -202,17 +236,32 @@ export function AssetEditor({ asset, onBack, initialProps = null }: Props) {
     return asset.durationInFrames / Math.max(asset.fps, 1);
   }, [asset, props.composeJson]);
 
+  const sceneBg = String(props.bg ?? props.deskColor ?? DEFAULT_SCENE_BG);
+  const transparentBg = String(props.bgTransparent ?? "off") === "on";
+
+  // Remount when stage bg / transparency change — variable updates alone do not
+  // re-run scene generators, so the old opaque fill would stick on the canvas.
   const previewInstanceKey = useMemo(() => {
     const json = String(props.composeJson || "");
     let hash = 0;
     for (let i = 0; i < json.length; i++) {
       hash = (hash * 31 + json.charCodeAt(i)) | 0;
     }
-    return `editor-${asset.id}-${formatById(props.frameFormat ?? defaultFormatId(asset.category)).id}-${hash}`;
-  }, [asset.id, asset.category, props.composeJson, props.frameFormat]);
+    const formatId = formatById(
+      props.frameFormat ?? defaultFormatId(asset.category),
+    ).id;
+    const stageKey = transparentBg ? "alpha" : sceneBg;
+    return `editor-${asset.id}-${formatId}-${stageKey}-${hash}`;
+  }, [
+    asset.id,
+    asset.category,
+    props.composeJson,
+    props.frameFormat,
+    sceneBg,
+    transparentBg,
+  ]);
 
   const [exportedExt, setExportedExt] = useState<"mp4" | "webm">("mp4");
-  const transparentBg = String(props.bgTransparent ?? "off") === "on";
   const format = formatById(
     props.frameFormat ?? defaultFormatId(asset.category),
   );
@@ -402,17 +451,41 @@ export function AssetEditor({ asset, onBack, initialProps = null }: Props) {
               key={field.key}
               field={field}
               value={props[field.key]}
+              props={props}
               onChange={(v) => setField(field.key, v)}
+              onPatch={(patch) =>
+                setProps((prev) => ({
+                  ...prev,
+                  ...patch,
+                }))
+              }
               onImage={(file) => onImageChange(field.key, file)}
             />
           ))}
+
+          <label className="field">
+            <span>
+              Background
+              <small>
+                Full video frame color. Applies to every template. Turn on
+                Transparent overlay to clear this to alpha instead.
+              </small>
+            </span>
+            <input
+              type="color"
+              value={/^#[0-9a-fA-F]{6}$/.test(sceneBg) ? sceneBg : DEFAULT_SCENE_BG}
+              disabled={transparentBg}
+              onChange={(e) => setBackground(e.target.value)}
+              aria-label="Video background color"
+            />
+          </label>
 
           <div className="switch-field">
             <span>
               Transparent overlay
               <small>
-                Clears the full frame background for stacking. Exports as WebM
-                (Chrome / Edge). Safari can still export normal MP4 with this off.
+                Clears the black video frame (not just the outer letterbox) for
+                stacking. Exports as WebM with alpha (Chrome / Edge).
               </small>
             </span>
             <button
@@ -441,7 +514,14 @@ export function AssetEditor({ asset, onBack, initialProps = null }: Props) {
                       key={field.key}
                       field={field}
                       value={props[field.key]}
+                      props={props}
                       onChange={(v) => setField(field.key, v)}
+                      onPatch={(patch) =>
+                        setProps((prev) => ({
+                          ...prev,
+                          ...patch,
+                        }))
+                      }
                       onImage={(file) => onImageChange(field.key, file)}
                     />
                   ))
@@ -456,6 +536,7 @@ export function AssetEditor({ asset, onBack, initialProps = null }: Props) {
               setProps({
                 bgTransparent: "off",
                 frameFormat: defaultFormatId(asset.category),
+                bg: DEFAULT_SCENE_BG,
                 ...asset.defaults,
               });
               if (videoUrlRef.current) URL.revokeObjectURL(videoUrlRef.current);
@@ -529,12 +610,16 @@ export function AssetEditor({ asset, onBack, initialProps = null }: Props) {
 function FieldControl({
   field,
   value,
+  props,
   onChange,
+  onPatch,
   onImage,
 }: {
   field: AssetField;
   value: string | number | undefined;
+  props?: Record<string, string | number>;
   onChange: (value: string | number) => void;
+  onPatch?: (patch: Record<string, string | number>) => void;
   onImage: (file: File | null) => void;
 }) {
   const columns = field.type === "textarea" ? columnsForField(field) : null;
@@ -545,7 +630,7 @@ function FieldControl({
         ? undefined
         : field.hint;
 
-  const Tag = columns ? "div" : "label";
+  const Tag = columns || field.type === "location" ? "div" : "label";
 
   return (
     <Tag className="field">
@@ -577,6 +662,17 @@ function FieldControl({
           type="text"
           value={String(value ?? "")}
           onChange={(e) => onChange(e.target.value)}
+          placeholder={field.placeholder}
+        />
+      ) : null}
+
+      {field.type === "location" ? (
+        <LocationLookupField
+          value={String(value ?? "")}
+          lat={props?.lat}
+          lon={props?.lon}
+          onChange={onChange}
+          onPatch={onPatch}
           placeholder={field.placeholder}
         />
       ) : null}
@@ -626,6 +722,92 @@ function FieldControl({
         </div>
       ) : null}
     </Tag>
+  );
+}
+
+function LocationLookupField({
+  value,
+  lat,
+  lon,
+  onChange,
+  onPatch,
+  placeholder,
+}: {
+  value: string;
+  lat?: string | number;
+  lon?: string | number;
+  onChange: (value: string | number) => void;
+  onPatch?: (patch: Record<string, string | number>) => void;
+  placeholder?: string;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [ok, setOk] = useState<string | null>(null);
+
+  async function lookup() {
+    const q = value.trim();
+    if (!q || !onPatch) return;
+    setBusy(true);
+    setError(null);
+    setOk(null);
+    try {
+      const hit = await geocodeLocation(q);
+      if (!hit) {
+        setError("Place not found — try a city, village, or landmark.");
+        return;
+      }
+      onPatch({
+        locationQuery: q,
+        title: hit.name,
+        lat: Number(hit.lat.toFixed(5)),
+        lon: Number(hit.lon.toFixed(5)),
+        spanLat: Number(hit.spanLat.toFixed(3)),
+        subtitle: "Target locked",
+      });
+      setOk(`${hit.name} · ${hit.lat.toFixed(3)}, ${hit.lon.toFixed(3)}`);
+    } catch {
+      setError("Could not reach geocoder. Is the API server running?");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="location-field">
+      <div className="location-field-row">
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => {
+            setOk(null);
+            setError(null);
+            onChange(e.target.value);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              void lookup();
+            }
+          }}
+          placeholder={placeholder || "City, village, landmark…"}
+        />
+        <button
+          type="button"
+          className="secondary location-lookup-btn"
+          disabled={busy || !value.trim()}
+          onClick={() => void lookup()}
+        >
+          {busy ? "Scanning…" : "Find place"}
+        </button>
+      </div>
+      {ok ? <small className="location-ok">{ok}</small> : null}
+      {error ? <small className="location-err">{error}</small> : null}
+      {!ok && !error && (lat !== undefined || lon !== undefined) ? (
+        <small>
+          LAT {Number(lat || 0).toFixed(4)} · LON {Number(lon || 0).toFixed(4)}
+        </small>
+      ) : null}
+    </div>
   );
 }
 

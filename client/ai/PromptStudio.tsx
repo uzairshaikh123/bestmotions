@@ -25,7 +25,6 @@ const STYLES: { id: AiStyle; label: string }[] = [
   { id: "yt", label: "YouTube" },
   { id: "shorts", label: "Shorts" },
   { id: "books", label: "Books" },
-  { id: "3d", label: "3D" },
 ];
 
 const MODES: { id: AiCreateMode; label: string; hint: string }[] = [

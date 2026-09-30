@@ -40,6 +40,25 @@ export function PrivacyPage() {
           service.
         </p>
 
+        <h2>Analytics</h2>
+        <p>
+          If you accept analytics cookies, we use Google Analytics 4 to measure
+          site traffic (for example, page views and approximate location derived
+          by Google). We configure it with Consent Mode, IP anonymization, and
+          advertising / remarketing signals turned off. If you reject analytics
+          cookies, we do not send measurement events. You can change your choice
+          anytime via the Cookies control on the site. Google&apos;s processing
+          of this data is described in{" "}
+          <a
+            href="https://policies.google.com/privacy"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Google&apos;s Privacy Policy
+          </a>
+          .
+        </p>
+
         <h2>Contact</h2>
         <p>
           Questions about privacy can be sent through our{" "}

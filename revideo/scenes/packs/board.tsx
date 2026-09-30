@@ -10,7 +10,9 @@ import {
   barRects,
   chartProgress,
   elementSize,
+  highlightLayout,
   linePoints,
+  markProgress,
   parseChartPairs,
   parseBoardDocument,
   pieSlices,
@@ -327,14 +329,42 @@ function shapeVisual(el: BoardElement, size: { width: number; height: number }) 
     );
   }
   if (el.type === "text") {
+    const layout = highlightLayout(el);
+    const progress = markProgress(el, null, false);
+    const fontSize = el.fontSize || 28;
+    const markW = layout ? layout.midW * progress : 0;
     return (
-      <Txt
-        text={el.content || ""}
-        fontSize={el.fontSize || 28}
-        fontFamily={"Sora, Segoe UI, sans-serif"}
-        fill={fill}
-        width={w}
-      />
+      <Node>
+        {layout && (layout.style === "highlight" || layout.style === "both") && markW > 0 ? (
+          <Rect
+            width={markW + 4}
+            height={Math.max(10, fontSize * 0.92)}
+            fill={layout.color}
+            opacity={0.55}
+            x={-w / 2 + layout.beforeW + markW / 2}
+            y={-fontSize * 0.15}
+            radius={2}
+          />
+        ) : null}
+        <Txt
+          text={el.content || ""}
+          fontSize={fontSize}
+          fontFamily={"Sora, Segoe UI, sans-serif"}
+          fill={fill}
+          width={w}
+        />
+        {layout && (layout.style === "underline" || layout.style === "both") && markW > 0 ? (
+          <Line
+            points={[
+              [-w / 2 + layout.beforeW, fontSize * 0.55],
+              [-w / 2 + layout.beforeW + markW, fontSize * 0.55],
+            ]}
+            stroke={layout.color}
+            lineWidth={Math.max(2, fontSize * 0.08)}
+            lineCap={"round"}
+          />
+        ) : null}
+      </Node>
     );
   }
   if (el.type === "image") {
@@ -350,25 +380,60 @@ function shapeVisual(el: BoardElement, size: { width: number; height: number }) 
     const accent =
       typeof el.variables?.accent === "string" ? el.variables.accent : fill;
     const bg =
-      typeof el.variables?.bg === "string" ? String(el.variables.bg) : fill || "#111827";
+      typeof el.variables?.bg === "string"
+        ? String(el.variables.bg)
+        : typeof el.variables?.paperColor === "string"
+          ? String(el.variables.paperColor)
+          : fill || "#111827";
+    const headline =
+      typeof el.variables?.headline === "string"
+        ? String(el.variables.headline)
+        : typeof el.variables?.title === "string"
+          ? String(el.variables.title)
+          : el.name || "Template";
+    const highlight =
+      typeof el.variables?.highlight === "string" ? String(el.variables.highlight) : "";
+    const marker =
+      typeof el.variables?.markerColor === "string"
+        ? String(el.variables.markerColor)
+        : "#FAFF00";
     return (
       <Node>
         <Rect width={w} height={h} fill={bg} radius={10} />
         <Rect width={6} height={h - 24} fill={accent} x={-w / 2 + 16} radius={2} />
         <Txt
-          text={el.name || "Template"}
+          text={headline.slice(0, 72)}
           fill={"#f4f0e6"}
-          fontSize={22}
-          fontFamily={"Sora, Segoe UI, sans-serif"}
-          y={-8}
+          fontSize={20}
+          fontFamily={"Libre Baskerville, Georgia, serif"}
+          y={-12}
+          width={w - 48}
         />
-        <Txt
-          text={"Frontpage template"}
-          fill={"#9aa0b4"}
-          fontSize={14}
-          fontFamily={"Sora, Segoe UI, sans-serif"}
-          y={18}
-        />
+        {highlight ? (
+          <Node y={22}>
+            <Rect
+              width={Math.min(w - 56, highlight.length * 9 + 16)}
+              height={22}
+              fill={marker}
+              opacity={0.55}
+              radius={2}
+            />
+            <Txt
+              text={highlight.slice(0, 40)}
+              fill={"#1a1433"}
+              fontSize={13}
+              fontFamily={"Sora, Segoe UI, sans-serif"}
+            />
+          </Node>
+        ) : (
+          <Txt
+            text={el.name || "Frontpage template"}
+            fill={"#9aa0b4"}
+            fontSize={14}
+            fontFamily={"Sora, Segoe UI, sans-serif"}
+            y={18}
+          />
+        )}
       </Node>
     );
   }

@@ -1,10 +1,12 @@
 /** @jsxImportSource @revideo/2d/lib */
 import { Circle, Layout, Rect, Txt } from "@revideo/2d";
+import { easeInOutCubic } from "@revideo/core";
 import {
   all,
   createRef,
   easeOutBack,
   easeOutCubic,
+  applySceneBackground,
   num,
   str,
   waitFor,
@@ -428,6 +430,122 @@ function* progressRing(view: any) {
   yield* waitFor(1.2);
 }
 
+/**
+ * Nitish-style exact-date lower third: auto-spaced year rail + date callout.
+ * Change endYear + yearGap and the rail regenerates; box slides in/out.
+ */
+function* exactDateRail(view: any) {
+  const dateLabel = str("dateLabel", "19 January 1943");
+  const endYear = Math.round(num("endYear", 1945));
+  const gap = Math.max(1, Math.round(num("yearGap", 5)));
+  const yearCount = Math.max(3, Math.min(13, Math.round(num("yearCount", 7))));
+  const yearColor = str("yearColor", "#ffffff");
+  const dateColor = str("dateColor", "#ffffff");
+  const boxTop = str("boxTop", "#1e4fd8");
+  const boxBottom = str("boxBottom", "#0a0a0a");
+  const solidOnly = str("solidOnly", "off").trim().toLowerCase() === "on";
+  const boxFill = str("boxFill", boxTop);
+  const lineColor = str("lineColor", "#ffffff");
+  const accent = str("accent", "#ffffff");
+  const bg = str("bg", "#05070b");
+  const fontFamily = str("fontFamily", "Sora, Helvetica, sans-serif");
+  const boxOffset = num("boxOffset", 0);
+  const railY = 210;
+  const t = timing();
+  const hold = Math.max(0.2, num("hold", 1.4));
+  const animateOut = str("animateOut", "on").trim().toLowerCase() !== "off";
+
+  applySceneBackground(view, bg);
+
+  const years = Array.from(
+    { length: yearCount },
+    (_, i) => endYear - (yearCount - 1 - i) * gap,
+  );
+  const railW = 980;
+  const leftX = -railW / 2;
+  const stepX = railW / Math.max(yearCount - 1, 1);
+  const markerX = leftX + (yearCount - 1) * stepX;
+  const boxX = markerX + boxOffset;
+  const boxW = Math.max(240, dateLabel.length * 13 + 56);
+
+  const root = createRef<Layout>();
+  yield view.add(<Layout ref={root} y={40} opacity={0} x={-90} />);
+
+  yield root().add(<Rect width={railW} height={2} fill={lineColor} y={railY} opacity={0.85} />);
+
+  for (let i = 0; i < years.length; i++) {
+    const x = leftX + i * stepX;
+    const isEnd = i === yearCount - 1;
+    yield root().add(
+      <Rect width={isEnd ? 3 : 2} height={isEnd ? 18 : 12} fill={yearColor} x={x} y={railY - (isEnd ? 9 : 6)} />,
+    );
+    yield root().add(
+      <Txt
+        text={String(years[i])}
+        fill={yearColor}
+        fontFamily={fontFamily}
+        fontSize={isEnd ? 22 : 18}
+        fontWeight={isEnd ? 700 : 500}
+        x={x}
+        y={railY + 28}
+        opacity={isEnd ? 1 : 0.72}
+      />,
+    );
+  }
+
+  yield root().add(
+    <Rect width={2} height={96} fill={accent} x={markerX} y={railY - 56} opacity={0.95} />,
+  );
+  yield root().add(<Circle size={10} fill={accent} x={markerX} y={railY} />);
+
+  // Date plate — bottom fill + top band approximates the AE gradient box
+  yield root().add(
+    <Rect
+      width={boxW}
+      height={56}
+      fill={solidOnly ? boxFill : boxBottom}
+      x={boxX}
+      y={railY - 130}
+      radius={4}
+    />,
+  );
+  if (!solidOnly) {
+    yield root().add(
+      <Rect width={boxW} height={30} fill={boxTop} x={boxX} y={railY - 143} radius={4} />,
+    );
+  }
+  // Small pointer notch under the plate
+  yield root().add(
+    <Rect width={14} height={14} fill={solidOnly ? boxFill : boxBottom} x={markerX} y={railY - 100} rotation={45} />,
+  );
+  yield root().add(
+    <Txt
+      text={dateLabel}
+      fill={dateColor}
+      fontFamily={fontFamily}
+      fontSize={26}
+      fontWeight={700}
+      x={boxX}
+      y={railY - 130}
+    />,
+  );
+
+  yield* pause(t.startDelay);
+  yield* all(
+    root().opacity(1, t.revealDuration, easeOutCubic),
+    root().x(0, t.lineDuration, easeOutCubic),
+  );
+  yield* waitFor(hold);
+  if (animateOut) {
+    yield* all(
+      root().opacity(0, t.revealDuration * 0.9, easeOutCubic),
+      root().x(70, t.lineDuration * 0.85, easeInOutCubic),
+    );
+  } else {
+    yield* waitFor(0.35);
+  }
+}
+
 /** Split-screen chapters: huge year left, title right, color wipe. */
 function* chapterWipe(view: any) {
   const eyebrow = str("title", "Chapters");
@@ -492,6 +610,9 @@ export function* runTimeline(view: any, template: string) {
     case "timeline-chapters":
     case "timeline-photo-chapters":
       yield* chapterWipe(view);
+      break;
+    case "timeline-exact-date":
+      yield* exactDateRail(view);
       break;
     default:
       yield* verticalSpine(view);

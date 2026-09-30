@@ -30,7 +30,15 @@ export type MotionPreset =
   | "flash"
   | "nod"
   | "loopPulse"
-  | "loopSpin";
+  | "loopSpin"
+  | "highlightSweep"
+  | "underlineDraw"
+  | "markerFlash"
+  | "voxPushIn"
+  | "voxParallax"
+  | "voxFocusDim";
+
+export type MarkStyle = "none" | "highlight" | "underline" | "both";
 
 export type ChartKind = "bar" | "pie" | "line" | "stat";
 
@@ -105,6 +113,10 @@ export type BoardElement = {
   src?: string;
   visible?: boolean;
   locked?: boolean;
+  /** Phrase inside content to mark (newspaper highlighter). */
+  highlight?: string;
+  markStyle?: MarkStyle;
+  markerColor?: string;
   motion?: ElementMotion;
   keyframes?: PoseKeyframe[];
   chartKind?: ChartKind;

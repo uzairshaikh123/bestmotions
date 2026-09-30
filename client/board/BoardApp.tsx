@@ -107,6 +107,15 @@ export function BoardApp({ onHome }: Props) {
         board.addKeyframe(board.selectedId, previewTime);
         board.extendComposition(previewTime);
       }
+      if (
+        (e.ctrlKey || e.metaKey) &&
+        e.shiftKey &&
+        e.key.toLowerCase() === "m" &&
+        board.selectedIds.length >= 2
+      ) {
+        e.preventDefault();
+        board.mergeAnimations();
+      }
       if (e.code === "Space" && target?.tagName !== "BUTTON") {
         e.preventDefault();
         togglePlay();
@@ -256,6 +265,7 @@ export function BoardApp({ onHome }: Props) {
         onHome={onHome}
         onFit={fit}
         onZoomStep={(dir) => zoomAroundCenter(editorZoom + dir * 0.1)}
+        onNew={board.newBoard}
         onBackground={(color) =>
           board.replaceDoc({
             ...board.doc,
@@ -279,7 +289,13 @@ export function BoardApp({ onHome }: Props) {
 
         <div className="mb-center">
           <div className="mb-stage-wrap">
-            {selected ? (
+            {Object.keys(board.doc.elements).length === 0 ? (
+              <div className="mb-empty-hint" aria-hidden>
+                <strong>Empty canvas</strong>
+                <span>Drop assets from the library or add shapes and text to begin.</span>
+              </div>
+            ) : null}
+            {selected || board.selectedIds.length > 1 ? (
               <div className="mb-context">
                 <button
                   type="button"
@@ -292,15 +308,17 @@ export function BoardApp({ onHome }: Props) {
                 <button type="button" title="Crop" onClick={() => board.setTool("select")}>
                   <Icon name="crop" />
                 </button>
-                <button
-                  type="button"
-                  title={selected.locked ? "Unlock" : "Lock"}
-                  onClick={() =>
-                    board.updateElement(selected.id, { locked: !selected.locked })
-                  }
-                >
-                  <Icon name={selected.locked ? "lock" : "unlock"} />
-                </button>
+                {selected ? (
+                  <button
+                    type="button"
+                    title={selected.locked ? "Unlock" : "Lock"}
+                    onClick={() =>
+                      board.updateElement(selected.id, { locked: !selected.locked })
+                    }
+                  >
+                    <Icon name={selected.locked ? "lock" : "unlock"} />
+                  </button>
+                ) : null}
                 <button
                   type="button"
                   title="Text"
@@ -314,16 +332,28 @@ export function BoardApp({ onHome }: Props) {
                   className="mb-context-label"
                   onClick={board.groupSelected}
                   disabled={board.selectedIds.length < 2}
+                  title="Group selected"
                 >
                   Group
                 </button>
                 <button
                   type="button"
-                  title="Delete"
-                  onClick={() => board.removeElement(selected.id)}
+                  className="mb-context-label"
+                  onClick={() => board.mergeAnimations()}
+                  disabled={board.selectedIds.length < 2}
+                  title="Copy first selection's animation onto the others (Ctrl+Shift+M)"
                 >
-                  <Icon name="trash" />
+                  Merge anim
                 </button>
+                {selected ? (
+                  <button
+                    type="button"
+                    title="Delete"
+                    onClick={() => board.removeElement(selected.id)}
+                  >
+                    <Icon name="trash" />
+                  </button>
+                ) : null}
               </div>
             ) : null}
             <BoardCanvas

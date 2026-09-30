@@ -7,6 +7,7 @@ export type {
   CameraState,
   ChartKind,
   ElementType,
+  MarkStyle,
   MotionPreset,
   PoseKeyframe,
   TransitionIn,
@@ -39,13 +40,22 @@ export type { ElementMotion, MotionPhase, Pose } from "./types";
 export {
   CAMERA_MOVES,
   EMPHASIS_PRESETS,
+  HIGHLIGHT_PRESETS,
   IN_PRESETS,
   LOOP_PRESETS,
   OUT_PRESETS,
+  VOX_PRESETS,
   applyPreset,
   formatClock,
   poseAtTime,
 } from "./motion";
+export {
+  highlightLayout,
+  markProgress,
+  measureGlyphs,
+  splitPhrase,
+} from "./highlight";
+export type { HighlightLayout } from "./highlight";
 export {
   cameraLayerTransform,
   cameraViewportWorld,

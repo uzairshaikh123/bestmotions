@@ -102,6 +102,37 @@ export function applyPreset(
       return { ...rest, rotation: rest.rotation + 12 * Math.sin(rawT * Math.PI * 2) };
     case "loopSpin":
       return { ...rest, rotation: rest.rotation + 360 * rawT };
+    case "highlightSweep":
+    case "underlineDraw":
+      return { ...rest, opacity: rest.opacity * Math.min(1, 0.35 + u * 0.65) };
+    case "markerFlash":
+      return {
+        ...rest,
+        opacity:
+          rest.opacity *
+          (0.55 + 0.45 * Math.abs(Math.sin(rawT * Math.PI * 2.5))),
+        scale: 1 + 0.03 * wave,
+      };
+    case "voxPushIn":
+      return {
+        ...rest,
+        scale: 0.82 + 0.18 * u,
+        y: rest.y + 28 * (1 - u),
+        opacity: rest.opacity * Math.min(1, u * 1.35),
+      };
+    case "voxParallax":
+      return {
+        ...rest,
+        x: rest.x - 36 * (1 - u),
+        scale: 0.92 + 0.08 * u,
+        opacity: rest.opacity * Math.min(1, 0.4 + u),
+      };
+    case "voxFocusDim":
+      return {
+        ...rest,
+        opacity: rest.opacity * (0.28 + 0.72 * u),
+        scale: 0.96 + 0.04 * u,
+      };
     default:
       return rest;
   }
@@ -131,6 +162,18 @@ export const EMPHASIS_PRESETS: { id: MotionPreset; label: string }[] = [
   { id: "pulse", label: "Pulse" },
   { id: "wobble", label: "Wobble" },
   { id: "flash", label: "Flash" },
+];
+
+export const HIGHLIGHT_PRESETS: { id: MotionPreset; label: string }[] = [
+  { id: "highlightSweep", label: "Highlight Sweep" },
+  { id: "underlineDraw", label: "Underline Draw" },
+  { id: "markerFlash", label: "Marker Flash" },
+];
+
+export const VOX_PRESETS: { id: MotionPreset; label: string }[] = [
+  { id: "voxPushIn", label: "Vox Push In" },
+  { id: "voxParallax", label: "Vox Parallax" },
+  { id: "voxFocusDim", label: "Vox Focus" },
 ];
 
 export const OUT_PRESETS: { id: MotionPreset; label: string }[] = [

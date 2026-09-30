@@ -1,4 +1,4 @@
-import { getPlace } from "./earth";
+import { getPlace } from "./places";
 
 export type MapStyle = "satellite" | "street" | "topo" | "dark";
 
@@ -9,6 +9,10 @@ export type BBox = {
   north: number;
 };
 
+/**
+ * Same-origin `/api/...` so Vite's proxy hits the Node server.
+ * Absolute :3001 URLs often hang the Revideo Img loader (CORS / mixed fail).
+ */
 function apiBase(): string {
   try {
     const fromEnv = String(
@@ -19,13 +23,8 @@ function apiBase(): string {
   } catch {
     /* ignore */
   }
-  if (typeof window !== "undefined") {
-    const { protocol, hostname } = window.location;
-    if (hostname === "localhost" || hostname === "127.0.0.1") {
-      return `${protocol}//${hostname}:3001`;
-    }
-    return "";
-  }
+  // Browser preview: always same-origin (proxied). Node export: localhost API.
+  if (typeof window !== "undefined") return "";
   return "http://localhost:3001";
 }
 
@@ -106,4 +105,6 @@ export const ZOOM_SPANS = {
   metro: 0.55,
   city: 0.22,
   street: 0.07,
+  /** Landmark / building close-up (India Gate, Taj, etc.) */
+  landmark: 0.018,
 } as const;

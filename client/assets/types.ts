@@ -4,7 +4,8 @@ export type FieldType =
   | "color"
   | "select"
   | "image"
-  | "number";
+  | "number"
+  | "location";
 
 export type AssetFieldColumn = {
   label: string;
@@ -27,7 +28,6 @@ export type AssetField = {
 
 export type AssetCategory =
   | "maps"
-  | "3d"
   | "text"
   | "photos"
   | "charts"
@@ -46,7 +46,9 @@ export type AssetCategory =
   | "crime"
   | "documentary"
   | "hooks"
-  | "social";
+  | "social"
+  | "ai"
+  | "search";
 
 export type AssetDefinition = {
   id: string;
@@ -61,6 +63,10 @@ export type AssetDefinition = {
   defaults: Record<string, string | number>;
   accent: string;
   subcategory?: string;
+  /** Gallery “NEW” badge for templates added recently */
+  isNew?: boolean;
+  /** Extra search keywords (place names, synonyms, styles) */
+  tags?: string[];
   /** Passed to the Revideo scene as `template` */
   template: string;
 };

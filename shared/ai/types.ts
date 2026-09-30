@@ -6,8 +6,7 @@ export type AiStyle =
   | "map"
   | "yt"
   | "shorts"
-  | "books"
-  | "3d";
+  | "books";
 
 export type AiAspect = "16:9" | "9:16";
 

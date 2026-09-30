@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BestMotions — Cinematic Satellite Engine</title>
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --amber: #f59e0b;
+      --panel: rgba(15, 23, 42, 0.62);
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0; width: 100%; height: 100%;
+      font-family: Inter, system-ui, sans-serif;
+      background: #000; overflow: hidden; color: #f8fafc;
+    }
+    #map {
+      position: absolute; inset: 0; z-index: 1; background: #000;
+    }
+    .glass-panel {
+      position: absolute; top: 1.5rem; left: 1.5rem; z-index: 1000;
+      width: min(360px, calc(100vw - 3rem));
+      padding: 1.5rem 1.6rem;
+      background: var(--panel);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+    }
+    .brand {
+      display: flex; align-items: center; gap: 0.5rem;
+      font-size: 1.65rem; font-weight: 600; letter-spacing: -0.02em; margin: 0;
+    }
+    .pulse-dot {
+      width: 8px; height: 8px; border-radius: 50%; background: var(--amber);
+      box-shadow: 0 0 10px var(--amber); animation: blink 1.4s ease-in-out infinite;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; } 50% { opacity: 0.35; }
+    }
+    .eyebrow {
+      margin: 0.35rem 0 1.25rem;
+      font-size: 0.68rem; letter-spacing: 0.18em; text-transform: uppercase; color: #94a3b8;
+    }
+    label.field-label {
+      display: block; font-size: 0.7rem; font-weight: 500; color: #cbd5e1; margin-bottom: 0.4rem;
+    }
+    .search-input {
+      width: 100%;
+      background: rgba(0,0,0,0.4);
+      border: 1px solid rgba(255,255,255,0.15);
+      color: #fff; padding: 0.75rem 1rem; border-radius: 10px; font-size: 0.95rem; outline: none;
+      transition: border-color 0.25s, box-shadow 0.25s;
+    }
+    .search-input:focus {
+      border-color: var(--amber);
+      box-shadow: 0 0 16px rgba(245, 158, 11, 0.28);
+      background: rgba(0,0,0,0.55);
+    }
+    .search-btn {
+      margin-top: 0.7rem; width: 100%;
+      display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+      padding: 0.75rem; border: none; border-radius: 10px; cursor: pointer;
+      font-weight: 600; color: #fff;
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      transition: transform 0.15s, box-shadow 0.2s;
+    }
+    .search-btn:hover { transform: translateY(-1px); box-shadow: 0 10px 18px -4px rgba(245,158,11,0.4); }
+    .search-btn:active { transform: translateY(1px); }
+    .search-btn:disabled { opacity: 0.7; cursor: wait; }
+    .details {
+      margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1);
+    }
+    .details.hidden { display: none; }
+    .details .meta { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: #94a3b8; margin: 0; }
+    .details .name { margin: 0.35rem 0 0; color: #fbbf24; font-size: 0.92rem; font-weight: 500; line-height: 1.3; }
+    .coords { display: flex; gap: 1.25rem; margin-top: 0.65rem; }
+    .coords span { display: block; font-size: 0.62rem; text-transform: uppercase; color: #64748b; }
+    .coords p { margin: 0.15rem 0 0; font-family: ui-monospace, Consolas, monospace; font-size: 0.78rem; color: #cbd5e1; }
+    #toast {
+      position: absolute; bottom: 2rem; left: 50%; z-index: 1000;
+      transform: translateX(-50%) translateY(100px);
+      background: rgba(220, 38, 38, 0.92); color: #fff;
+      padding: 0.7rem 1.4rem; border-radius: 999px; font-size: 0.88rem; font-weight: 500;
+      opacity: 0; pointer-events: none;
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      backdrop-filter: blur(8px);
+    }
+    #toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+    #toast.success { background: rgba(16, 185, 129, 0.92); }
+    .loader {
+      width: 16px; height: 16px; border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.25); border-left-color: #fff;
+      animation: spin 0.9s linear infinite; display: none;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .target-marker-container {
+      position: relative; width: 24px; height: 24px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .marker-core {
+      width: 12px; height: 12px; border-radius: 50%; background: var(--amber);
+      box-shadow: 0 0 10px var(--amber), 0 0 22px var(--amber); z-index: 2;
+    }
+    .marker-ring {
+      position: absolute; width: 40px; height: 40px; border-radius: 50%;
+      border: 2px solid var(--amber); box-sizing: border-box;
+      animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+    }
+    @keyframes pulse-ring {
+      from { transform: scale(0.5); opacity: 1; }
+      to { transform: scale(2.5); opacity: 0; }
+    }
+    .leaflet-control-zoom { border: none !important; box-shadow: 0 4px 10px rgba(0,0,0,0.45) !important; }
+    .leaflet-control-zoom a {
+      background: rgba(15, 23, 42, 0.85) !important; color: #cbd5e1 !important;
+      border: 1px solid rgba(255,255,255,0.1) !important;
+    }
+    .leaflet-control-attribution {
+      background: rgba(0,0,0,0.5) !important; color: #94a3b8 !important;
+    }
+    .leaflet-control-attribution a { color: var(--amber) !important; }
+    .studio-link {
+      display: inline-block; margin-top: 0.85rem;
+      font-size: 0.72rem; color: #94a3b8; text-decoration: none;
+    }
+    .studio-link:hover { color: var(--amber); }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <div class="glass-panel">
+    <h1 class="brand">BestMotions <span class="pulse-dot" aria-hidden="true"></span></h1>
+    <p class="eyebrow">Cinematic Satellite Engine</p>
+
+    <label class="field-label" for="location-search">Target location</label>
+    <input
+      id="location-search"
+      class="search-input"
+      type="text"
+      placeholder="City, village, landmark…"
+      autocomplete="off"
+    />
+    <button id="search-btn" class="search-btn" type="button">
+      <span id="btn-text">Initiate Scan</span>
+      <span id="btn-loader" class="loader" aria-hidden="true"></span>
+    </button>
+
+    <div id="location-details" class="details hidden">
+      <p class="meta">Acquired target</p>
+      <p id="display-name" class="name"></p>
+      <div class="coords">
+        <div>
+          <span>Lat</span>
+          <p id="display-lat"></p>
+        </div>
+        <div>
+          <span>Lon</span>
+          <p id="display-lon"></p>
+        </div>
+      </div>
+    </div>
+
+    <a class="studio-link" href="/app">Open studio templates →</a>
+  </div>
+
+  <div id="toast">Location not found.</div>
+
+  <script>
+    const map = L.map("map", { zoomControl: false }).setView([20.5937, 78.9629], 4);
+    L.control.zoom({ position: "topright" }).addTo(map);
+    L.tileLayer(
+      "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      {
+        attribution:
+          'Tiles &copy; Esri — Source: Esri, Maxar, Earthstar Geographics &amp; others',
+        maxZoom: 18,
+      },
+    ).addTo(map);
+
+    let currentMarker = null;
+    const searchInput = document.getElementById("location-search");
+    const searchBtn = document.getElementById("search-btn");
+    const btnText = document.getElementById("btn-text");
+    const btnLoader = document.getElementById("btn-loader");
+    const toast = document.getElementById("toast");
+    const detailsPanel = document.getElementById("location-details");
+
+    const glowingIcon = L.divIcon({
+      className: "custom-div-icon",
+      html:
+        '<div class="target-marker-container" style="margin-left:-12px;margin-top:-12px;">' +
+        '<div class="marker-ring"></div><div class="marker-core"></div></div>',
+      iconSize: [24, 24],
+      iconAnchor: [12, 12],
+    });
+
+    function showToast(message, type) {
+      toast.textContent = message;
+      toast.className = type === "success" ? "show success" : "show";
+      setTimeout(() => toast.classList.remove("show", "success"), 3000);
+    }
+
+    function setLoading(on) {
+      btnText.style.display = on ? "none" : "block";
+      btnLoader.style.display = on ? "block" : "none";
+      searchBtn.disabled = on;
+    }
+
+    function zoomFromSpan(spanLat) {
+      if (spanLat > 8) return 5;
+      if (spanLat > 2.4) return 7;
+      if (spanLat > 0.55) return 10;
+      if (spanLat > 0.2) return 13;
+      return 16;
+    }
+
+    async function geocode(query) {
+      try {
+        const res = await fetch("/api/geocode?q=" + encodeURIComponent(query));
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.ok) {
+            return {
+              lat: data.lat,
+              lon: data.lon,
+              name: data.name || data.displayName,
+              zoom: zoomFromSpan(Number(data.spanLat) || 0.55),
+            };
+          }
+        }
+      } catch (_) { /* fall through */ }
+
+      const res = await fetch(
+        "https://nominatim.openstreetmap.org/search?format=json&limit=1&q=" +
+          encodeURIComponent(query),
+        { headers: { Accept: "application/json" } },
+      );
+      const data = await res.json();
+      if (!data || !data.length) return null;
+      const place = data[0];
+      let zoom = 15;
+      if (place.boundingbox) {
+        const latDiff = Math.abs(parseFloat(place.boundingbox[0]) - parseFloat(place.boundingbox[1]));
+        if (latDiff > 5) zoom = 5;
+        else if (latDiff > 1) zoom = 8;
+        else if (latDiff > 0.1) zoom = 12;
+        else zoom = 16;
+      }
+      return {
+        lat: parseFloat(place.lat),
+        lon: parseFloat(place.lon),
+        name: String(place.display_name || query).split(",").slice(0, 3).join(","),
+        zoom,
+      };
+    }
+
+    async function searchLocation() {
+      const query = searchInput.value.trim();
+      if (!query) return;
+      setLoading(true);
+      detailsPanel.classList.add("hidden");
+      try {
+        const place = await geocode(query);
+        if (!place) {
+          showToast("Location not found. Try a different term.");
+          return;
+        }
+        if (currentMarker) map.removeLayer(currentMarker);
+        map.flyTo([place.lat, place.lon], place.zoom, {
+          animate: true,
+          duration: 4.5,
+          easeLinearity: 0.15,
+        });
+        currentMarker = L.marker([place.lat, place.lon], { icon: glowingIcon }).addTo(map);
+        document.getElementById("display-name").textContent = place.name;
+        document.getElementById("display-lat").textContent = place.lat.toFixed(4);
+        document.getElementById("display-lon").textContent = place.lon.toFixed(4);
+        setTimeout(() => {
+          detailsPanel.classList.remove("hidden");
+          showToast("Target Locked.", "success");
+        }, 4500);
+      } catch (err) {
+        console.error(err);
+        showToast("Error connecting to satellite network.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    searchBtn.addEventListener("click", searchLocation);
+    searchInput.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") searchLocation();
+    });
+
+    let idleTimeout;
+    map.on("moveend", () => {
+      clearTimeout(idleTimeout);
+      idleTimeout = setTimeout(() => {
+        if (!currentMarker) {
+          const c = map.getCenter();
+          map.panTo([c.lat, c.lng + 2], { animate: true, duration: 30, easeLinearity: 1 });
+        }
+      }, 10000);
+    });
+    map.on("dragstart", () => clearTimeout(idleTimeout));
+    map.on("zoomstart", () => clearTimeout(idleTimeout));
+  </script>
+</body>
+</html>

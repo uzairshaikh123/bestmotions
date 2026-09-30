@@ -3,14 +3,17 @@ import {
   CAMERA_MOVES,
   EMPHASIS_PRESETS,
   formatClock,
+  HIGHLIGHT_PRESETS,
   IN_PRESETS,
   KEYFRAME_HIT_MS,
   LOOP_PRESETS,
   OUT_PRESETS,
   poseAtTime,
   sortKeyframes,
+  VOX_PRESETS,
   type BoardEasing,
   type BoardElement,
+  type MarkStyle,
   type MotionPhase,
   type MotionPreset,
   type TransitionIn,
@@ -31,6 +34,20 @@ function toHex(color: string): string {
   if (/^#[0-9a-fA-F]{6}$/.test(color)) return color;
   return "#7c5cfc";
 }
+
+const TEMPLATE_FIELD_KEYS = [
+  "headline",
+  "title",
+  "highlight",
+  "body",
+  "quote",
+  "markerColor",
+  "paperColor",
+  "bg",
+  "accent",
+  "ink",
+  "markStyle",
+] as const;
 
 function PresetButton({
   id,
@@ -67,14 +84,14 @@ export function AnimationsPanel({
   onAddKeyframe,
   onRemoveKeyframe,
 }: Props) {
-  const [tab, setTab] = useState<MotionPhase>("in");
+  const [tab, setTab] = useState<MotionPhase | "style">("in");
   const motion = element?.motion;
   const pose = element ? poseAtTime(element, timeMs, false) : null;
   const frames = element?.keyframes ? sortKeyframes(element.keyframes) : [];
 
   function apply(preset: MotionPreset, phase: MotionPhase) {
     if (!element) return;
-    onChange({
+    const patch: Partial<BoardElement> = {
       motion: {
         preset,
         phase,
@@ -82,20 +99,50 @@ export function AnimationsPanel({
         delayMs: motion?.delayMs ?? 0,
         easing: motion?.easing ?? "power2.inOut",
       },
-    });
+    };
+    if (preset === "highlightSweep") {
+      patch.markStyle = element.markStyle && element.markStyle !== "none" ? element.markStyle : "highlight";
+      if (!element.highlight && element.content) {
+        const words = element.content.trim().split(/\s+/);
+        patch.highlight = words.slice(0, Math.min(3, words.length)).join(" ");
+      }
+    }
+    if (preset === "underlineDraw") {
+      patch.markStyle =
+        element.markStyle === "both" || element.markStyle === "highlight"
+          ? "both"
+          : "underline";
+      if (!element.highlight && element.content) {
+        const words = element.content.trim().split(/\s+/);
+        patch.highlight = words.slice(0, Math.min(3, words.length)).join(" ");
+      }
+    }
+    if (preset === "markerFlash") {
+      patch.markStyle = element.markStyle && element.markStyle !== "none" ? element.markStyle : "highlight";
+      patch.markerColor = element.markerColor || "#FAFF00";
+    }
+    onChange(patch);
+  }
+
+  function setTemplateVar(key: string, value: string) {
+    if (!element) return;
+    const next = { ...(element.variables || {}) };
+    if (value === "") delete next[key];
+    else next[key] = value;
+    onChange({ variables: next });
   }
 
   return (
     <aside className="mb-anim">
       <div className="mb-anim-tabs">
-        {(["in", "out", "loop"] as MotionPhase[]).map((t) => (
+        {(["in", "style", "out", "loop"] as const).map((t) => (
           <button
             key={t}
             type="button"
             className={tab === t ? "on" : ""}
             onClick={() => setTab(t)}
           >
-            {t === "in" ? "In" : t === "out" ? "Out" : "Loop"}
+            {t === "in" ? "In" : t === "out" ? "Out" : t === "loop" ? "Loop" : "Style"}
           </button>
         ))}
       </div>
@@ -105,13 +152,87 @@ export function AnimationsPanel({
           <h4>Element</h4>
           <p className="mb-prop-type">{element.name || element.type}</p>
           {element.type === "text" ? (
-            <label className="mb-prop">
-              Text
-              <input
-                value={element.content || ""}
-                onChange={(e) => onChange({ content: e.target.value })}
-              />
-            </label>
+            <>
+              <label className="mb-prop">
+                Text
+                <input
+                  value={element.content || ""}
+                  onChange={(e) => onChange({ content: e.target.value })}
+                />
+              </label>
+              <label className="mb-prop">
+                Highlight phrase
+                <input
+                  value={element.highlight || ""}
+                  placeholder="Must appear in text"
+                  onChange={(e) => onChange({ highlight: e.target.value })}
+                />
+              </label>
+              <div className="mb-prop-xy">
+                <label>
+                  Mark
+                  <select
+                    value={element.markStyle || "none"}
+                    onChange={(e) =>
+                      onChange({ markStyle: e.target.value as MarkStyle })
+                    }
+                  >
+                    <option value="none">None</option>
+                    <option value="highlight">Highlighter</option>
+                    <option value="underline">Underline</option>
+                    <option value="both">Both</option>
+                  </select>
+                </label>
+                <label>
+                  Marker
+                  <input
+                    type="color"
+                    value={toHex(element.markerColor || "#FAFF00")}
+                    onChange={(e) => onChange({ markerColor: e.target.value })}
+                  />
+                </label>
+              </div>
+            </>
+          ) : null}
+          {element.type === "template" ? (
+            <div className="mb-template-vars">
+              <h4>Template fields</h4>
+              <p className="mb-kf-hint">
+                Edit copy and colors for newspaper / Vox templates. Preview uses Revideo.
+              </p>
+              {TEMPLATE_FIELD_KEYS.filter((key) => {
+                if (element.variables && key in element.variables) return true;
+                return ["headline", "highlight", "markerColor", "paperColor"].includes(key);
+              }).map((key) => (
+                <label key={key} className="mb-prop">
+                  {key}
+                  {key.toLowerCase().includes("color") ||
+                  key === "bg" ||
+                  key === "accent" ||
+                  key === "ink" ? (
+                    <input
+                      type="color"
+                      value={toHex(String(element.variables?.[key] || "#FAFF00"))}
+                      onChange={(e) => setTemplateVar(key, e.target.value)}
+                    />
+                  ) : key === "markStyle" ? (
+                    <select
+                      value={String(element.variables?.[key] || "highlight")}
+                      onChange={(e) => setTemplateVar(key, e.target.value)}
+                    >
+                      <option value="highlight">Highlight</option>
+                      <option value="underline">Underline</option>
+                      <option value="both">Both</option>
+                    </select>
+                  ) : (
+                    <input
+                      value={String(element.variables?.[key] ?? "")}
+                      onChange={(e) => setTemplateVar(key, e.target.value)}
+                    />
+                  )}
+                </label>
+              ))}
+            </div>
           ) : null}
           <div className="mb-prop-colors">
             <label>
@@ -193,8 +314,8 @@ export function AnimationsPanel({
               </span>
             </div>
             <p className="mb-kf-hint">
-              Scrub, move the object, then Add or press K. Click × on a key to remove it. Delete
-              removes the key under the playhead (Shift+Delete removes the object).
+              Scrub, move the object, then Add or press K. Merge anim (Ctrl+Shift+M) copies motion
+              onto other selected elements.
             </p>
             {frames.length ? (
               <div className="mb-kf-list">
@@ -265,6 +386,39 @@ export function AnimationsPanel({
                 label={p.label}
                 active={false}
                 onClick={() => onCameraMove(p.id)}
+              />
+            ))}
+          </div>
+        </>
+      ) : tab === "style" ? (
+        <>
+          <h4>Newspaper highlight</h4>
+          <p className="mb-kf-hint">
+            Use on text: set a highlight phrase, then pick a sweep. Works with Mark style above.
+          </p>
+          <div className="mb-preset-grid">
+            {HIGHLIGHT_PRESETS.map((p) => (
+              <PresetButton
+                key={p.id}
+                id={p.id}
+                label={p.label}
+                active={motion?.preset === p.id}
+                disabled={!element}
+                onClick={() => apply(p.id, "in")}
+              />
+            ))}
+          </div>
+          <h4>Vox style</h4>
+          <p className="mb-kf-hint">Documentary push / parallax / focus dimming on any element.</p>
+          <div className="mb-preset-grid">
+            {VOX_PRESETS.map((p) => (
+              <PresetButton
+                key={p.id}
+                id={p.id}
+                label={p.label}
+                active={motion?.preset === p.id}
+                disabled={!element}
+                onClick={() => apply(p.id, "in")}
               />
             ))}
           </div>

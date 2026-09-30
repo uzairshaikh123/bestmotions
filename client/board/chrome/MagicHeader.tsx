@@ -20,6 +20,7 @@ type Props = {
   onFit: () => void;
   onZoomStep: (dir: -1 | 1) => void;
   onBackground: (color: string) => void;
+  onNew?: () => void;
 };
 
 export function MagicHeader({
@@ -40,6 +41,7 @@ export function MagicHeader({
   onFit,
   onZoomStep,
   onBackground,
+  onNew,
 }: Props) {
   return (
     <header className="mb-header">
@@ -50,6 +52,11 @@ export function MagicHeader({
           </span>
           MagicBoard
         </button>
+        {onNew ? (
+          <button type="button" className="mb-ghost mb-new" onClick={onNew} title="New empty canvas">
+            New
+          </button>
+        ) : null}
         <label className="mb-project-wrap">
           <input
             className="mb-project"
@@ -109,9 +116,6 @@ export function MagicHeader({
         <button type="button" className="mb-export" onClick={onExport} disabled={exportBusy}>
           {exportBusy ? "Exporting…" : "Export"}
         </button>
-        <span className="mb-avatar" aria-hidden>
-          B
-        </span>
       </div>
     </header>
   );

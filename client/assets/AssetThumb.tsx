@@ -80,16 +80,8 @@ function sleep(ms: number) {
 }
 
 function isHeavyMap(asset: AssetDefinition) {
-  return (
-    asset.category === "maps" ||
-    asset.category === "3d" ||
-    asset.template.startsWith("real-") ||
-    asset.template.includes("globe") ||
-    asset.template.includes("map") ||
-    asset.template.includes("airplane") ||
-    asset.template.includes("country") ||
-    asset.template.includes("zoom-location")
-  );
+  // Vector maps (d3-geo) are light; only real satellite tiles are heavy.
+  return asset.template.startsWith("real-");
 }
 
 function variablesFor(

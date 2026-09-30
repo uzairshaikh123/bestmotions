@@ -1,6 +1,6 @@
 /** @jsxImportSource @revideo/2d/lib */
 import { makeScene2D } from "@revideo/2d";
-import { str, titleSlam, v, all, fitDesignStage, isTransparentOverlay, lockTransparentStage } from "../lib/helpers";
+import { str, titleSlam, v, all, fitDesignStage, applySceneBackground } from "../lib/helpers";
 import { playScore } from "../lib/sfx";
 
 const BOOK_MAP: Record<string, string> = {
@@ -55,9 +55,13 @@ const TEXT_IDS = new Set([
 const MAP_IDS = new Set([
   "airplane-route",
   "globe-spin",
+  "world-focus",
   "country-highlight",
   "map-spotlight",
   "zoom-location",
+  "map-distance",
+  "map-split",
+  "map-border-trace",
 ]);
 
 const PHOTO_IDS = new Set([
@@ -78,15 +82,9 @@ function* loadMod<T>(loader: () => Promise<T>): Generator<Promise<T>, T, T> {
 
 export default makeScene2D("main", function* (view) {
   const template = String(v("template", "cover-slam"));
-  const transparent = isTransparentOverlay();
-  // Clear stage for WebM alpha. Also lock fills so packs/desks cannot
-  // re-paint an opaque full-frame background (which looked like “only the
-  // letterbox border” was transparent).
-  if (transparent) {
-    lockTransparentStage(view);
-  } else {
-    view.fill("#07090e");
-  }
+  // Honor editor Background for every template. When Transparent overlay is on,
+  // clear + lock fills so the inner canvas (not just letterbox chrome) is alpha.
+  applySceneBackground(view);
   if (template === "magic-board") {
     const { runMagicBoard } = yield* loadMod(() => import("./packs/board"));
     yield* runMagicBoard(view);
@@ -124,6 +122,16 @@ function* runTemplate(view: any, template: string) {
     yield* runHooks(view, template);
     return;
   }
+  if (template.startsWith("search-")) {
+    const { runSearch } = yield* loadMod(() => import("./packs/search"));
+    yield* runSearch(view, template);
+    return;
+  }
+  if (template.startsWith("ai-")) {
+    const { runAiText } = yield* loadMod(() => import("./packs/aiText"));
+    yield* runAiText(view, template);
+    return;
+  }
   if (template.startsWith("social-")) {
     const { runSocial } = yield* loadMod(() => import("./packs/social.tsx"));
     yield* runSocial(view, template);
@@ -132,6 +140,11 @@ function* runTemplate(view: any, template: string) {
   if (template.startsWith("yt-")) {
     const { runYt } = yield* loadMod(() => import("./packs/yt"));
     yield* runYt(view, template);
+    return;
+  }
+  if (template.startsWith("news-mystery-")) {
+    const { runNewsMystery } = yield* loadMod(() => import("./packs/newsMystery"));
+    yield* runNewsMystery(view, template);
     return;
   }
   if (template.startsWith("news-3d-")) {

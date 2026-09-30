@@ -10,6 +10,7 @@ import {
 } from "./featureFlags.js";
 import { registerBoardRoutes } from "./boards.js";
 import { registerMapImageRoute } from "./mapImage.js";
+import { registerGeocodeRoute } from "./geocode.js";
 import { registerAiRoutes } from "./ai/routes.js";
 import { registerFeedbackRoutes } from "./feedback.js";
 
@@ -29,6 +30,7 @@ app.use("/videos", express.static(path.join(rootDir, "public", "videos")));
 
 registerBoardRoutes(app, rootDir);
 registerMapImageRoute(app);
+registerGeocodeRoute(app);
 registerAiRoutes(app);
 registerFeedbackRoutes(app, rootDir);
 

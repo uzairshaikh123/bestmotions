@@ -29,21 +29,29 @@ export function isTransparentOverlay(): boolean {
   return raw === "on" || raw === "true" || raw === "1" || raw === "yes";
 }
 
-const CLEAR = "rgba(0,0,0,0)";
-
 /**
- * Clear the stage and force every later `view.fill(...)` to stay clear so
- * packs / desks cannot re-paint an opaque full-frame background.
- * Content nodes (text, paper, charts) are unchanged.
+ * Clear the stage fill entirely (`null` skips Shape painting) and force every
+ * later `view.fill(...)` to stay clear so packs / desks cannot re-paint an
+ * opaque full-frame background. Content nodes (text, paper, charts) are unchanged.
  */
 export function lockTransparentStage(view: any) {
   const original = view.fill.bind(view);
-  original(CLEAR);
+  // `null` = no fill path (see Shape.hasFill). rgba(0,0,0,0) still draws a
+  // transparent rect and can leave an opaque canvas in some player paths.
+  original(null);
   view.fill = (...args: unknown[]) => {
     if (args.length === 0) return original();
-    // Preserve optional tween duration / timing args; always force clear color.
-    return original(CLEAR, ...args.slice(1));
+    return original(null, ...args.slice(1));
   };
+}
+
+/** Apply the editor background, or clear the stage when transparent overlay is on. */
+export function applySceneBackground(view: any, fallback = "#07090e") {
+  if (isTransparentOverlay()) {
+    lockTransparentStage(view);
+    return;
+  }
+  view.fill(str("bg", fallback));
 }
 
 /** Shared documentary title-card slam used across packs. */
@@ -66,7 +74,7 @@ export function* titleSlam(
     bg,
     align = "left",
   } = opts;
-  view.fill(bg);
+  applySceneBackground(view, bg);
   const block = createRef<Layout>();
   const bar = createRef<Rect>();
 
@@ -136,7 +144,7 @@ export function* lowerThird(
   },
 ) {
   const { name, title = "", accent, bg } = opts;
-  view.fill(bg);
+  applySceneBackground(view, bg);
   const plate = createRef<Layout>();
   yield view.add(
     <Layout
@@ -186,7 +194,7 @@ export function* paperCard(
   },
 ) {
   const { eyebrow = "", body, accent, bg, highlight = "" } = opts;
-  view.fill(bg);
+  applySceneBackground(view, bg);
   const card = createRef<Rect>();
   yield view.add(
     <Rect
@@ -255,7 +263,7 @@ export function* bigStat(
   },
 ) {
   const { label = "", value, detail = "", accent, bg } = opts;
-  view.fill(bg);
+  applySceneBackground(view, bg);
   const wrap = createRef<Layout>();
   yield view.add(
     <Layout

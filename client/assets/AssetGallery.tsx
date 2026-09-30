@@ -238,14 +238,138 @@ function durationSec(asset: AssetDefinition) {
   return Math.max(1, Math.round(asset.durationInFrames / Math.max(asset.fps, 1)));
 }
 
+/** Category synonyms so “map”, “india”, “country animation” find the right packs. */
+const CATEGORY_TAGS: Record<string, string[]> = {
+  maps: [
+    "map",
+    "maps",
+    "travel",
+    "country",
+    "countries",
+    "globe",
+    "earth",
+    "world",
+    "satellite",
+    "geo",
+    "geography",
+    "location",
+    "pin",
+    "route",
+    "city",
+    "capital",
+    "basemap",
+    "esri",
+    "flight",
+    "zoom",
+  ],
+  text: ["text", "title", "typography", "headline", "caption", "words", "quote", "type", "font"],
+  photos: ["photo", "photos", "image", "images", "picture", "pictures"],
+  charts: ["chart", "charts", "graph", "graphs", "data", "stats"],
+  ui: ["ui", "interface", "button", "hud", "overlay"],
+  shorts: ["short", "shorts", "reel", "reels", "tiktok", "vertical"],
+  india: ["india", "indian", "bharat", "delhi", "mumbai"],
+  timeline: ["timeline", "history", "chrono", "years", "era"],
+  money: ["money", "finance", "cash", "rupee", "dollar", "economy"],
+  comparison: ["compare", "comparison", "versus", "vs", "against"],
+  rise: ["rise", "growth", "climb", "ascent"],
+  time: ["time", "clock", "countdown", "timer"],
+  newspaper: ["news", "newspaper", "press", "headline", "article", "paper"],
+  yt: ["youtube", "yt", "thumb", "thumbnail", "subscribe"],
+  fire: ["fire", "flame", "burn", "hot"],
+  books: ["book", "books", "page", "read", "literature"],
+  crime: ["crime", "mystery", "case", "investigation", "detective"],
+  documentary: ["doc", "documentary", "essay", "narration"],
+  hooks: ["hook", "hooks", "opener", "intro", "attention"],
+  social: ["social", "instagram", "tweet", "post", "viral"],
+  ai: ["ai", "chatgpt", "claude", "gemini", "llm", "prompt"],
+  search: ["search", "google", "query", "bar", "find"],
+};
+
+/** Soft words — ignored so “maps animation” still matches map assets. */
+const QUERY_NOISE = new Set([
+  "a",
+  "an",
+  "the",
+  "of",
+  "for",
+  "and",
+  "or",
+  "to",
+  "in",
+  "on",
+  "with",
+  "animation",
+  "animations",
+  "anim",
+  "motion",
+  "motions",
+  "video",
+  "videos",
+  "clip",
+  "clips",
+  "template",
+  "templates",
+  "asset",
+  "assets",
+  "pack",
+  "effect",
+  "effects",
+  "style",
+  "styles",
+]);
+
+function tokenVariants(token: string): string[] {
+  const out = new Set<string>([token]);
+  if (token.endsWith("ies") && token.length > 4) out.add(`${token.slice(0, -3)}y`);
+  if (token.endsWith("es") && token.length > 3) out.add(token.slice(0, -2));
+  if (token.endsWith("s") && token.length > 2) out.add(token.slice(0, -1));
+  else out.add(`${token}s`);
+  return [...out];
+}
+
+function assetSearchHaystack(asset: AssetDefinition): string {
+  const d = asset.defaults || {};
+  const defaultBits = [
+    d.placeKey,
+    d.fromPlace,
+    d.toPlace,
+    d.viaPlace,
+    d.mapStyle,
+    d.title,
+    d.subtitle,
+    d.query,
+  ]
+    .filter((v) => v !== undefined && v !== null && String(v).trim())
+    .map((v) => String(v).replace(/-/g, " "));
+
+  return [
+    asset.name,
+    asset.description,
+    asset.id.replace(/-/g, " "),
+    asset.category,
+    asset.subcategory || "",
+    ...(asset.tags || []),
+    ...(CATEGORY_TAGS[asset.category] || []),
+    ...defaultBits,
+  ]
+    .join(" ")
+    .toLowerCase();
+}
+
 function matchesQuery(asset: AssetDefinition, q: string) {
   if (!q) return true;
-  return (
-    asset.name.toLowerCase().includes(q) ||
-    asset.description.toLowerCase().includes(q) ||
-    asset.id.toLowerCase().includes(q) ||
-    asset.category.toLowerCase().includes(q) ||
-    (asset.subcategory || "").toLowerCase().includes(q)
+  const hay = assetSearchHaystack(asset);
+  if (hay.includes(q)) return true;
+
+  const tokens = q
+    .split(/[\s,/|_+-]+/)
+    .map((t) => t.trim().toLowerCase())
+    .filter((t) => t.length > 0 && !QUERY_NOISE.has(t));
+
+  if (tokens.length === 0) return true;
+
+  return tokens.every((token) =>
+    tokenVariants(token).some((v) => v.length >= 2 && hay.includes(v)),
   );
 }
 
@@ -500,7 +624,7 @@ export function AssetGallery({
                 type="search"
                 value={query}
                 onChange={(e) => onQueryChange(e.target.value)}
-                placeholder="Search templates..."
+                placeholder="Search by name, tags, place…"
                 aria-label="Search assets"
               />
             </label>
@@ -697,6 +821,7 @@ function AssetCard({
             playing={playing}
             instanceKey={`gallery-${asset.id}`}
           />
+          {asset.isNew ? <span className="asset-new-badge">New</span> : null}
           <span className="asset-duration">{durationSec(asset)}s</span>
         </div>
         <div className="asset-card-body">

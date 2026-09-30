@@ -2371,6 +2371,23 @@ button.danger {
   min-height: 0;
 }
 
+.asset-new-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 5;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: #e63946;
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  pointer-events: none;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+}
+
 .asset-thumb-player {
   position: absolute;
   inset: 0;
@@ -2855,6 +2872,36 @@ button.tiny {
   border-radius: 4px;
 }
 
+.location-field {
+  display: grid;
+  gap: 8px;
+}
+
+.location-field-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.location-field-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.location-lookup-btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+  padding: 0 14px;
+}
+
+.location-ok {
+  color: #34d399 !important;
+}
+
+.location-err {
+  color: #f87171 !important;
+}
+
 .timeline-items-editor {
   display: grid;
   gap: 12px;
@@ -3028,6 +3075,18 @@ button.tiny {
 .transparent-bg revideo-player,
 .revideo-preview.transparent-bg revideo-player {
   background: transparent;
+}
+
+/* Let cleared canvas pixels show the checkerboard (inner frame, not just chrome). */
+.transparent-bg .revideo-preview canvas,
+.transparent-bg revideo-player canvas,
+.revideo-preview.transparent-bg canvas {
+  background: transparent !important;
+}
+
+.field input[type="color"]:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .revideo-preview .revideo-player-root {
@@ -3557,22 +3616,25 @@ body:has(.app-magic)::before {
 }
 
 .magicboard {
-  --mb: #7c3aed;
-  --mb-2: #a78bfa;
-  --mb-bg: #12121a;
-  --mb-panel: #1a1a24;
-  --mb-line: #2c2c3a;
-  --mb-text: #f3f0ff;
-  --mb-muted: #9b97b0;
+  --mb: #3d7eff;
+  --mb-2: #6ea1ff;
+  --mb-bg: #0e0f12;
+  --mb-panel: #15171c;
+  --mb-panel-2: #1b1e25;
+  --mb-line: #2a2e38;
+  --mb-text: #eef1f6;
+  --mb-muted: #8b93a7;
+  --mb-radius: 8px;
   height: 100%;
   width: 100%;
   overflow: hidden;
   display: grid;
-  grid-template-rows: 56px minmax(0, 1fr);
+  grid-template-rows: 52px minmax(0, 1fr);
   position: relative;
   color: var(--mb-text);
   background: var(--mb-bg);
-  font-family: Inter, "Segoe UI", sans-serif;
+  font-family: "Sora", "Segoe UI", sans-serif;
+  letter-spacing: -0.01em;
 }
 
 .magicboard button {
@@ -3599,11 +3661,11 @@ body:has(.app-magic)::before {
   grid-template-columns: minmax(220px, 1fr) auto minmax(220px, 1fr);
   align-items: center;
   gap: 12px;
-  padding: 0 18px;
+  padding: 0 16px;
   min-width: 0;
   overflow: hidden;
   border-bottom: 1px solid var(--mb-line);
-  background: #16161f;
+  background: linear-gradient(180deg, #171a20, #13151a);
 }
 
 .mb-brand {
@@ -3676,7 +3738,7 @@ body:has(.app-magic)::before {
 .mb-icon.on,
 .mb-anim-tabs button.on,
 .mb-preset-grid button.on {
-  background: rgba(124, 92, 252, 0.22);
+  background: rgba(61, 126, 255, 0.2);
   color: #fff;
   border-color: var(--mb);
 }
@@ -3794,8 +3856,8 @@ html.mb-noscale body {
 
 .mb-play:hover,
 .mb-play.on {
-  background: rgba(124, 58, 237, 0.18);
-  color: #c4b5fd;
+  background: rgba(61, 126, 255, 0.18);
+  color: var(--mb-2);
 }
 
 .mb-play svg {
@@ -3841,19 +3903,28 @@ html.mb-noscale body {
   min-width: auto;
   width: auto;
   height: 32px;
-  border-radius: 8px;
+  border-radius: 6px;
+  border: 0;
 }
 
 .mb-ghost {
-  padding: 0 14px;
+  padding: 0 12px;
   min-width: auto;
   height: 32px;
   border: 1px solid var(--mb-line);
-  background: #22222e;
+  background: var(--mb-panel-2);
+  color: var(--mb-text);
+  border-radius: 6px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   line-height: 1;
+}
+
+.mb-new {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
 .mb-ghost-wide {
@@ -3919,7 +3990,7 @@ html.mb-noscale body {
 .mb-rail button.on,
 .mb-rail button:hover {
   color: #fff;
-  background: rgba(124, 58, 237, 0.18);
+  background: rgba(61, 126, 255, 0.16);
 }
 
 .mb-lib-body {
@@ -4153,7 +4224,9 @@ html.mb-noscale body {
   min-width: 0;
   min-height: 0;
   overflow: hidden;
-  background: #0e0e16;
+  background:
+    radial-gradient(1200px 500px at 50% -10%, rgba(61, 126, 255, 0.08), transparent 55%),
+    #0c0d10;
 }
 
 .mb-stage-wrap {
@@ -4163,6 +4236,37 @@ html.mb-noscale body {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+}
+
+.mb-empty-hint {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-content: center;
+  gap: 8px;
+  text-align: center;
+  color: var(--mb-muted);
+  background: linear-gradient(
+    180deg,
+    rgba(14, 15, 18, 0.15),
+    rgba(14, 15, 18, 0.05)
+  );
+}
+
+.mb-empty-hint strong {
+  color: var(--mb-text);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.mb-empty-hint span {
+  max-width: 320px;
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 0 auto;
 }
 
 .mb-canvas {
@@ -4188,25 +4292,26 @@ html.mb-noscale body {
 
 .mb-context {
   position: absolute;
-  top: 8px;
+  top: 12px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 4;
   display: flex;
-  gap: 2px;
+  gap: 4px;
   align-items: center;
-  background: #1f1f2b;
+  background: rgba(21, 23, 28, 0.92);
   border: 1px solid var(--mb-line);
-  border-radius: 10px;
-  padding: 2px;
+  border-radius: 999px;
+  padding: 4px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(10px);
 }
 
 .mb-context button {
   background: transparent;
   border: 0;
   color: var(--mb-text);
-  border-radius: 7px;
+  border-radius: 999px;
   width: 28px;
   height: 28px;
   display: grid;
@@ -4216,13 +4321,18 @@ html.mb-noscale body {
 
 .mb-context button.on,
 .mb-context button:hover {
-  background: rgba(124, 58, 237, 0.2);
+  background: rgba(61, 126, 255, 0.2);
+}
+
+.mb-context button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 
 .mb-context-label {
   width: auto !important;
   padding: 0 10px !important;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
 }
 
@@ -4678,7 +4788,17 @@ html.mb-noscale body {
 .mb-cat-row button.on {
   color: #fff;
   border-color: var(--mb);
-  background: rgba(124, 58, 237, 0.2);
+  background: rgba(61, 126, 255, 0.2);
+}
+
+.mb-filter-row {
+  margin-bottom: 6px;
+}
+
+.mb-filter-row button {
+  font-size: 11px;
+  padding: 5px 10px;
+  font-weight: 600;
 }
 
 .mb-template-list {
@@ -4777,19 +4897,19 @@ html.mb-noscale body {
 
 .mb-anim-tabs {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 6px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
   margin-bottom: 14px;
 }
 
 .mb-anim-tabs button {
-  background: #22222e;
+  background: var(--mb-panel-2);
   border: 1px solid var(--mb-line);
   color: var(--mb-muted);
-  border-radius: 8px;
-  height: 32px;
+  border-radius: 6px;
+  height: 30px;
   font-weight: 600;
-  font-size: 12px;
+  font-size: 11px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4800,7 +4920,7 @@ html.mb-noscale body {
 
 .mb-anim-tabs button.on {
   color: #fff;
-  background: rgba(124, 58, 237, 0.22);
+  background: rgba(61, 126, 255, 0.2);
   border-color: var(--mb);
 }
 

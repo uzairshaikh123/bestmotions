@@ -8,6 +8,8 @@ interface ImportMetaEnv {
   readonly VITE_FEATURE_VIDEO_SOUND?: string;
   /** When "true", unlock Magic Board editor. false/unset = Coming soon. */
   readonly VITE_FEATURE_BOARD?: string;
+  /** Google Analytics 4 Measurement ID (e.g. G-XXXXXXXXXX). Empty = analytics off. */
+  readonly VITE_GA_MEASUREMENT_ID?: string;
 }
 
 interface ImportMeta {

@@ -35,7 +35,6 @@ function normalizeStyle(raw: unknown): AiStyle {
     "yt",
     "shorts",
     "books",
-    "3d",
   ];
   return (allowed.includes(value as AiStyle) ? value : "any") as AiStyle;
 }

@@ -27,7 +27,6 @@ const STYLE_CATEGORIES: Record<Exclude<AiStyle, "any">, string[]> = {
   yt: ["yt", "crime", "hooks", "social"],
   shorts: ["shorts"],
   books: ["books"],
-  "3d": ["3d"],
 };
 
 const byId = new Map(ASSETS.map((asset) => [asset.id, asset]));

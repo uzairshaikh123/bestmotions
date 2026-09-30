@@ -7,6 +7,7 @@ import {
   Routes,
   useLocation,
 } from "react-router-dom";
+import { Analytics } from "./analytics/Analytics";
 import { App } from "./App";
 import { FeatureFlagsProvider } from "./featureFlags";
 import { SiteLayout } from "./site/SiteLayout";
@@ -42,6 +43,7 @@ createRoot(document.getElementById("root")!).render(
     <ThemeProvider>
       <FeatureFlagsProvider>
         <BrowserRouter>
+          <Analytics />
           <Routes>
             <Route element={<SiteLayout />}>
               <Route index element={<MarketingHome />} />

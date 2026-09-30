@@ -134,6 +134,7 @@ export function AssetLibrary({ onAdd, onBackground, onUpload, background = "#fff
   const [tab, setTab] = useState<Tab>("assets");
   const [q, setQ] = useState("");
   const [templateCat, setTemplateCat] = useState<string>("all");
+  const [templateFilter, setTemplateFilter] = useState<"all" | "newspaper" | "vox">("all");
   const fileRef = useRef<HTMLInputElement>(null);
   const query = q.trim().toLowerCase();
 
@@ -144,12 +145,17 @@ export function AssetLibrary({ onAdd, onBackground, onUpload, background = "#fff
 
   const templates = useMemo(() => {
     return ASSETS.filter((a) => {
+      if (templateFilter === "newspaper" && a.category !== "newspaper") return false;
+      if (templateFilter === "vox") {
+        const blob = `${a.id} ${a.name} ${a.template} ${a.description}`.toLowerCase();
+        if (!blob.includes("vox")) return false;
+      }
       if (templateCat !== "all" && a.category !== templateCat) return false;
       if (!query) return true;
       const blob = `${a.name} ${a.category} ${a.description}`.toLowerCase();
       return blob.includes(query);
     }).slice(0, 80);
-  }, [query, templateCat]);
+  }, [query, templateCat, templateFilter]);
 
   function readFile(file: File | null) {
     if (!file) return;
@@ -285,6 +291,45 @@ export function AssetLibrary({ onAdd, onBackground, onUpload, background = "#fff
             >
               Body
             </AssetTile>
+            <h4>Newspaper & Vox</h4>
+            <AssetTile
+              className="mb-ghost-wide"
+              type="text"
+              extra={{
+                content: "The defining moment that changed everything",
+                highlight: "defining moment",
+                markStyle: "highlight",
+                markerColor: "#FAFF00",
+                fontSize: 32,
+                width: 520,
+                height: 72,
+                name: "Highlight text",
+                fill: "#1a1433",
+                motion: { preset: "highlightSweep", durationMs: 1400, delayMs: 0, phase: "in" },
+              }}
+              onAdd={onAdd}
+            >
+              Highlight sweep
+            </AssetTile>
+            <AssetTile
+              className="mb-ghost-wide"
+              type="text"
+              extra={{
+                content: "What the data actually shows",
+                highlight: "actually shows",
+                markStyle: "underline",
+                markerColor: "#FAFF00",
+                fontSize: 36,
+                width: 480,
+                height: 64,
+                name: "Vox title",
+                fill: "#f4f0e6",
+                motion: { preset: "voxPushIn", durationMs: 1200, delayMs: 0, phase: "in" },
+              }}
+              onAdd={onAdd}
+            >
+              Vox push-in title
+            </AssetTile>
           </>
         ) : null}
 
@@ -350,13 +395,38 @@ export function AssetLibrary({ onAdd, onBackground, onUpload, background = "#fff
         {tab === "templates" ? (
           <>
             <h4>Frontpage templates</h4>
+            <div className="mb-cat-row mb-filter-row">
+              {(
+                [
+                  { id: "all", label: "All" },
+                  { id: "newspaper", label: "Newspaper" },
+                  { id: "vox", label: "Vox style" },
+                ] as const
+              ).map((f) => (
+                <button
+                  key={f.id}
+                  type="button"
+                  className={templateFilter === f.id ? "on" : ""}
+                  onClick={() => {
+                    setTemplateFilter(f.id);
+                    if (f.id === "newspaper") setTemplateCat("newspaper");
+                    else if (f.id === "all") setTemplateCat("all");
+                  }}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
             <div className="mb-cat-row">
               {CATEGORIES.map((c) => (
                 <button
                   key={c.id}
                   type="button"
                   className={templateCat === c.id ? "on" : ""}
-                  onClick={() => setTemplateCat(c.id)}
+                  onClick={() => {
+                    setTemplateCat(c.id);
+                    setTemplateFilter("all");
+                  }}
                 >
                   {c.label}
                 </button>
@@ -389,7 +459,7 @@ export function AssetLibrary({ onAdd, onBackground, onUpload, background = "#fff
                           templateId: asset.id,
                           revideoTemplate: asset.template,
                           variables: { ...asset.defaults, template: asset.template },
-                          fill: String(asset.defaults.bg || "#111827"),
+                          fill: String(asset.defaults.bg || asset.defaults.paperColor || "#111827"),
                           strokeWidth: 0,
                           width: 480,
                           height: 270,

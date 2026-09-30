@@ -22,7 +22,6 @@ import {
   type ElementType,
 } from "../../shared/board";
 import { loadDraft, saveDraft } from "./idb";
-import { travelDemoBoard } from "./demo";
 
 const HISTORY_LIMIT = 50;
 
@@ -84,9 +83,9 @@ export function useBoardDocument() {
         setDoc(draft);
         setSelectedSceneId(draft.scenes[0]?.id ?? null);
       } else {
-        const demo = travelDemoBoard();
-        setDoc(demo);
-        setSelectedSceneId(demo.scenes[0]?.id ?? null);
+        const blank = emptyBoardDocument();
+        setDoc(blank);
+        setSelectedSceneId(null);
       }
       setReady(true);
       skipSave.current = false;
@@ -495,6 +494,48 @@ export function useBoardDocument() {
     });
   }, [commit, selectedIds]);
 
+  const mergeAnimations = useCallback(
+    (sourceId?: string, targetIds?: string[]) => {
+      commit((current) => {
+        const source =
+          sourceId && current.elements[sourceId]
+            ? sourceId
+            : selectedIds.find((id) => current.elements[id]) || null;
+        if (!source) return current;
+        const targets = (targetIds?.length
+          ? targetIds
+          : selectedIds.filter((id) => id !== source)
+        ).filter((id) => current.elements[id] && id !== source);
+        if (!targets.length) return current;
+        const next = cloneBoard(current);
+        const src = next.elements[source];
+        const motionCopy = src.motion
+          ? {
+              preset: src.motion.preset,
+              phase: src.motion.phase,
+              durationMs: src.motion.durationMs,
+              delayMs: src.motion.delayMs,
+              easing: src.motion.easing,
+            }
+          : { preset: "none" as const, durationMs: 0, delayMs: 0 };
+        const keyframesCopy = src.keyframes
+          ? src.keyframes.map((kf) => ({ ...kf }))
+          : undefined;
+        for (const id of targets) {
+          next.elements[id] = {
+            ...next.elements[id],
+            motion: { ...motionCopy },
+            keyframes: keyframesCopy
+              ? keyframesCopy.map((kf) => ({ ...kf }))
+              : undefined,
+          };
+        }
+        return next;
+      });
+    },
+    [commit, selectedIds],
+  );
+
   const addEmptyScene = useCallback(() => {
     commit((current) => {
       const next = cloneBoard(current);
@@ -547,8 +588,23 @@ export function useBoardDocument() {
   );
 
   const newBoard = useCallback(() => {
-    replaceDoc(emptyBoardDocument());
-  }, [replaceDoc]);
+    const hasContent =
+      Object.keys(doc.elements).length > 0 || doc.scenes.length > 0;
+    if (hasContent) {
+      const ok = window.confirm(
+        "Create a new empty canvas? Unsaved timeline work in this draft will be replaced.",
+      );
+      if (!ok) return;
+    }
+    history.current = [];
+    future.current = [];
+    const blank = emptyBoardDocument();
+    setDoc(blank);
+    setSelectedId(null);
+    setSelectedIds([]);
+    setSelectedSceneId(null);
+    void saveDraft(blank);
+  }, [doc.elements, doc.scenes.length]);
 
   return {
     doc,
@@ -582,6 +638,7 @@ export function useBoardDocument() {
     removeScene,
     moveScene,
     groupSelected,
+    mergeAnimations,
     renameBoard,
     replaceDoc,
     newBoard,

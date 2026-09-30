@@ -54,22 +54,25 @@ export function tornOutline(
   return pts;
 }
 
-/** Vertical torn edge used as a peel / rip front. */
+/** Vertical torn edge used as a peel / rip front — dense fibrous hand-tear. */
 export function tornRipEdge(
   height: number,
   roughness: number,
   seed: number,
 ): [number, number][] {
-  const jag = Math.max(8, Math.min(48, roughness));
-  const steps = 42;
+  const jag = Math.max(8, Math.min(56, roughness));
+  const steps = 96;
   const pts: [number, number][] = [];
   for (let i = 0; i <= steps; i++) {
     const t = i / steps;
     const y = -height / 2 + t * height;
-    const n = (hash01(seed + i * 3.1) - 0.5) * jag;
-    const fiber = hash01(seed + i * 9.4) > 0.78 ? jag * 0.95 : 0;
-    const hook = hash01(seed + i * 17.2) > 0.91 ? jag * 1.2 : 0;
-    pts.push([n - fiber - hook, y]);
+    const n1 = (hash01(seed + i * 3.1) - 0.5) * jag;
+    const n2 = (hash01(seed * 2.7 + i * 8.4) - 0.5) * jag * 0.45;
+    const n3 = (hash01(seed * 5.1 + i * 17.2) - 0.5) * jag * 0.2;
+    const bite = hash01(seed + i * 9.4);
+    const fiber = bite > 0.82 ? jag * 0.75 : bite > 0.68 ? jag * 0.3 : 0;
+    const hook = hash01(seed + i * 17.2) > 0.93 ? jag * 1.15 : 0;
+    pts.push([n1 + n2 + n3 - fiber - hook, y]);
   }
   return pts;
 }
@@ -289,11 +292,24 @@ export function TornPeel(opts: {
   const fill = opts.fill ?? "#e8d8b4";
   const pts = tornPeelOutline(height, extend, roughness, seed);
   const rip = tornRipEdge(height, roughness, seed);
+  const hairs = fiberHairs(rip, seed + 90);
   return (
     <>
       <Line points={pts} closed fill={fill} />
-      <Line points={rip} stroke={"#c4b089"} lineWidth={10} lineCap={"round"} />
-      <Line points={rip} stroke={"#2a2418"} lineWidth={4} opacity={0.45} x={6} />
+      <Line points={rip} stroke={"#d8cbb0"} lineWidth={7} lineCap={"round"} opacity={0.7} />
+      <Line points={rip} stroke={"#2a2418"} lineWidth={3.2} opacity={0.28} x={5} />
+      {hairs.map((h) => (
+        <Rect
+          key={h.key}
+          width={h.len * 0.85}
+          height={1.15}
+          fill={"#f4efe6"}
+          opacity={0.55}
+          x={h.x - h.len * 0.35}
+          y={h.y}
+          rotation={h.rot - 180}
+        />
+      ))}
     </>
   );
 }

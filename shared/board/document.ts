@@ -73,6 +73,18 @@ const PRESETS: MotionPreset[] = [
   "nod",
   "loopPulse",
   "loopSpin",
+  "highlightSweep",
+  "underlineDraw",
+  "markerFlash",
+  "voxPushIn",
+  "voxParallax",
+  "voxFocusDim",
+];
+const MARK_STYLES: import("./types").MarkStyle[] = [
+  "none",
+  "highlight",
+  "underline",
+  "both",
 ];
 const TRANSITIONS: TransitionIn[] = [
   "zoomPan",
@@ -156,6 +168,11 @@ function parseElement(raw: unknown, id: string): BoardElement | null {
     name: typeof o.name === "string" ? o.name : undefined,
     visible: o.visible === false ? false : true,
     locked: Boolean(o.locked),
+    highlight: typeof o.highlight === "string" ? o.highlight : undefined,
+    markStyle: MARK_STYLES.includes(o.markStyle as import("./types").MarkStyle)
+      ? (o.markStyle as import("./types").MarkStyle)
+      : undefined,
+    markerColor: typeof o.markerColor === "string" ? o.markerColor : undefined,
     motion,
     keyframes: parseKeyframes(o.keyframes),
     chartKind: parseChartKind(o.chartKind),
@@ -315,6 +332,9 @@ export function defaultElement(
     name: extra.name ?? type,
     visible: extra.visible ?? true,
     locked: extra.locked ?? false,
+    highlight: extra.highlight,
+    markStyle: extra.markStyle,
+    markerColor: extra.markerColor,
     motion: extra.motion ?? { preset: "none", durationMs: 0, delayMs: 0 },
     pivot: extra.pivot,
     chartKind: extra.chartKind,

@@ -1,8 +1,12 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { openCookiePreferences } from "../analytics/Analytics";
+import { isAnalyticsConfigured } from "../analytics/ga";
 import { BrandLogo } from "../BrandLogo";
 
 export function SiteFooter() {
+  const showCookies = isAnalyticsConfigured();
+
   return (
     <footer className="site-footer ae-footer">
       <div className="site-footer-inner">
@@ -46,6 +50,18 @@ export function SiteFooter() {
           <Link to="/privacy">Privacy</Link>
           <span aria-hidden>·</span>
           <Link to="/terms">Terms</Link>
+          {showCookies ? (
+            <>
+              <span aria-hidden>·</span>
+              <button
+                type="button"
+                className="site-footer-cookie-btn"
+                onClick={() => openCookiePreferences()}
+              >
+                Cookies
+              </button>
+            </>
+          ) : null}
         </div>
       </div>
     </footer>

@@ -152,6 +152,12 @@ export const PRESET_ICON: Record<string, string> = {
   wipe: "wipe",
   push: "push",
   loopSpin: "spin",
+  highlightSweep: "flash",
+  underlineDraw: "slide",
+  markerFlash: "flash",
+  voxPushIn: "push",
+  voxParallax: "pan",
+  voxFocusDim: "zoom",
 };
 
 export const LIBRARY_ICONS: { id: string; label: string; Icon: IconType }[] = [

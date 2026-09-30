@@ -137,9 +137,9 @@ export function isTransparentBg(value: unknown) {
   return raw === "on" || raw === "true" || raw === "transparent" || raw === "none";
 }
 
-export function fillScene(view: { fill: (color: string) => void }, bg: string) {
+export function fillScene(view: { fill: (color: string | null) => void }, bg: string) {
   if (isTransparentBg(bg)) {
-    view.fill("rgba(0,0,0,0)");
+    view.fill(null);
     return;
   }
   view.fill(bg);

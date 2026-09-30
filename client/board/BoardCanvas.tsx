@@ -21,7 +21,9 @@ import {
   DEFAULT_CHART_DATA,
   elementSize,
   fitContentInView,
+  highlightLayout,
   linePoints,
+  markProgress,
   parseChartPairs,
   pieSlices,
   poseAtTime,
@@ -304,15 +306,47 @@ function ElementNode({
   }
 
   if (el.type === "text") {
+    const layout = highlightLayout(el);
+    const progress = markProgress(el, timeMs, playing);
+    const fontSize = el.fontSize || 28;
+    const washH = Math.max(10, fontSize * 0.92);
+    const washY = fontSize * 0.12;
+    const markW = layout ? layout.midW * progress : 0;
     return (
       <Group ref={bindRef} {...common}>
+        {layout && (layout.style === "highlight" || layout.style === "both") && markW > 0 ? (
+          <Rect
+            x={layout.beforeW - 2}
+            y={washY}
+            width={markW + 4}
+            height={washH}
+            fill={layout.color}
+            opacity={0.55}
+            cornerRadius={2}
+            listening={false}
+          />
+        ) : null}
         <Text
           text={el.content || "Text"}
-          fontSize={el.fontSize || 28}
+          fontSize={fontSize}
           fontFamily="Sora, Segoe UI, sans-serif"
           fill={fill}
           width={size.width}
         />
+        {layout && (layout.style === "underline" || layout.style === "both") && markW > 0 ? (
+          <Line
+            points={[
+              layout.beforeW,
+              fontSize + 2,
+              layout.beforeW + markW,
+              fontSize + 2,
+            ]}
+            stroke={layout.color}
+            strokeWidth={Math.max(2, fontSize * 0.08)}
+            lineCap="round"
+            listening={false}
+          />
+        ) : null}
         {inner}
       </Group>
     );
@@ -409,29 +443,81 @@ function ElementNode({
     const accent =
       typeof el.variables?.accent === "string" ? el.variables.accent : fill;
     const bg =
-      typeof el.variables?.bg === "string" ? el.variables.bg : fill || "#111827";
+      typeof el.variables?.bg === "string"
+        ? el.variables.bg
+        : typeof el.variables?.paperColor === "string"
+          ? el.variables.paperColor
+          : fill || "#111827";
+    const headline =
+      typeof el.variables?.headline === "string"
+        ? el.variables.headline
+        : typeof el.variables?.title === "string"
+          ? el.variables.title
+          : el.name || "Template";
+    const highlight =
+      typeof el.variables?.highlight === "string" ? el.variables.highlight : "";
+    const marker =
+      typeof el.variables?.markerColor === "string"
+        ? el.variables.markerColor
+        : "#FAFF00";
+    const isVox = /vox/i.test(
+      `${el.name || ""} ${el.revideoTemplate || ""} ${el.templateId || ""}`,
+    );
+    const isNews = /news|paper|highlight/i.test(
+      `${el.name || ""} ${el.revideoTemplate || ""} ${el.templateId || ""}`,
+    );
     return (
       <Group ref={bindRef} {...common}>
-        <Rect width={size.width} height={size.height} fill={bg} cornerRadius={10} />
+        <Rect width={size.width} height={size.height} fill={String(bg)} cornerRadius={10} />
         <Rect x={10} y={12} width={5} height={size.height - 24} fill={accent} cornerRadius={2} />
+        <Text
+          x={24}
+          y={22}
+          width={size.width - 40}
+          text={isVox ? "VOX STYLE" : isNews ? "NEWSPAPER" : "TEMPLATE"}
+          fontSize={11}
+          fontFamily="Sora, Segoe UI, sans-serif"
+          fill={accent || "#9aa0b4"}
+          letterSpacing={1.2}
+        />
         <Text
           x={24}
           y={size.height / 2 - 28}
           width={size.width - 40}
-          text={el.name || "Template"}
-          fontSize={20}
-          fontFamily="Sora, Segoe UI, sans-serif"
+          text={String(headline).slice(0, 72)}
+          fontSize={18}
+          fontFamily="Libre Baskerville, Georgia, serif"
           fill="#f4f0e6"
         />
-        <Text
-          x={24}
-          y={size.height / 2 + 2}
-          width={size.width - 40}
-          text="Frontpage template"
-          fontSize={12}
-          fontFamily="Sora, Segoe UI, sans-serif"
-          fill="#9aa0b4"
-        />
+        {highlight ? (
+          <Group x={24} y={size.height / 2 + 8}>
+            <Rect
+              width={Math.min(size.width - 56, String(highlight).length * 9 + 16)}
+              height={22}
+              fill={marker}
+              opacity={0.55}
+              cornerRadius={2}
+            />
+            <Text
+              x={6}
+              y={3}
+              text={String(highlight).slice(0, 40)}
+              fontSize={13}
+              fontFamily="Sora, Segoe UI, sans-serif"
+              fill="#1a1433"
+            />
+          </Group>
+        ) : (
+          <Text
+            x={24}
+            y={size.height / 2 + 8}
+            width={size.width - 40}
+            text={el.name || "Frontpage template"}
+            fontSize={12}
+            fontFamily="Sora, Segoe UI, sans-serif"
+            fill="#9aa0b4"
+          />
+        )}
         {inner}
       </Group>
     );

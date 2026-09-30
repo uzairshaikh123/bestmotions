@@ -145,9 +145,13 @@ function scoreFor(template: string): Score {
   if (
     template === "airplane-route" ||
     template === "globe-spin" ||
+    template === "world-focus" ||
     template === "country-highlight" ||
     template === "map-spotlight" ||
-    template === "zoom-location"
+    template === "zoom-location" ||
+    template === "map-distance" ||
+    template === "map-split" ||
+    template === "map-border-trace"
   ) {
     return { intro: "slide", hit: "select", accent: "drop" };
   }
@@ -160,6 +164,18 @@ function scoreFor(template: string): Score {
       return { intro: "scroll", hit: "select", accent: "scratch" };
     }
     return { intro: "slide", hit: "select", accent: "scratch" };
+  }
+  if (template.startsWith("ai-") && template !== "ai-compose") {
+    if (template === "ai-netflix-sting" || template === "ai-spotlight-title") {
+      return { intro: "slide", hit: "bong", accent: "confirm" };
+    }
+    if (template === "ai-google-search" || template === "ai-suggest-cascade") {
+      return { intro: "click", hit: "tick", ticks: 3 };
+    }
+    if (template === "ai-chatgpt-thread" || template === "ai-claude-reply" || template === "ai-chat-conversation" || template === "ai-multi-bot" || template === "ai-gemini-reply" || template === "ai-perplexity-answer") {
+      return { intro: "open", hit: "tick", accent: "confirm" };
+    }
+    return { intro: "select", hit: "tick", accent: "click" };
   }
   if (template.startsWith("text-") || template === "headline-slam" || template === "quote-callout") {
     if (template === "headline-slam") return { intro: "slide", hit: "bong", accent: "scratch" };
